@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+from .workspace import Workspace, normalize_name
 
 
 def _run(args: list[str], label: str) -> None:
@@ -44,7 +48,7 @@ def export_workspace(workspace_dir: Path, output_dir: Path) -> tuple[Path, Path]
     # Move JSON output to our build dir
     src_json = workspace_dir / "output-json" / "workspace.json"
     dst_json = json_dir / "workspace.json"
-    src_json.rename(dst_json)
+    shutil.move(str(src_json), str(dst_json))
     (workspace_dir / "output-json").rmdir()
 
     # Export PlantUML
@@ -58,7 +62,7 @@ def export_workspace(workspace_dir: Path, output_dir: Path) -> tuple[Path, Path]
     # Move PUML files to our build dir
     puml_src_dir = workspace_dir / "output-puml"
     for puml_file in puml_src_dir.glob("*.puml"):
-        puml_file.rename(puml_dir / puml_file.name)
+        shutil.move(str(puml_file), str(puml_dir / puml_file.name))
     puml_src_dir.rmdir()
 
     return json_dir, puml_dir
@@ -88,3 +92,57 @@ def render_diagrams(puml_dir: Path, svg_dir: Path) -> None:
         "plantuml/plantuml",
         "-tsvg", "-o", "/output", "/data/*.puml",
     ], f"Rendering {len(puml_files)} diagrams to SVG")
+
+
+def _build_element_url_map(workspace: Workspace) -> dict[str, str]:
+    """Build a mapping from element name to relative URL path (from diagrams/)."""
+    urls: dict[str, str] = {}
+    for person in workspace.people:
+        slug = normalize_name(person.name)
+        urls[person.name] = f"../actors/{slug}/"
+    for ss in workspace.software_systems:
+        ss_slug = normalize_name(ss.name)
+        urls[ss.name] = f"../software-systems/{ss_slug}/"
+        for c in ss.containers:
+            urls[c.name] = f"../software-systems/{ss_slug}/"
+            for comp in c.components:
+                urls[comp.name] = f"../software-systems/{ss_slug}/"
+    return urls
+
+
+_ELEMENT_NAME_RE = re.compile(r'\(\w+,\s*"([^"]+)"')
+
+
+def process_puml_files(puml_dir: Path, workspace: Workspace, *, hide_legend: bool = False) -> None:
+    """Single-pass post-processing of .puml files: inject links, strip titles/legends."""
+    url_map = _build_element_url_map(workspace)
+
+    for puml_file in puml_dir.glob("*.puml"):
+        content = puml_file.read_text(encoding="utf-8")
+        original = content
+
+        # Inject links
+        lines = content.split("\n")
+        for i, line in enumerate(lines):
+            if '$link=""' not in line:
+                continue
+            match = _ELEMENT_NAME_RE.search(line)
+            if not match:
+                continue
+            name = match.group(1)
+            url = url_map.get(name)
+            if url:
+                lines[i] = line.replace('$link=""', f'$link="{url}"')
+        content = "\n".join(lines)
+
+        # Strip titles
+        content = re.sub(r"^title .*\n?", "", content, flags=re.MULTILINE)
+
+        # Strip legends
+        if hide_legend:
+            content = re.sub(r"^SHOW_LEGEND\(.*\)\s*\n?", "", content, flags=re.MULTILINE)
+
+        if content != original:
+            puml_file.write_text(content, encoding="utf-8")
+
+

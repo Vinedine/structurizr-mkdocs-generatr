@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import click
 
-from .exporter import export_workspace, render_diagrams
-from .markdown_writer import generate_markdown
+from .exporter import export_workspace, process_puml_files, render_diagrams
+from .markdown_writer import GenerateOptions, generate_markdown
 from .mkdocs_config import generate_mkdocs_config
+from .properties import resolve_properties
 from .workspace import parse_workspace
 
 
@@ -43,30 +45,56 @@ def main(
     json_dir = output / "json"
     puml_dir = output / "puml"
     svg_dir = output / "svg"
+    inline_puml_dir = output / "inline-puml"
     site_src = output / "site-src"
 
     # Step 1: Export via Docker
     if not skip_export:
         click.echo("Step 1/4: Exporting workspace via Structurizr vNext...")
         export_workspace(workspace_dir, output)
-
-        click.echo("Step 2/4: Rendering PlantUML diagrams to SVG...")
-        render_diagrams(puml_dir, svg_dir)
     else:
         click.echo("Steps 1-2: Skipping export (--skip-export)")
 
-    # Step 2: Parse workspace JSON
-    click.echo("Step 3/4: Generating MkDocs site source...")
+    # Parse workspace JSON (needed before rendering to inject diagram links)
     workspace_json = json_dir / "workspace.json"
     if not workspace_json.exists():
         click.echo(f"Error: {workspace_json} not found. Run without --skip-export first.", err=True)
         sys.exit(1)
 
     workspace = parse_workspace(workspace_json)
+    props = resolve_properties(workspace.view_properties)
+
+    # Step 2: Post-process PlantUML and render to SVG
+    if not skip_export:
+        click.echo("  Post-processing PlantUML diagrams...")
+        process_puml_files(puml_dir, workspace, hide_legend=props.hide_legend)
+
+        click.echo("Step 2/4: Rendering PlantUML diagrams to SVG...")
+        render_diagrams(puml_dir, svg_dir)
+
+    click.echo("Step 3/4: Generating MkDocs site source...")
+
+    # Clean previous site source to avoid stale files
+    docs_out = site_src / "docs"
+    if docs_out.exists():
+        shutil.rmtree(docs_out)
 
     # Step 3: Generate Markdown + mkdocs.yml
-    generate_markdown(workspace, site_src / "docs", svg_dir)
-    generate_mkdocs_config(workspace, site_src)
+    opts = GenerateOptions(
+        assets_dir=workspace_dir / "assets",
+        inline_puml_dir=inline_puml_dir,
+        puml_dir=puml_dir,
+        props=props,
+    )
+    generate_markdown(workspace, docs_out, svg_dir, opts)
+    generate_mkdocs_config(workspace, site_src, props)
+
+    # Render inline PlantUML blocks if any were extracted
+    inline_puml_files = list(inline_puml_dir.glob("*.puml")) if inline_puml_dir.exists() else []
+    if inline_puml_files:
+        diagrams_dir = site_src / "docs" / "diagrams"
+        click.echo(f"  Rendering {len(inline_puml_files)} inline PlantUML diagrams...")
+        render_diagrams(inline_puml_dir, diagrams_dir)
 
     click.echo("Step 4/4: Building MkDocs site...")
     mkdocs = [sys.executable, "-m", "mkdocs"]
