@@ -188,24 +188,26 @@ workspace "Big Bank plc" "This is an example workspace to illustrate the key fea
     }
 
     views {
+        !include _auto_generated_views.dsl
+
         properties {
             "c4plantuml.elementProperties" "true"
             "c4plantuml.tags" "true"
 
-            "mkdocs.theme" "auto"
-            "mkdocs.color.primary" "#485fc7"
-            "mkdocs.color.accent" "indigo"
-            "mkdocs.color.headerText" "#ffffff"
-            "mkdocs.favicon" "site/favicon.ico"
-            "mkdocs.logo" "site/logo.png"
-            "mkdocs.customCss" "site/custom.css"
-            "mkdocs.svgLinkTarget" "_self"
-            "mkdocs.externalTag" "External System"
-            "mkdocs.navigation.nestGroups" "false"
-            "mkdocs.navigation.instant" "false"
-            "mkdocs.navigation.tabs" "false"
-            "mkdocs.fullWidth" "true"
-            "mkdocs.hideLegend" "true"
+            # "mkdocs.theme" "auto"
+            # "mkdocs.color.primary" "#485fc7"
+            # "mkdocs.color.accent" "indigo"
+            # "mkdocs.color.headerText" "#ffffff"
+            # "mkdocs.favicon" "site/favicon.ico"
+            # "mkdocs.logo" "site/logo.png"
+            # "mkdocs.customCss" "site/custom.css"
+            # "mkdocs.svgLinkTarget" "_self"
+            # "mkdocs.externalTag" "External System"
+            # "mkdocs.navigation.nestGroups" "false"
+            # "mkdocs.navigation.instant" "false"
+            # "mkdocs.navigation.tabs" "false"
+            # "mkdocs.fullWidth" "true"
+            # "mkdocs.hideLegend" "true"
         }
 
         systemlandscape "SystemLandscape" {

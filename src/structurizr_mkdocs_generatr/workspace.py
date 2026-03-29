@@ -147,8 +147,48 @@ class Workspace:
     def landscape_views(self) -> list[View]:
         return [v for v in self.views if v.type == VIEW_SYSTEM_LANDSCAPE]
 
+    def groups(self) -> list[str]:
+        """Return sorted unique group names from software systems."""
+        return sorted({ss.group for ss in self.software_systems if ss.group})
+
+    def group_description(self, group_name: str) -> str:
+        """Return the description for a group from model properties (group.{name}.description)."""
+        return self.properties.get(f"group.{group_name}.description", "")
+
+    def systems_in_group(self, group_name: str) -> list[SoftwareSystem]:
+        """Return software systems belonging to a group, sorted by name."""
+        return sorted(
+            [ss for ss in self.software_systems if ss.group == group_name],
+            key=lambda s: s.name,
+        )
+
+    def group_landscape_view(self, group_name: str) -> View | None:
+        """Find the landscape view for a group (key: SystemLandscape{GroupNoSpaces})."""
+        key = f"SystemLandscape{group_name.replace(' ', '')}"
+        for v in self.views:
+            if v.type == VIEW_SYSTEM_LANDSCAPE and v.key == key:
+                return v
+        return None
+
     def views_for_person(self, person_id: str) -> list[View]:
-        return [v for v in self.views if person_id in v.element_ids]
+        """Return the dedicated per-actor landscape view for this person.
+
+        Prefers views where the person is the only person element (e.g.
+        SystemLandscapeUserFan) to avoid showing group-level or full landscape
+        views. Falls back to any landscape view containing the person if no
+        single-person view exists.
+        """
+        person_ids = {p.id for p in self.people}
+        single_person_views = []
+        all_matching_views = []
+        for v in self.views:
+            if v.type != VIEW_SYSTEM_LANDSCAPE or person_id not in v.element_ids:
+                continue
+            all_matching_views.append(v)
+            persons_in_view = [eid for eid in v.element_ids if eid in person_ids]
+            if len(persons_in_view) == 1:
+                single_person_views.append(v)
+        return single_person_views if single_person_views else all_matching_views
 
     def system_for_element_id(self, element_id: str) -> SoftwareSystem | None:
         """Find the software system that owns an element (system, container, or component)."""

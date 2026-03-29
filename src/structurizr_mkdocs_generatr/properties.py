@@ -46,8 +46,8 @@ class SiteProperties:
     external_tag: str | None = None
     nest_groups: bool = False
     navigation_instant: bool = False
-    navigation_tabs: bool = False
-    full_width: bool = False
+    navigation_tabs: bool = True
+    full_width: bool = True
     hide_legend: bool = False
 
     def has_hex_colors(self) -> bool:
@@ -122,7 +122,7 @@ def resolve_properties(view_properties: dict[str, str]) -> SiteProperties:
         external_tag=_get(view_properties, "mkdocs.externalTag"),
         nest_groups=_parse_bool(_get(view_properties, "mkdocs.navigation.nestGroups")),
         navigation_instant=_parse_bool(_get(view_properties, "mkdocs.navigation.instant")),
-        navigation_tabs=_parse_bool(_get(view_properties, "mkdocs.navigation.tabs")),
-        full_width=_parse_bool(_get(view_properties, "mkdocs.fullWidth")),
+        navigation_tabs=_parse_bool(_get(view_properties, "mkdocs.navigation.tabs"), default=True),
+        full_width=_parse_bool(_get(view_properties, "mkdocs.fullWidth"), default=True),
         hide_legend=_parse_bool(_get(view_properties, "mkdocs.hideLegend")),
     )

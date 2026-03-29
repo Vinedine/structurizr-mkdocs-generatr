@@ -1,0 +1,179 @@
+flowchart TB
+
+    %% [START.CONTEXT] [Core Banking]
+
+    subgraph Core Banking
+        CUSTOMER_ACCOUNT[Customer Account]
+        TRANSACTION[Transaction]
+        BALANCE[Balance]
+        PAYMENT[Payment]
+        STANDING_ORDER[Standing Order]
+        DIRECT_DEBIT[Direct Debit]
+    end
+
+    CUSTOMER_ACCOUNT --> |has| BALANCE
+    CUSTOMER_ACCOUNT --> |records| TRANSACTION
+    PAYMENT --> |creates| TRANSACTION
+    STANDING_ORDER --> |triggers| PAYMENT
+    DIRECT_DEBIT --> |triggers| PAYMENT
+
+    click CUSTOMER_ACCOUNT 'CUSTOMER_ACCOUNT'
+    click TRANSACTION 'TRANSACTION'
+    click BALANCE 'BALANCE'
+    click PAYMENT 'PAYMENT'
+    click STANDING_ORDER 'STANDING_ORDER'
+    click DIRECT_DEBIT 'DIRECT_DEBIT'
+
+    %% [END.CONTEXT] [Core Banking]
+
+    %% [START.CONTEXT] [Internet Banking]
+
+    subgraph Internet Banking
+        WEB_SESSION[Web Session]
+        USER_CREDENTIAL[User Credential]
+        ACCESS_LOG[Access Log]
+        REGISTRATION[Registration]
+        PASSWORD_RESET[Password Reset]
+        AUTHENTICATION_TOKEN[Authentication Token]
+    end
+
+    REGISTRATION --> |creates| USER_CREDENTIAL
+    USER_CREDENTIAL --> |validates| WEB_SESSION
+    WEB_SESSION --> |recorded in| ACCESS_LOG
+    PASSWORD_RESET --> |updates| USER_CREDENTIAL
+    WEB_SESSION --> |issues| AUTHENTICATION_TOKEN
+
+    click WEB_SESSION 'WEB_SESSION'
+    click USER_CREDENTIAL 'USER_CREDENTIAL'
+    click ACCESS_LOG 'ACCESS_LOG'
+    click REGISTRATION 'REGISTRATION'
+    click PASSWORD_RESET 'PASSWORD_RESET'
+    click AUTHENTICATION_TOKEN 'AUTHENTICATION_TOKEN'
+
+    %% [END.CONTEXT] [Internet Banking]
+
+    %% [START.CONTEXT] [Payment Acquisition]
+
+    subgraph Payment Acquisition
+        MERCHANT[Merchant]
+        PIN_TRANSACTION[PIN Transaction]
+        CLEARING[Clearing]
+        SETTLEMENT[Settlement]
+        TERMINAL[Terminal]
+    end
+
+    MERCHANT --> |operates| TERMINAL
+    TERMINAL --> |initiates| PIN_TRANSACTION
+    PIN_TRANSACTION --> |processed via| CLEARING
+    CLEARING --> |results in| SETTLEMENT
+
+    click MERCHANT 'MERCHANT'
+    click PIN_TRANSACTION 'PIN_TRANSACTION'
+    click CLEARING 'CLEARING'
+    click SETTLEMENT 'SETTLEMENT'
+    click TERMINAL 'TERMINAL'
+
+    %% [END.CONTEXT] [Payment Acquisition]
+
+    %% [START.CONTEXT] [ATM Services]
+
+    subgraph ATM Services
+        ATM_DEVICE[ATM Device]
+        CASH_WITHDRAWAL[Cash Withdrawal]
+        CARD[Card]
+        PIN_VERIFICATION[PIN Verification]
+        CASH_INVENTORY[Cash Inventory]
+    end
+
+    CARD --> |authenticated by| PIN_VERIFICATION
+    PIN_VERIFICATION --> |authorizes| CASH_WITHDRAWAL
+    ATM_DEVICE --> |dispenses| CASH_WITHDRAWAL
+    ATM_DEVICE --> |tracks| CASH_INVENTORY
+
+    click ATM_DEVICE 'ATM_DEVICE'
+    click CASH_WITHDRAWAL 'CASH_WITHDRAWAL'
+    click CARD 'CARD'
+    click PIN_VERIFICATION 'PIN_VERIFICATION'
+    click CASH_INVENTORY 'CASH_INVENTORY'
+
+    %% [END.CONTEXT] [ATM Services]
+
+    %% [START.CONTEXT] [Customer Communication]
+
+    subgraph Customer Communication
+        EMAIL_MESSAGE[Email Message]
+        EMAIL_TEMPLATE[Email Template]
+        NOTIFICATION[Notification]
+        RECIPIENT[Recipient]
+    end
+
+    EMAIL_TEMPLATE --> |renders| EMAIL_MESSAGE
+    EMAIL_MESSAGE --> |sent to| RECIPIENT
+    NOTIFICATION --> |delivered as| EMAIL_MESSAGE
+
+    click EMAIL_MESSAGE 'EMAIL_MESSAGE'
+    click EMAIL_TEMPLATE 'EMAIL_TEMPLATE'
+    click NOTIFICATION 'NOTIFICATION'
+    click RECIPIENT 'RECIPIENT'
+
+    %% [END.CONTEXT] [Customer Communication]
+
+    %% [START.CONTEXT] [Customer Relationship]
+
+    subgraph Customer Relationship
+        CUSTOMER[Customer]
+        SUPPORT_CASE[Support Case]
+        KYC_RECORD[KYC Record]
+        CONTACT_DETAILS[Contact Details]
+    end
+
+    CUSTOMER --> |has| CONTACT_DETAILS
+    CUSTOMER --> |verified by| KYC_RECORD
+    CUSTOMER --> |raises| SUPPORT_CASE
+
+    click CUSTOMER 'CUSTOMER'
+    click SUPPORT_CASE 'SUPPORT_CASE'
+    click KYC_RECORD 'KYC_RECORD'
+    click CONTACT_DETAILS 'CONTACT_DETAILS'
+
+    %% [END.CONTEXT] [Customer Relationship]
+
+    %% [START.CONTEXT] [Back Office Operations]
+
+    subgraph Back Office Operations
+        ACCOUNT_REVIEW[Account Review]
+        RECONCILIATION[Reconciliation]
+        REPORT[Report]
+        FRAUD_ALERT[Fraud Alert]
+        AUDIT_LOG[Audit Log]
+    end
+
+    ACCOUNT_REVIEW --> |produces| REPORT
+    RECONCILIATION --> |verified by| AUDIT_LOG
+    FRAUD_ALERT --> |triggers| ACCOUNT_REVIEW
+
+    click ACCOUNT_REVIEW 'ACCOUNT_REVIEW'
+    click RECONCILIATION 'RECONCILIATION'
+    click REPORT 'REPORT'
+    click FRAUD_ALERT 'FRAUD_ALERT'
+    click AUDIT_LOG 'AUDIT_LOG'
+
+    %% [END.CONTEXT] [Back Office Operations]
+
+    %% [START.LINK]
+
+    CUSTOMER --> |owns| CUSTOMER_ACCOUNT
+    CUSTOMER --> |registers for| REGISTRATION
+    CUSTOMER --> |holds| CARD
+    CUSTOMER --> |is| RECIPIENT
+    WEB_SESSION --> |views| BALANCE
+    WEB_SESSION --> |initiates| PAYMENT
+    CASH_WITHDRAWAL --> |creates| TRANSACTION
+    PIN_TRANSACTION --> |creates| TRANSACTION
+    PASSWORD_RESET --> |sends| NOTIFICATION
+    SUPPORT_CASE --> |handled by| ACCOUNT_REVIEW
+    FRAUD_ALERT --> |monitors| TRANSACTION
+    SETTLEMENT --> |creates| TRANSACTION
+    MERCHANT --> |settles via| CUSTOMER_ACCOUNT
+
+    %% [END.LINK]

@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 
-import pytest
 
 from structurizr_mkdocs_generatr.markdown_writer import (
     _add_mermaid_view_source,

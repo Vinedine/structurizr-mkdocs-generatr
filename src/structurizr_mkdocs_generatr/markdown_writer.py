@@ -9,6 +9,12 @@ from dataclasses import dataclass, field
 from importlib import resources
 from pathlib import Path
 
+from .bounded_context import (
+    BoundedContextModel,
+    map_contexts,
+    write_bounded_context_index,
+    write_bounded_context_pages,
+)
 from .properties import SiteProperties
 from .workspace import (
     VIEW_COMPONENT,
@@ -37,6 +43,7 @@ class GenerateOptions:
     props: SiteProperties = field(default_factory=SiteProperties)
     view_keys: set[str] = field(default_factory=set)
     puml_counter: list[int] = field(default_factory=lambda: [0])
+    bc_model: BoundedContextModel | None = None
 
 
 def generate_markdown(
@@ -58,6 +65,7 @@ def generate_markdown(
     _write_actors_index(workspace, docs_dir)
     _write_actor_pages(workspace, docs_dir)
     _write_software_systems_index(workspace, docs_dir, opts.props)
+    _write_group_pages(workspace, docs_dir, opts.props)
     _copy_diagrams(svg_dir, docs_dir, opts.puml_dir)
     _write_image_views(workspace, docs_dir)
 
@@ -65,6 +73,11 @@ def generate_markdown(
     _generate_color_overrides(opts.props, docs_dir)
     _generate_full_width_css(opts.props, docs_dir)
     _generate_external_links_js(opts.props, docs_dir)
+
+    if opts.bc_model:
+        system_map, cap_map = map_contexts(opts.bc_model, workspace)
+        write_bounded_context_index(opts.bc_model, system_map, cap_map, docs_dir)
+        write_bounded_context_pages(opts.bc_model, system_map, cap_map, workspace, docs_dir)
 
     for ss in workspace.software_systems:
         _write_software_system_pages(workspace, ss, docs_dir, opts)
@@ -252,15 +265,67 @@ def _write_actor_pages(workspace: Workspace, docs_dir: Path) -> None:
 def _write_software_systems_index(workspace: Workspace, docs_dir: Path, props: SiteProperties | None = None) -> None:
     external_tag = props.external_tag if props else None
     lines = ["# Software Systems\n\n"]
-    lines.append("| Name | Description |\n")
-    lines.append("|---|---|\n")
-    for ss in sorted(workspace.software_systems, key=lambda s: s.name):
-        slug = normalize_name(ss.name)
-        name = ss.name
-        if external_tag and external_tag in ss.tags:
-            name = f"{ss.name} :material-open-in-new:{{ title=\"External\" }}"
-        lines.append(f"| [{name}]({slug}/index.md) | {ss.description} |\n")
+
+    # Embed overall landscape views (SystemLandscape and SystemLandscapeSoftwareSystems)
+    overall_views = [
+        v for v in workspace.landscape_views()
+        if v.key in ("SystemLandscape", "SystemLandscapeSoftwareSystems")
+    ]
+    for v in overall_views:
+        title = v.title or v.description or v.key
+        lines.append(f"## {title}\n\n")
+        lines.append(f"{_diagram_embed(v, '../../diagrams/')}\n\n")
+
+    # List ungrouped systems so they're discoverable from the index page
+    ungrouped = sorted(
+        [ss for ss in workspace.software_systems if not ss.group],
+        key=lambda s: s.name,
+    )
+    if ungrouped:
+        lines.append("| Name | Description |\n")
+        lines.append("|---|---|\n")
+        for ss in ungrouped:
+            slug = normalize_name(ss.name)
+            name = ss.name
+            if external_tag and external_tag in ss.tags:
+                name = f"{ss.name} :material-open-in-new:{{ title=\"External\" }}"
+            lines.append(f"| [{name}]({slug}/index.md) | {ss.description} |\n")
+
     _write_file(docs_dir / "software-systems" / "index.md", "".join(lines))
+
+
+def _write_group_pages(workspace: Workspace, docs_dir: Path, props: SiteProperties | None = None) -> None:
+    """Write an index page for each group with its landscape diagram and system table."""
+    external_tag = props.external_tag if props else None
+
+    for group_name in workspace.groups():
+        group_slug = normalize_name(group_name)
+        group_dir = docs_dir / "software-systems" / group_slug
+        lines = [f"# {group_name}\n\n"]
+
+        description = workspace.group_description(group_name)
+        if description:
+            lines.append(f"{description}\n\n")
+
+        # Group landscape diagram
+        group_view = workspace.group_landscape_view(group_name)
+        if group_view:
+            lines.append(f"{_diagram_embed(group_view, '../../diagrams/')}\n\n")
+
+        # Systems table
+        systems = workspace.systems_in_group(group_name)
+        if systems:
+            lines.append("## Systems\n\n")
+            lines.append("| Name | Description |\n")
+            lines.append("|---|---|\n")
+            for ss in systems:
+                ss_slug = normalize_name(ss.name)
+                name = ss.name
+                if external_tag and external_tag in ss.tags:
+                    name = f"{ss.name} :material-open-in-new:{{ title=\"External\" }}"
+                lines.append(f"| [{name}](../{ss_slug}/index.md) | {ss.description} |\n")
+
+        _write_file(group_dir / "index.md", "".join(lines))
 
 
 def _write_software_system_pages(
@@ -271,7 +336,7 @@ def _write_software_system_pages(
 
     lines = [f"# {ss.name}\n\n"]
     if ss.description:
-        lines.append(f'<p class="subtitle">{ss.description}</p>\n\n')
+        lines.append(f"*{ss.description}*\n{{ .subtitle }}\n\n")
     if ss.group:
         lines.append(f"**Group:** {ss.group}\n\n")
     if ss.url:
@@ -325,7 +390,7 @@ def _append_diagrams(views: list[View], lines: list[str]) -> None:
         lines.append(f"## {label}\n\n")
         for v in group:
             if view_type == VIEW_DEPLOYMENT:
-                title = v.title or v.key
+                title = v.title or v.description or v.key
                 lines.append(f"### {title}\n\n")
             lines.append(f"{_diagram_embed(v)}\n\n")
 
@@ -524,7 +589,7 @@ def _diagram_path(view: View, prefix: str = "../../diagrams/") -> str:
 def _diagram_embed(view: View, prefix: str = "../../diagrams/") -> str:
     """Generate an <object> tag for SVG diagrams (supports clickable links) or <img> for raster."""
     path = _diagram_path(view, prefix)
-    title = view.title or view.key
+    title = view.title or view.description or view.key
     if view.content_type and view.content_type in _IMAGE_EXTENSIONS and view.content_type != "image/svg+xml":
         return f"![{title}]({path})"
     return f'<object data="{path}" type="image/svg+xml" class="diagram">{title}</object>'

@@ -6,7 +6,15 @@ from pathlib import Path
 
 import yaml
 
+from .bounded_context import BoundedContextModel
 from .properties import MATERIAL_NAMED_COLORS, SiteProperties
+from .workspace import (
+    Documentation,
+    Workspace,
+    normalize_name,
+    section_slug,
+    section_title,
+)
 
 
 class _PythonName:
@@ -22,16 +30,10 @@ def _python_name_representer(dumper: yaml.Dumper, data: _PythonName) -> yaml.Nod
 yaml.add_representer(_PythonName, _python_name_representer)
 
 
-from .workspace import (
-    Documentation,
-    Workspace,
-    normalize_name,
-    section_slug,
-    section_title,
-)
-
-
-def generate_mkdocs_config(workspace: Workspace, site_dir: Path, props: SiteProperties) -> None:
+def generate_mkdocs_config(
+    workspace: Workspace, site_dir: Path, props: SiteProperties,
+    bc_model: BoundedContextModel | None = None,
+) -> None:
     """Generate mkdocs.yml for the workspace."""
     config = {
         "site_name": workspace.name or "Architecture",
@@ -40,7 +42,7 @@ def generate_mkdocs_config(workspace: Workspace, site_dir: Path, props: SiteProp
         "plugins": ["search", "glightbox"],
         "docs_dir": "docs",
         "use_directory_urls": False,
-        "nav": _build_nav(workspace),
+        "nav": _build_nav(workspace, bc_model),
         "extra_css": _build_extra_css(props),
         "extra_javascript": ["js/external-links.js"],
         "markdown_extensions": [
@@ -56,8 +58,14 @@ def generate_mkdocs_config(workspace: Workspace, site_dir: Path, props: SiteProp
                     "format": _PythonName("pymdownx.superfences.fence_code_format"),
                 }],
             }},
-            "pymdownx.tabbed",
+            {"pymdownx.tabbed": {"alternate_style": True}},
             "pymdownx.details",
+            {"pymdownx.emoji": {
+                "emoji_index": _PythonName("material.extensions.emoji.twemoji"),
+                "emoji_generator": _PythonName("material.extensions.emoji.to_svg"),
+            }},
+            {"pymdownx.highlight": {"anchor_linenums": True}},
+            "pymdownx.inlinehilite",
         ],
     }
 
@@ -135,16 +143,27 @@ def _build_extra_css(props: SiteProperties) -> list[str]:
     return css
 
 
-def _build_nav(workspace: Workspace) -> list:
+def _build_nav(workspace: Workspace, bc_model: BoundedContextModel | None = None) -> list:
     """Build left sidebar nav with sections."""
-    nav: list = [{"Home": "index.md"}]
-
-    # Workspace documentation sections
+    # Workspace documentation sections under "Main" section (index.md is the home page)
+    skip_slugs = {"bounded-contexts", "capability-map"} if bc_model else set()
     sorted_sections = sorted(workspace.documentation.sections, key=lambda s: s.order)
+    main_nav: list = [{"index": "index.md"}]
     for section in sorted_sections[1:]:
         slug = section_slug(section)
+        if slug in skip_slugs:
+            continue
         title = section_title(section)
-        nav.append({title: f"documentation/{slug}.md"})
+        main_nav.append({title: f"documentation/{slug}.md"})
+    nav: list = [{"Main": main_nav}]
+
+    # Capability Map section with children (when auto-generated from boundedContext.mmd)
+    if bc_model:
+        bc_nav: list = [{"index": "capability-map/index.md"}]
+        for ctx in bc_model.contexts:
+            ctx_slug = normalize_name(ctx.name)
+            bc_nav.append({ctx.name: f"capability-map/{ctx_slug}.md"})
+        nav.append({"Capability Map": bc_nav})
 
     # Actors section (expandable)
     actors_nav = _actors_nav(workspace)
@@ -187,8 +206,29 @@ def _actors_nav(workspace: Workspace) -> list:
 def _systems_nav(workspace: Workspace) -> list:
     nav: list = [{"index": "software-systems/index.md"}]
 
-    for ss in sorted(workspace.software_systems, key=lambda s: s.name):
-        slug = normalize_name(ss.name)
-        nav.append({ss.name: f"software-systems/{slug}/index.md"})
+    groups = workspace.groups()
+    if groups:
+        # Nest systems under group sub-sections
+        for group_name in groups:
+            group_slug = normalize_name(group_name)
+            group_nav: list = [{"index": f"software-systems/{group_slug}/index.md"}]
+            for ss in workspace.systems_in_group(group_name):
+                slug = normalize_name(ss.name)
+                group_nav.append({ss.name: f"software-systems/{slug}/index.md"})
+            nav.append({group_name: group_nav})
+
+        # Systems without a group (ungrouped) go at the end
+        ungrouped = sorted(
+            [ss for ss in workspace.software_systems if not ss.group],
+            key=lambda s: s.name,
+        )
+        for ss in ungrouped:
+            slug = normalize_name(ss.name)
+            nav.append({ss.name: f"software-systems/{slug}/index.md"})
+    else:
+        # No groups — flat list like before
+        for ss in sorted(workspace.software_systems, key=lambda s: s.name):
+            slug = normalize_name(ss.name)
+            nav.append({ss.name: f"software-systems/{slug}/index.md"})
 
     return nav
