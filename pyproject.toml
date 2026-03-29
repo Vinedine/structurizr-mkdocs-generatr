@@ -9,6 +9,17 @@ description = "Generate MkDocs Material sites from Structurizr DSL workspaces"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
+authors = []
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+]
 dependencies = [
     "click>=8.0",
     "mkdocs>=1.6",

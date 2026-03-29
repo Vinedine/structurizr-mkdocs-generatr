@@ -1,6 +1,18 @@
 /* SVG diagrams embedded as <object> for clickable links */
 object.diagram {
-  width: 100%;
+  display: block;
   max-width: 100%;
   min-height: 200px;
+}
+
+/* Inline group tag next to headings */
+.group-tag {
+  font-size: 0.4em;
+  font-weight: 500;
+  vertical-align: middle;
+  padding: 0.2em 0.8em;
+  border-radius: 1em;
+  background: var(--md-default-fg-color--lightest);
+  color: var(--md-default-fg-color--light);
+  white-space: nowrap;
 }

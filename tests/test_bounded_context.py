@@ -172,7 +172,7 @@ class TestSystemMapping:
         )
 
     def test_maps_contexts_to_systems(self, model: BoundedContextModel) -> None:
-        intro_content = "# Description\nSome system\n\n# Business Data\n\n## Context\n- [Alpha](/bounded-contexts/)\n\n## Manage\n- stuff\n"
+        intro_content = "# Description\nSome system\n\n# Business Data\n\n# Bounded Context\n- [Alpha](/bounded-contexts/)\n\n# Data Landscape\n\n| Entity | Role |\n|--------|------|\n| stuff | Owns |\n"
         ss = self._make_system("Test System", intro_content)
         ws = Workspace(
             name="Test", description="", software_systems=[ss],
@@ -184,7 +184,7 @@ class TestSystemMapping:
         assert system_map["Beta"] == []
 
     def test_maps_capabilities(self, model: BoundedContextModel) -> None:
-        intro_content = "# Description\nTest\n\n# Business Capabilities\n\n- Cap one\n- Cap two\n\n# Business Data\n\n## Context\n- [Alpha](/bounded-contexts/)\n"
+        intro_content = "# Description\nTest\n\n# Capabilities\n\n- Cap one\n- Cap two\n\n# Business Data\n\n# Bounded Context\n- [Alpha](/bounded-contexts/)\n"
         ss = self._make_system("Test System", intro_content)
         ws = Workspace(
             name="Test", description="", software_systems=[ss],
@@ -207,7 +207,7 @@ class TestMarkdownGeneration:
         assert "# Capability Map" in content
         assert "capability map" in content
         assert '!!! question "What questions does this answer?"' in content
-        assert "| Bounded Context | Software Systems | Capabilities |" in content
+        assert "| Bounded Context | Description | Software Systems | Capabilities |" in content
         assert "[Alpha](alpha.md)" in content
         assert "[Beta](beta.md)" in content
         assert "| 0 |" in content
@@ -233,7 +233,7 @@ class TestMarkdownGeneration:
 
     def test_context_page_includes_capabilities(self, model: BoundedContextModel, tmp_path: Path) -> None:
         docs_dir = tmp_path / "docs"
-        intro_content = "# Description\nTest\n\n# Business Capabilities\n\n- Do thing one\n- Do thing two\n\n# Business Data\n\n## Context\n- [Alpha](/bounded-contexts/)\n"
+        intro_content = "# Description\nTest\n\n# Capabilities\n\n- Do thing one\n- Do thing two\n\n# Business Data\n\n# Bounded Context\n- [Alpha](/bounded-contexts/)\n"
         ss = SoftwareSystem(
             id="1", name="My System", description="", group="",
             tags=[], url="", containers=[], relationships=[],
@@ -269,7 +269,7 @@ class TestExampleFile:
 
     def test_parses_all_contexts(self, example_model: BoundedContextModel) -> None:
         assert example_model is not None
-        assert len(example_model.contexts) == 7
+        assert len(example_model.contexts) == 13
 
     def test_has_cross_links(self, example_model: BoundedContextModel) -> None:
         assert example_model is not None
@@ -278,9 +278,9 @@ class TestExampleFile:
     def test_context_names(self, example_model: BoundedContextModel) -> None:
         assert example_model is not None
         names = [c.name for c in example_model.contexts]
-        assert "Core Banking" in names
-        assert "Internet Banking" in names
-        assert "ATM Services" in names
+        assert "Club Strategy Management" in names
+        assert "Fan Engagement & Communications" in names
+        assert "Gameday Match/Event Delivery" in names
 
     def test_relations_exist(self, example_model: BoundedContextModel) -> None:
         assert example_model is not None
