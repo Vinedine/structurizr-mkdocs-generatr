@@ -2,7 +2,7 @@
 
 Customer Relationship Management platform for managing fan interactions, sponsor relationships, sales pipeline, and support cases.
 
-# Capabilities
+# Business Capabilities
 
 - Manage fan and customer profiles across all touchpoints
 - Track sponsor and partner relationship lifecycle

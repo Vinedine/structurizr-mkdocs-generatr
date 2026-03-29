@@ -23,13 +23,12 @@ _GENERATR_FALLBACK = {
     "mkdocs.logo": "generatr.style.logoPath",
     "mkdocs.customCss": "generatr.style.customStylesheet",
     "mkdocs.svgLinkTarget": "generatr.svglink.target",
-    "mkdocs.externalTag": "generatr.site.externalTag",
-    "mkdocs.navigation.nestGroups": "generatr.site.nestGroups",
     "mkdocs.color.accent": "generatr.style.colors.accent",
     "mkdocs.navigation.instant": "generatr.site.navigation.instant",
     "mkdocs.navigation.tabs": "generatr.site.navigation.tabs",
     "mkdocs.fullWidth": "generatr.site.fullWidth",
     "mkdocs.hideLegend": "generatr.site.hideLegend",
+    "mkdocs.mermaid.viewSource": None,
 }
 
 
@@ -43,12 +42,11 @@ class SiteProperties:
     logo: str | None = None
     custom_css: str | None = None
     svg_link_target: str = "_blank"
-    external_tag: str | None = None
-    nest_groups: bool = False
     navigation_instant: bool = False
     navigation_tabs: bool = True
     full_width: bool = True
     hide_legend: bool = False
+    mermaid_view_source: bool = False
 
     def has_hex_colors(self) -> bool:
         return any(
@@ -119,10 +117,9 @@ def resolve_properties(view_properties: dict[str, str]) -> SiteProperties:
         logo=_get(view_properties, "mkdocs.logo"),
         custom_css=_get(view_properties, "mkdocs.customCss"),
         svg_link_target=_validate_svg_target(_get(view_properties, "mkdocs.svgLinkTarget")),
-        external_tag=_get(view_properties, "mkdocs.externalTag"),
-        nest_groups=_parse_bool(_get(view_properties, "mkdocs.navigation.nestGroups")),
         navigation_instant=_parse_bool(_get(view_properties, "mkdocs.navigation.instant")),
         navigation_tabs=_parse_bool(_get(view_properties, "mkdocs.navigation.tabs"), default=True),
         full_width=_parse_bool(_get(view_properties, "mkdocs.fullWidth"), default=True),
         hide_legend=_parse_bool(_get(view_properties, "mkdocs.hideLegend")),
+        mermaid_view_source=_parse_bool(_get(view_properties, "mkdocs.mermaid.viewSource")),
     )

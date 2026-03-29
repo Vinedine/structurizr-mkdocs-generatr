@@ -2,7 +2,7 @@
 
 Central data platform providing ETL pipelines, curated data products, and Power BI business intelligence dashboards for executive and operational reporting.
 
-# Capabilities
+# Business Capabilities
 
 - Ingest operational events from Integration Platform via ETL pipelines
 - Transform and curate data into governed data products

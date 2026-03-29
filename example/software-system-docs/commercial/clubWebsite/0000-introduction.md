@@ -2,7 +2,7 @@
 
 Official BelFoot FC public website serving as the primary digital presence for the club, providing news, match fixtures, squad profiles, and media content to fans and the general public.
 
-# Capabilities
+# Business Capabilities
 
 - Publish and manage club news articles and press releases
 - Display match fixtures, results, and league standings

@@ -2,7 +2,7 @@
 
 B2C and B2B ticket sales platform managing match tickets, season passes, seat allocation, and event access for BelFoot FC.
 
-# Capabilities
+# Business Capabilities
 
 - Sell match tickets online with real-time seat availability
 - Manage season pass subscriptions and renewals

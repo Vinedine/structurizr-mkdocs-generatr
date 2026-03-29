@@ -15,6 +15,7 @@ from .bounded_context import (
     write_bounded_context_index,
     write_bounded_context_pages,
 )
+from .mermaid_utils import _iter_top_level_lines, add_mermaid_view_source
 from .properties import SiteProperties
 from .workspace import (
     VIEW_COMPONENT,
@@ -64,8 +65,8 @@ def generate_markdown(
     _write_home_page(workspace, docs_dir, opts)
     _write_workspace_decisions(workspace.documentation, docs_dir, opts.view_keys)
     _write_workspace_docs(workspace.documentation, docs_dir, opts)
-    _write_users_index(workspace, docs_dir)
-    _write_user_pages(workspace, docs_dir)
+    _write_persons_index(workspace, docs_dir)
+    _write_person_pages(workspace, docs_dir)
     _write_software_systems_index(workspace, docs_dir, opts.props)
     _write_group_pages(workspace, docs_dir, opts.props)
     _write_infrastructure_pages(workspace, docs_dir)
@@ -79,8 +80,8 @@ def generate_markdown(
 
     if opts.bc_model:
         system_map, cap_map = map_contexts(opts.bc_model, workspace)
-        write_bounded_context_index(opts.bc_model, system_map, cap_map, docs_dir)
-        write_bounded_context_pages(opts.bc_model, system_map, cap_map, workspace, docs_dir)
+        write_bounded_context_index(opts.bc_model, system_map, cap_map, docs_dir, mermaid_view_source=opts.props.mermaid_view_source)
+        write_bounded_context_pages(opts.bc_model, system_map, cap_map, workspace, docs_dir, mermaid_view_source=opts.props.mermaid_view_source)
 
     for ss in workspace.software_systems:
         _write_software_system_pages(workspace, ss, docs_dir, opts)
@@ -174,7 +175,7 @@ def _write_home_page(workspace: Workspace, docs_dir: Path, opts: GenerateOptions
         content = _rewrite_asset_paths(content, "")
         if opts.inline_puml_dir:
             content = _extract_puml_blocks(content, opts.inline_puml_dir, "diagrams/", opts.puml_counter)
-        content = _add_mermaid_view_source(content)
+        content = add_mermaid_view_source(content, opts.props.mermaid_view_source)
     else:
         content = f"# {workspace.name}\n\n{workspace.description}\n"
     _write_file(docs_dir / "index.md", content)
@@ -260,27 +261,27 @@ def _write_workspace_docs(documentation: Documentation, docs_dir: Path, opts: Ge
         content = _rewrite_asset_paths(content, "../")
         if opts.inline_puml_dir:
             content = _extract_puml_blocks(content, opts.inline_puml_dir, "../diagrams/", opts.puml_counter)
-        content = _add_mermaid_view_source(content)
+        content = add_mermaid_view_source(content, opts.props.mermaid_view_source)
         _write_file(docs_sections_dir / f"{slug}.md", content)
 
 
-def _write_users_index(workspace: Workspace, docs_dir: Path) -> None:
+def _write_persons_index(workspace: Workspace, docs_dir: Path) -> None:
     if not workspace.people:
         return
-    lines = ["# Users\n\n"]
+    lines = ["# Persons\n\n"]
     lines.append("## Introduction\n\n")
     lines.append(
-        "A **user** (or *person* in C4 terminology) represents anyone — human or "
+        "A **person** in C4 terminology represents anyone — human or "
         "role — that interacts with the software systems in the enterprise. This "
-        "page lists every user identified in the workspace together with the "
+        "page lists every person identified in the workspace together with the "
         "systems they depend on.\n\n"
     )
     lines.append(
         '!!! question "What questions does this answer?"\n\n'
-        "    - *Who are the users of our systems?*\n"
-        "    - *Which systems does a specific user interact with?*\n"
-        "    - *How many systems does each user depend on?*\n"
-        "    - *Are there users with no system interactions?*\n\n"
+        "    - *Who are the persons interacting with our systems?*\n"
+        "    - *Which systems does a specific person interact with?*\n"
+        "    - *How many systems does each person depend on?*\n"
+        "    - *Are there persons with no system interactions?*\n\n"
     )
     lines.append("## Overview\n\n")
     lines.append("| Name | Description | Software Systems |\n")
@@ -295,13 +296,13 @@ def _write_users_index(workspace: Workspace, docs_dir: Path) -> None:
         }
         count = len(system_ids)
         lines.append(f"| [{person.name}]({slug}/index.md) | {person.description} | {count} |\n")
-    _write_file(docs_dir / "users" / "index.md", "".join(lines))
+    _write_file(docs_dir / "persons" / "index.md", "".join(lines))
 
 
-def _write_user_pages(workspace: Workspace, docs_dir: Path) -> None:
+def _write_person_pages(workspace: Workspace, docs_dir: Path) -> None:
     for person in sorted(workspace.people, key=lambda p: p.name):
         slug = normalize_name(person.name)
-        user_dir = docs_dir / "users" / slug
+        user_dir = docs_dir / "persons" / slug
 
         lines = [f"# {person.name}\n\n"]
         if person.description:
@@ -318,7 +319,6 @@ def _write_user_pages(workspace: Workspace, docs_dir: Path) -> None:
 
 
 def _write_software_systems_index(workspace: Workspace, docs_dir: Path, props: SiteProperties | None = None) -> None:
-    external_tag = props.external_tag if props else None
     lines = ["# Software Systems\n\n"]
 
     lines.append("## Introduction\n\n")
@@ -349,28 +349,11 @@ def _write_software_systems_index(workspace: Workspace, docs_dir: Path, props: S
         lines.append(f"### {title}\n\n")
         lines.append(f"{_diagram_embed(v, '../../diagrams/')}\n\n")
 
-    # List ungrouped systems so they're discoverable from the index page
-    ungrouped = sorted(
-        [ss for ss in workspace.software_systems if not ss.group],
-        key=lambda s: s.name,
-    )
-    if ungrouped:
-        lines.append("| Name | Description |\n")
-        lines.append("|---|---|\n")
-        for ss in ungrouped:
-            slug = normalize_name(ss.name)
-            name = ss.name
-            if external_tag and external_tag in ss.tags:
-                name = f"{ss.name} :material-open-in-new:{{ title=\"External\" }}"
-            lines.append(f"| [{name}]({slug}/index.md) | {ss.description} |\n")
-
     _write_file(docs_dir / "software-systems" / "index.md", "".join(lines))
 
 
 def _write_group_pages(workspace: Workspace, docs_dir: Path, props: SiteProperties | None = None) -> None:
     """Write an index page for each group with its landscape diagram and system table."""
-    external_tag = props.external_tag if props else None
-
     for group_name in workspace.groups():
         group_slug = normalize_name(group_name)
         group_dir = docs_dir / "software-systems" / group_slug
@@ -496,7 +479,7 @@ def _write_software_system_pages(
     content = _rewrite_asset_paths(content, "../../")
     if opts.inline_puml_dir:
         content = _extract_puml_blocks(content, opts.inline_puml_dir, "../../diagrams/", opts.puml_counter)
-    content = _add_mermaid_view_source(content)
+    content = add_mermaid_view_source(content, opts.props.mermaid_view_source)
     if opts.bc_model:
         content = _rewrite_bc_links(content, opts.bc_model)
     content = _rewrite_absolute_decision_links(content, "../../adrs/")
@@ -574,7 +557,7 @@ def _dep_link(workspace: Workspace, name: str, element_id: str) -> str:
     slug = normalize_name(name)
     for p in workspace.people:
         if p.id == element_id:
-            return f"[{name}](../../users/{slug}/index.md)"
+            return f"[{name}](../../persons/{slug}/index.md)"
     return f"[{name}](../{slug}/index.md)"
 
 
@@ -660,25 +643,6 @@ def _rewrite_asset_paths(content: str, prefix: str) -> str:
     )
 
 
-def _iter_top_level_lines(content: str):
-    """Yield (line, is_nested) tuples, tracking 4+ backtick outer fences.
-
-    Lines inside outer fences have is_nested=True and should be passed through unchanged.
-    """
-    outer_fence = False
-    for line in content.split("\n"):
-        stripped = line.strip()
-        if not outer_fence and re.match(r"^`{4,}", stripped):
-            outer_fence = True
-            yield line, True
-        elif outer_fence:
-            if re.match(r"^`{4,}$", stripped):
-                outer_fence = False
-            yield line, True
-        else:
-            yield line, False
-
-
 def _extract_puml_blocks(content: str, puml_dir: Path, diagrams_prefix: str, counter: list[int] | None = None) -> str:
     """Extract top-level ```puml blocks, write .puml files, replace with image refs."""
     if counter is None:
@@ -709,41 +673,6 @@ def _extract_puml_blocks(content: str, puml_dir: Path, diagrams_prefix: str, cou
                 in_puml = False
             else:
                 puml_lines.append(line)
-            continue
-
-        result.append(line)
-
-    return "\n".join(result)
-
-
-def _add_mermaid_view_source(content: str) -> str:
-    """Append a collapsible 'View Source' admonition after each top-level ```mermaid block."""
-    result: list[str] = []
-    in_mermaid = False
-    mermaid_lines: list[str] = []
-
-    for line, nested in _iter_top_level_lines(content):
-        if nested:
-            result.append(line)
-            continue
-
-        stripped = line.strip()
-        if not in_mermaid and stripped == "```mermaid":
-            in_mermaid = True
-            mermaid_lines = [line]
-            continue
-        if in_mermaid:
-            mermaid_lines.append(line)
-            if stripped == "```":
-                result.extend(mermaid_lines)
-                result.append("")
-                result.append('??? info "View Source"')
-                result.append("")
-                result.append("    ```text")
-                for ml in mermaid_lines[1:-1]:
-                    result.append(f"    {ml}")
-                result.append("    ```")
-                in_mermaid = False
             continue
 
         result.append(line)

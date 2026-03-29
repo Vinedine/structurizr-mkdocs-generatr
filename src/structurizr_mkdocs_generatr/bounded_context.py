@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .mermaid_utils import add_mermaid_view_source
 from .workspace import SoftwareSystem, Workspace, normalize_name
 
 # Entity IDs in boundedContext.mmd must be UPPER_CASE with underscores
@@ -198,7 +199,7 @@ def _parse_intro(intro_content: str) -> tuple[list[str], list[str]]:
                 name = stripped[2:].strip()
                 if name:
                     context_names.append(name)
-        elif current_section == "Capabilities":
+        elif current_section in ("Capabilities", "Business Capabilities"):
             if stripped.startswith("- "):
                 cap = stripped[2:].strip()
                 # Strip markdown links from capability text
@@ -249,6 +250,8 @@ def write_bounded_context_index(
     system_map: dict[str, list[SoftwareSystem]],
     cap_map: dict[str, dict[str, list[str]]],
     docs_dir: Path,
+    *,
+    mermaid_view_source: bool = False,
 ) -> None:
     """Write docs/capability-map/index.md with intro, table, and relations diagram."""
     bc_dir = docs_dir / "capability-map"
@@ -269,20 +272,20 @@ def write_bounded_context_index(
     lines.append(
         '!!! question "What questions does this answer?"\n\n'
         "    - *Which systems support our revenue stream?*\n"
-        "    - *Where do we have capability gaps or redundant overlap?*\n"
+        "    - *Where do we have business capability gaps or redundant overlap?*\n"
         "    - *If we decommission a system, which business areas are affected?*\n"
-        "    - *How many capabilities does each domain area actually have?*\n\n"
+        "    - *How many business capabilities does each domain area actually have?*\n\n"
     )
     lines.append("## Bounded Contexts\n\n")
     lines.append(
         "For every bounded context the table below shows the software systems that "
-        "belong to it and the total number of capabilities they provide. Click a "
+        "belong to it and the total number of business capabilities they provide. Click a "
         "context to see the detailed **entity model**, **cross-context relationships**, "
-        "and a full **capability breakdown** per system.\n\n"
+        "and a full **business capability breakdown** per system.\n\n"
     )
 
     # Table
-    lines.append("| Bounded Context | Description | Software Systems | Capabilities |\n")
+    lines.append("| Bounded Context | Description | Software Systems | Business Capabilities |\n")
     lines.append("|---|---|---|---|\n")
     for ctx in model.contexts:
         slug = normalize_name(ctx.name)
@@ -311,7 +314,8 @@ def write_bounded_context_index(
                 lines.append(f"\t{src_id} --> {tgt_id}\n")
         lines.append("```\n")
 
-    (bc_dir / "index.md").write_text("".join(lines), encoding="utf-8")
+    content = add_mermaid_view_source("".join(lines), mermaid_view_source)
+    (bc_dir / "index.md").write_text(content, encoding="utf-8")
 
 
 def write_bounded_context_pages(
@@ -320,6 +324,8 @@ def write_bounded_context_pages(
     cap_map: dict[str, dict[str, list[str]]],
     workspace: Workspace,
     docs_dir: Path,
+    *,
+    mermaid_view_source: bool = False,
 ) -> None:
     """Write individual bounded context pages to docs/capability-map/{slug}.md."""
     bc_dir = docs_dir / "capability-map"
@@ -372,7 +378,7 @@ def write_bounded_context_pages(
         # Capabilities by software system
         ctx_caps = cap_map.get(ctx.name, {})
         if ctx_caps:
-            lines.append("## Capabilities\n\n")
+            lines.append("## Business Capabilities\n\n")
             for system_name in sorted(ctx_caps):
                 ss_slug = normalize_name(system_name)
                 lines.append(f"### [{system_name}](../software-systems/{ss_slug}/index.md)\n\n")
@@ -393,4 +399,5 @@ def write_bounded_context_pages(
                 )
             lines.append("\n")
 
-        (bc_dir / f"{slug}.md").write_text("".join(lines), encoding="utf-8")
+        content = add_mermaid_view_source("".join(lines), mermaid_view_source)
+        (bc_dir / f"{slug}.md").write_text(content, encoding="utf-8")

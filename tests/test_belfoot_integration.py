@@ -116,15 +116,11 @@ class TestModularDslParsing:
 class TestBelfootProperties:
     def test_resolves_mkdocs_properties(self) -> None:
         props = {
-            "mkdocs.navigation.nestGroups": "true",
             "mkdocs.color.primary": "#2c4390",
             "mkdocs.color.headerText": "#ffffff",
             "mkdocs.favicon": "site/favicon.ico",
-            "mkdocs.externalTag": "External System",
         }
         site = resolve_properties(props)
-        assert site.nest_groups is True
         assert site.primary_color == "#2c4390"
         assert site.header_text_color == "#ffffff"
         assert site.favicon == "site/favicon.ico"
-        assert site.external_tag == "External System"

@@ -2,7 +2,7 @@
 
 Online merchandise and memorabilia shop offering official BelFoot FC products with integrated inventory management and order fulfillment.
 
-# Capabilities
+# Business Capabilities
 
 - Display product catalog with real-time stock levels
 - Process online orders with payment and shipping

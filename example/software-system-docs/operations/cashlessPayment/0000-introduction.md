@@ -2,7 +2,7 @@
 
 Contactless in-stadium payment system enabling fans to purchase food, drinks, and merchandise using NFC-enabled devices and digital wallets.
 
-# Capabilities
+# Business Capabilities
 
 - Process contactless payments via NFC at point-of-sale terminals
 - Manage digital wallet top-ups and balance inquiries

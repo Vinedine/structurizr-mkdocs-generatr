@@ -2,7 +2,7 @@
 
 Enterprise Resource Planning system managing finance, procurement, inventory, and HR payroll across the organization.
 
-# Capabilities
+# Business Capabilities
 
 - Manage financial accounting, general ledger, and tax reporting
 - Process accounts payable and accounts receivable

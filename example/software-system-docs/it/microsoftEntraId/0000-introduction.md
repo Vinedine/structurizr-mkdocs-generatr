@@ -2,7 +2,7 @@
 
 Cloud-based identity and access management service providing single sign-on and multi-factor authentication for all BelFoot FC applications.
 
-# Capabilities
+# Business Capabilities
 
 - Provide single sign-on across all internal applications
 - Enforce multi-factor authentication policies

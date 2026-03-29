@@ -2,7 +2,7 @@
 
 Event-driven integration backbone using Azure Service Bus to enable loosely coupled communication between all BelFoot FC software systems.
 
-# Capabilities
+# Business Capabilities
 
 - Route events between systems using publish-subscribe topics
 - Transform message formats between heterogeneous systems

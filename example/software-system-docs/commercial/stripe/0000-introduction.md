@@ -2,7 +2,7 @@
 
 Online payment processing platform handling ticket purchases, merchandise orders, and in-stadium cashless transactions.
 
-# Capabilities
+# Business Capabilities
 
 - Process credit card and digital wallet payments
 - Manage recurring subscription payments for season passes

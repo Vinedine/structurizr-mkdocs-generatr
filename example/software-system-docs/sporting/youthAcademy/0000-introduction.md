@@ -2,7 +2,7 @@
 
 Scouting and youth player development platform tracking talent identification, academy players, and development milestones from U8 to first team.
 
-# Capabilities
+# Business Capabilities
 
 - Submit and manage scout reports for prospective youth talent
 - Track player development milestones and skill assessments

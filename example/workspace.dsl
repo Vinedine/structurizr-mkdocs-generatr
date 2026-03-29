@@ -111,11 +111,10 @@ workspace "BelFoot FC IT Landscape" {
 
         properties {
             "c4plantuml.tags" "true"
-            "mkdocs.navigation.nestGroups" "true"
-            "mkdocs.color.primary" "#2c4390"
-            "mkdocs.color.headerText" "#ffffff"
+            "mkdocs.color.primary" "teal"
+            "mkdocs.color.accent" "amber"
             "mkdocs.favicon" "site/favicon.ico"
-            "mkdocs.externalTag" "External System"
+            #"mkdocs.logo" "site/logo.png"
         }
 
         styles {
