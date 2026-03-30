@@ -4,7 +4,7 @@
 
 ## Bounded Contexts
 
-Bounded contexts group related business entities and show how data flows across domain boundaries. BelFoot FC has 13 bounded contexts. Here is one -- Gameday Match/Event Delivery -- covering ticketing, access control, and event operations:
+Bounded contexts group related business entities and show how data flows across domain boundaries. BelFoot FC has 13 bounded contexts -- see the full index in the [Capability Map](../capability-map/index.md). Here is one -- Gameday Match/Event Delivery -- covering ticketing, access control, and event operations:
 
 ```mermaid
 flowchart TB
@@ -79,7 +79,3 @@ BelFoot FC organizes its 28 software systems into five departments. Each has its
     Player performance analytics, medical records, and youth academy scouting.
 
     ![Sporting Systems](embed:SystemLandscapeSporting)
-
-!!! info "Credits"
-
-    The capability-based approach used in this site is inspired by [Jonas Van Riel](https://www.linkedin.com/in/jonasvanriel/) and his book [Leading with Capabilities](https://www.amazon.com/Leading-Capabilities-Capability-Based-Management-Implementation/dp/1998528227). Jonas developed the BelFoot FC reference case -- a fictional football club with a fully modeled business capability map, bounded contexts, and entity relationships -- to demonstrate how capability-based thinking bridges the gap between business strategy and IT architecture.

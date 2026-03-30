@@ -5,8 +5,9 @@ object.diagram {
   min-height: 200px;
 }
 
-/* Inline group tag next to headings */
-.group-tag {
+/* Inline tags next to headings */
+.group-tag,
+.element-tag {
   font-size: 0.4em;
   font-weight: 500;
   vertical-align: middle;

@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from importlib import resources
 from pathlib import Path
 
+from .fileutils import write_file as _write_file
 from .bounded_context import (
     BoundedContextModel,
     map_contexts,
@@ -35,6 +36,9 @@ from .workspace import (
     section_slug,
     sort_zone_views,
 )
+
+_DESCRIPTION_HEADING_RE = re.compile(r"^(#{1,6}) Description\s*$")
+_ANY_HEADING_RE = re.compile(r"^(#{1,6}) ")
 
 
 @dataclass
@@ -80,8 +84,14 @@ def generate_markdown(
 
     if opts.bc_model:
         system_map, cap_map = map_contexts(opts.bc_model, workspace)
-        write_bounded_context_index(opts.bc_model, system_map, cap_map, docs_dir, mermaid_view_source=opts.props.mermaid_view_source)
-        write_bounded_context_pages(opts.bc_model, system_map, cap_map, workspace, docs_dir, mermaid_view_source=opts.props.mermaid_view_source)
+        write_bounded_context_index(
+            opts.bc_model, system_map, cap_map, docs_dir,
+            mermaid_view_source=opts.props.mermaid_view_source,
+        )
+        write_bounded_context_pages(
+            opts.bc_model, system_map, cap_map, workspace, docs_dir,
+            mermaid_view_source=opts.props.mermaid_view_source,
+        )
 
     for ss in workspace.software_systems:
         _write_software_system_pages(workspace, ss, docs_dir, opts)
@@ -162,11 +172,6 @@ document.addEventListener("DOMContentLoaded", function () {{
     (docs_dir / "js" / "external-links.js").write_text(js, encoding="utf-8")
 
 
-def _write_file(path: Path, content: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
-
-
 def _write_home_page(workspace: Workspace, docs_dir: Path, opts: GenerateOptions) -> None:
     sections = workspace.documentation.sections
     if sections:
@@ -188,20 +193,13 @@ def _write_workspace_decisions(documentation: Documentation, docs_dir: Path, vie
 
     decisions_dir = docs_dir / "adrs"
 
-    lines = ["# Architecture Decision Records\n\n"]
-    lines.append(
-        "An **Architecture Decision Record** (ADR) is a short document that captures "
-        "an important architectural decision made along with its context and consequences. "
-        "Learn more at [adr.github.io](https://adr.github.io/).\n\n"
-    )
-    lines.append(
+    lines = [
         '??? question "What questions does this answer?"\n\n'
         "    - *What architectural decisions have been made and why?*\n"
         "    - *What was the context and status of each decision?*\n"
         "    - *How have our architectural choices evolved over time?*\n"
         "    - *Which decisions are still proposed vs. accepted or superseded?*\n\n"
-    )
-    lines.append("## Architecture Decision Records\n\n")
+    ]
     lines.append("| ID | Date | Status | Title | Context |\n")
     lines.append("|---|---|---|---|---|\n")
     for d in sorted(decisions, key=lambda d: int(d.id)):
@@ -267,21 +265,13 @@ def _write_workspace_docs(documentation: Documentation, docs_dir: Path, opts: Ge
 def _write_persons_index(workspace: Workspace, docs_dir: Path) -> None:
     if not workspace.people:
         return
-    lines = ["# Persons\n\n"]
-    lines.append(
-        "A **person** in C4 terminology represents anyone — human or "
-        "role — that interacts with the software systems in the enterprise. This "
-        "page lists every person identified in the workspace together with the "
-        "systems they depend on.\n\n"
-    )
-    lines.append(
+    lines = [
         '??? question "What questions does this answer?"\n\n'
         "    - *Who are the persons interacting with our systems?*\n"
         "    - *Which systems does a specific person interact with?*\n"
         "    - *How many systems does each person depend on?*\n"
         "    - *Are there persons with no system interactions?*\n\n"
-    )
-    lines.append("## Persons\n\n")
+    ]
     lines.append("| Name | Description | Software Systems |\n")
     lines.append("|---|---|---|\n")
     for person in sorted(workspace.people, key=lambda p: p.name):
@@ -304,12 +294,11 @@ def _write_person_pages(workspace: Workspace, docs_dir: Path) -> None:
 
         lines = [f"# {person.name}\n\n"]
         if person.description:
-            lines.append(f"## Description\n\n")
             lines.append(f"{person.description}\n\n")
 
         person_views = workspace.views_for_person(person.id)
         if person_views:
-            lines.append(f"## Context\n\n")
+            lines.append("## Context\n\n")
             for v in person_views:
                 lines.append(f"{_diagram_embed(v)}\n\n")
 
@@ -317,24 +306,13 @@ def _write_person_pages(workspace: Workspace, docs_dir: Path) -> None:
 
 
 def _write_software_systems_index(workspace: Workspace, docs_dir: Path, props: SiteProperties | None = None) -> None:
-    lines = ["# Software Systems\n\n"]
-
-    lines.append(
-        "A **software system** is the highest level of abstraction in the C4 model "
-        "and represents something that delivers value to its users — whether they are "
-        "human or other systems. Each software system is owned by a single team and "
-        "is composed of one or more **containers** (applications, data stores, "
-        "microservices, etc.).\n\n"
-    )
-    lines.append(
+    lines = [
         '??? question "What questions does this answer?"\n\n'
         "    - *What systems exist in our landscape and what do they do?*\n"
         "    - *Which systems are internal and which are external?*\n"
         "    - *How do our systems relate to each other at a high level?*\n"
         "    - *Who owns or is responsible for a given system?*\n\n"
-    )
-
-    lines.append("## Software Systems\n\n")
+    ]
 
     sw_view = next(
         (v for v in workspace.landscape_views()
@@ -342,7 +320,7 @@ def _write_software_systems_index(workspace: Workspace, docs_dir: Path, props: S
         None,
     )
     if sw_view:
-        lines.append(f"{_diagram_embed(sw_view, '../../diagrams/')}\n\n")
+        lines.append(f"{_diagram_embed(sw_view, '../diagrams/')}\n\n")
 
     _write_file(docs_dir / "software-systems" / "index.md", "".join(lines))
 
@@ -356,7 +334,7 @@ def _write_group_pages(workspace: Workspace, docs_dir: Path, props: SiteProperti
 
         description = workspace.group_description(group_name)
         if description:
-            lines.append(f"## Description\n\n{description}\n\n")
+            lines.append(f"{description}\n\n")
 
         # Group landscape diagram
         group_view = workspace.group_landscape_view(group_name)
@@ -375,20 +353,13 @@ def _write_infrastructure_pages(workspace: Workspace, docs_dir: Path) -> None:
         return
 
     # Infrastructure index page
-    lines = ["# Infrastructure\n\n"]
-    lines.append(
-        "The **infrastructure** section documents how software systems are deployed "
-        "across all environments. Each environment page shows the deployment zones "
-        "and how workloads are distributed across on-premise and cloud providers.\n\n"
-    )
-    lines.append(
+    lines = [
         '??? question "What questions does this answer?"\n\n'
         "    - *Where are our systems deployed in each environment?*\n"
         "    - *Which cloud providers and on-premise zones do we use?*\n"
         "    - *How does the infrastructure differ between production and lower environments?*\n"
         "    - *What is the multi-cloud strategy and how are workloads distributed?*\n\n"
-    )
-    lines.append("## Infrastructure\n\n")
+    ]
     lines.append("| Environment | Description | Zones |\n")
     lines.append("|---|---|---|\n")
     for env in environments:
@@ -436,6 +407,23 @@ def _write_infrastructure_pages(workspace: Workspace, docs_dir: Path) -> None:
             _write_file(env_dir / "index.md", "".join(env_lines))
 
 
+# Tags that are structural / implicit — not shown as badges
+_HIDDEN_TAGS = {"Element", "Software System", "Person", "Container", "Component"}
+
+
+def _element_tag_badges(tags: list[str], element_styles: dict[str, dict[str, str]]) -> str:
+    """Return HTML spans for display tags (External System, New, Shared, etc.)."""
+    badges = []
+    for tag in tags:
+        if tag in _HIDDEN_TAGS:
+            continue
+        # Only show tags that have a defined style in the workspace
+        if tag not in element_styles:
+            continue
+        badges.append(f' <span class="element-tag">{tag}</span>')
+    return "".join(badges)
+
+
 def _write_software_system_pages(
     workspace: Workspace, ss: SoftwareSystem, docs_dir: Path, opts: GenerateOptions,
 ) -> None:
@@ -443,32 +431,101 @@ def _write_software_system_pages(
     ss_dir = docs_dir / "software-systems" / slug
 
     lines = []
-    if ss.group:
-        lines.append(f"# {ss.name} <span class=\"group-tag\">{ss.group}</span>\n\n")
-    else:
-        lines.append(f"# {ss.name}\n\n")
-    if ss.description:
-        lines.append(f"*{ss.description}*\n{{ .subtitle }}\n\n")
-    if ss.url:
-        lines.append(f"**URL:** [{ss.url}]({ss.url})\n\n")
-
+    tag_html = _element_tag_badges(ss.tags, workspace.element_styles)
+    group_html = f" <span class=\"group-tag\">{ss.group}</span>" if ss.group else ""
+    lines.append(f"# {ss.name}{group_html}{tag_html}\n\n")
+    # Extract description from intro doc if available, else fall back to DSL description
     intro = next(
         (s for s in ss.documentation.sections if s.filename and s.filename.endswith("introduction.md")),
         None,
     )
+    intro_description = _extract_description_paragraph(intro.content) if intro else None
+    description = intro_description or ss.description
+    if description:
+        lines.append(f"{description}\n\n")
+    if ss.url:
+        lines.append(f"**URL:** [{ss.url}]({ss.url})\n\n")
+
+    # Collect tab content
+    tabs: list[tuple[str, str]] = []
+
+    # Info tab: introduction + decisions + other doc sections
+    info_lines: list[str] = []
     if intro:
-        lines.append(f"{_bump_headings(intro.content, 1)}\n\n")
-
-    system_views = workspace.views_for_system(ss.id)
-    _append_diagrams(system_views, lines)
-    _append_dependencies(workspace, ss, lines)
-
+        intro_content = _strip_description_section(intro.content)
+        info_lines.append(f"{_bump_headings(intro_content, 1)}\n\n")
     if ss.documentation.decisions:
-        _append_decisions(ss.documentation.decisions, lines)
-
+        _append_decisions(ss.documentation.decisions, info_lines)
     other_sections = [s for s in ss.documentation.sections if s is not intro]
     if other_sections:
-        _append_sections(other_sections, lines, opts.view_keys)
+        _append_sections(other_sections, info_lines, opts.view_keys)
+    if info_lines:
+        tabs.append(("Info", "".join(info_lines)))
+
+    # Diagram tabs — one per view type
+    system_views = workspace.views_for_system(ss.id)
+    view_groups: dict[str, list[View]] = {}
+    for v in system_views:
+        view_groups.setdefault(v.type, []).append(v)
+
+    type_labels = {
+        VIEW_SYSTEM_CONTEXT: "Context views",
+        VIEW_CONTAINER: "Container views",
+        VIEW_COMPONENT: "Component views",
+        VIEW_DYNAMIC: "Dynamic views",
+        VIEW_DEPLOYMENT: "Deployment views",
+        VIEW_IMAGE: "Image views",
+    }
+
+    for view_type, label in type_labels.items():
+        group = view_groups.get(view_type, [])
+        if not group:
+            continue
+        tab_lines: list[str] = []
+        for v in group:
+            if view_type in (VIEW_DEPLOYMENT, VIEW_DYNAMIC):
+                title = v.title or v.description or v.key
+                tab_lines.append(f"### {title}\n\n")
+                if v.description and v.description != title:
+                    tab_lines.append(f"{v.description}\n\n")
+            tab_lines.append(f"{_diagram_embed(v)}\n\n")
+        tabs.append((label, "".join(tab_lines)))
+
+    # Dependencies tab
+    inbound, outbound = workspace.dependencies_for_system(ss.id)
+    if inbound or outbound:
+        dep_lines: list[str] = []
+        dep_lines.append("### Inbound\n\n")
+        if inbound:
+            dep_lines.append("| System | Description | Technology |\n")
+            dep_lines.append("|---|---|---|\n")
+            for element_id, name, desc, tech in inbound:
+                link = _dep_link(workspace, name, element_id)
+                dep_lines.append(f"| {link} | {desc} | {tech} |\n")
+        else:
+            dep_lines.append("No inbound dependencies.\n")
+        dep_lines.append("\n")
+        dep_lines.append("### Outbound\n\n")
+        if outbound:
+            dep_lines.append("| System | Description | Technology |\n")
+            dep_lines.append("|---|---|---|\n")
+            for element_id, name, desc, tech in outbound:
+                link = _dep_link(workspace, name, element_id)
+                dep_lines.append(f"| {link} | {desc} | {tech} |\n")
+        else:
+            dep_lines.append("No outbound dependencies.\n")
+        dep_lines.append("\n")
+        tabs.append(("Dependencies", "".join(dep_lines)))
+
+    # Render tabs (or flat content if only one section)
+    if len(tabs) > 1:
+        for tab_title, tab_content in tabs:
+            lines.append(f'=== "{tab_title}"\n\n')
+            for line in tab_content.splitlines(keepends=True):
+                lines.append(f"    {line}" if line.strip() else "\n")
+            lines.append("\n")
+    elif tabs:
+        lines.append(tabs[0][1])
 
     content = _resolve_embeds("".join(lines), opts.view_keys, "../../diagrams/")
     content = _rewrite_asset_paths(content, "../../")
@@ -520,33 +577,6 @@ def _rewrite_bc_links(content: str, bc_model: BoundedContextModel) -> str:
     return content
 
 
-def _append_diagrams(views: list[View], lines: list[str]) -> None:
-    view_groups: dict[str, list[View]] = {}
-    for v in views:
-        view_groups.setdefault(v.type, []).append(v)
-
-    type_labels = {
-        VIEW_SYSTEM_CONTEXT: "Context View",
-        VIEW_CONTAINER: "Container View",
-        VIEW_COMPONENT: "Component Views",
-        VIEW_DYNAMIC: "Dynamic Views",
-        VIEW_DEPLOYMENT: "Deployment Views",
-        VIEW_IMAGE: "Image Views",
-    }
-
-    for view_type, label in type_labels.items():
-        group = view_groups.get(view_type, [])
-        if not group:
-            continue
-
-        lines.append(f"## {label}\n\n")
-        for v in group:
-            if view_type == VIEW_DEPLOYMENT:
-                title = v.title or v.description or v.key
-                lines.append(f"### {title}\n\n")
-            lines.append(f"{_diagram_embed(v)}\n\n")
-
-
 def _dep_link(workspace: Workspace, name: str, element_id: str) -> str:
     """Create a markdown link for a dependency target — system or person."""
     slug = normalize_name(name)
@@ -554,36 +584,6 @@ def _dep_link(workspace: Workspace, name: str, element_id: str) -> str:
         if p.id == element_id:
             return f"[{name}](../../persons/{slug}/index.md)"
     return f"[{name}](../{slug}/index.md)"
-
-
-def _append_dependencies(workspace: Workspace, ss: SoftwareSystem, lines: list[str]) -> None:
-    inbound, outbound = workspace.dependencies_for_system(ss.id)
-    if not inbound and not outbound:
-        return
-
-    lines.append("## Dependencies\n\n")
-
-    lines.append("### Inbound\n\n")
-    if inbound:
-        lines.append("| System | Description | Technology |\n")
-        lines.append("|---|---|---|\n")
-        for element_id, name, desc, tech in inbound:
-            link = _dep_link(workspace, name, element_id)
-            lines.append(f"| {link} | {desc} | {tech} |\n")
-    else:
-        lines.append("No inbound dependencies.\n")
-    lines.append("\n")
-
-    lines.append("### Outbound\n\n")
-    if outbound:
-        lines.append("| System | Description | Technology |\n")
-        lines.append("|---|---|---|\n")
-        for element_id, name, desc, tech in outbound:
-            link = _dep_link(workspace, name, element_id)
-            lines.append(f"| {link} | {desc} | {tech} |\n")
-    else:
-        lines.append("No outbound dependencies.\n")
-    lines.append("\n")
 
 
 def _append_decisions(decisions: list[Decision], lines: list[str]) -> None:
@@ -608,6 +608,44 @@ def _append_sections(sections: list[Section], lines: list[str], view_keys: set[s
         if view_keys:
             content = _resolve_embeds(content, view_keys, "../../diagrams/")
         lines.append(f"{_bump_headings(content, 2)}\n\n")
+
+
+def _strip_description_section(content: str) -> str:
+    """Remove the first Description heading section from introduction content."""
+    lines = content.split("\n")
+    result: list[str] = []
+    skipping = False
+    skip_level = 0
+    for line in lines:
+        if not skipping and _DESCRIPTION_HEADING_RE.match(line):
+            skipping = True
+            skip_level = len(line) - len(line.lstrip("#"))
+            continue
+        if skipping:
+            heading_match = _ANY_HEADING_RE.match(line)
+            if heading_match and len(heading_match.group(1)) <= skip_level:
+                skipping = False
+            else:
+                continue
+        result.append(line)
+    return "\n".join(result).lstrip("\n")
+
+
+def _extract_description_paragraph(content: str) -> str | None:
+    """Extract the first paragraph under the # Description heading."""
+    lines = content.split("\n")
+    in_desc = False
+    for line in lines:
+        if not in_desc and _DESCRIPTION_HEADING_RE.match(line):
+            in_desc = True
+            continue
+        if in_desc:
+            if line.strip() == "":
+                continue
+            if _ANY_HEADING_RE.match(line):
+                return None
+            return line.strip()
+    return None
 
 
 def _bump_headings(content: str, levels: int) -> str:

@@ -9,7 +9,6 @@ import yaml
 from .bounded_context import BoundedContextModel
 from .properties import MATERIAL_NAMED_COLORS, SiteProperties
 from .workspace import (
-    VIEW_DEPLOYMENT,
     Documentation,
     Workspace,
     extract_zone_name,
@@ -30,7 +29,25 @@ def _python_name_representer(dumper: yaml.Dumper, data: _PythonName) -> yaml.Nod
     return yaml.ScalarNode(tag="tag:yaml.org,2002:python/name:" + data.value, value="")
 
 
+class _PythonObjectApply:
+    """Wrapper to emit !!python/object/apply: YAML tags (factory calls with kwargs)."""
+    def __init__(self, value: str, kwds: dict | None = None) -> None:
+        self.value = value
+        self.kwds = kwds or {}
+
+
+def _python_object_apply_representer(dumper: yaml.Dumper, data: _PythonObjectApply) -> yaml.Node:
+    if data.kwds:
+        mapping = dumper.represent_mapping("tag:yaml.org,2002:map", {"kwds": data.kwds})
+        return yaml.MappingNode(
+            tag="tag:yaml.org,2002:python/object/apply:" + data.value,
+            value=mapping.value,
+        )
+    return yaml.ScalarNode(tag="tag:yaml.org,2002:python/object/apply:" + data.value, value="")
+
+
 yaml.add_representer(_PythonName, _python_name_representer)
+yaml.add_representer(_PythonObjectApply, _python_object_apply_representer)
 
 
 def generate_mkdocs_config(
@@ -61,7 +78,12 @@ def generate_mkdocs_config(
                     "format": _PythonName("pymdownx.superfences.fence_code_format"),
                 }],
             }},
-            {"pymdownx.tabbed": {"alternate_style": True}},
+            {"pymdownx.tabbed": {
+                "alternate_style": True,
+                "slugify": _PythonObjectApply(
+                    "pymdownx.slugs.slugify", kwds={"case": "lower"},
+                ),
+            }},
             "pymdownx.details",
             {"pymdownx.emoji": {
                 "emoji_index": _PythonName("material.extensions.emoji.twemoji"),
@@ -110,8 +132,12 @@ def _build_theme(props: SiteProperties) -> dict:
 
 def _build_palette(props: SiteProperties) -> list[dict] | dict:
     """Build palette config based on theme mode and color settings."""
-    named_primary = props.primary_color if props.primary_color and props.primary_color in MATERIAL_NAMED_COLORS else None
-    named_accent = props.accent_color if props.accent_color and props.accent_color in MATERIAL_NAMED_COLORS else None
+    named_primary = (
+        props.primary_color if props.primary_color and props.primary_color in MATERIAL_NAMED_COLORS else None
+    )
+    named_accent = (
+        props.accent_color if props.accent_color and props.accent_color in MATERIAL_NAMED_COLORS else None
+    )
 
     def _palette_entry(scheme: str, toggle: dict | None = None) -> dict:
         entry: dict = {"scheme": scheme}
@@ -164,7 +190,7 @@ def _build_nav(workspace: Workspace, bc_model: BoundedContextModel | None = None
 
     # Capability Map section with children (when auto-generated from boundedContext.mmd)
     if bc_model:
-        bc_nav: list = [{"index": "capability-map/index.md"}]
+        bc_nav: list = [{"Capability Map": "capability-map/index.md"}]
         for ctx in bc_model.contexts:
             ctx_slug = normalize_name(ctx.name)
             bc_nav.append({ctx.name: f"capability-map/{ctx_slug}.md"})
@@ -197,7 +223,7 @@ def _decisions_nav(documentation: Documentation, prefix: str) -> list:
     if not decisions:
         return []
 
-    nav: list = [{"Overview": f"{prefix}/index.md"}]
+    nav: list = [{"Architecture Decision Records": f"{prefix}/index.md"}]
     for d in sorted(decisions, key=lambda d: int(d.id)):
         nav.append({f"{d.id}. {d.title}": f"{prefix}/{d.id}.md"})
     return nav
@@ -206,7 +232,7 @@ def _decisions_nav(documentation: Documentation, prefix: str) -> list:
 def _persons_nav(workspace: Workspace) -> list:
     if not workspace.people:
         return []
-    nav: list = [{"index": "persons/index.md"}]
+    nav: list = [{"Persons": "persons/index.md"}]
     for person in sorted(workspace.people, key=lambda p: p.name):
         slug = normalize_name(person.name)
         nav.append({person.name: f"persons/{slug}/index.md"})
@@ -214,14 +240,14 @@ def _persons_nav(workspace: Workspace) -> list:
 
 
 def _systems_nav(workspace: Workspace) -> list:
-    nav: list = [{"index": "software-systems/index.md"}]
+    nav: list = [{"Software Systems": "software-systems/index.md"}]
 
     groups = workspace.groups()
     if groups:
         # Nest systems under group sub-sections
         for group_name in groups:
             group_slug = normalize_name(group_name)
-            group_nav: list = [{"index": f"software-systems/{group_slug}/index.md"}]
+            group_nav: list = [{group_name: f"software-systems/{group_slug}/index.md"}]
             for ss in workspace.systems_in_group(group_name):
                 slug = normalize_name(ss.name)
                 group_nav.append({ss.name: f"software-systems/{slug}/index.md"})
@@ -250,14 +276,14 @@ def _infrastructure_nav(workspace: Workspace) -> list:
     if not environments:
         return []
 
-    nav: list = [{"index": "infrastructure/index.md"}]
+    nav: list = [{"Infrastructure": "infrastructure/index.md"}]
 
     for env in environments:
         env_slug = normalize_name(env)
         zone_views = workspace.zone_level_views(env)
 
         if zone_views:
-            env_nav: list = [{"index": f"infrastructure/{env_slug}/index.md"}]
+            env_nav: list = [{env: f"infrastructure/{env_slug}/index.md"}]
             zone_views_sorted = sort_zone_views(zone_views)
             for v in zone_views_sorted:
                 zone_name = extract_zone_name(v)
@@ -265,6 +291,6 @@ def _infrastructure_nav(workspace: Workspace) -> list:
                 env_nav.append({zone_name: f"infrastructure/{env_slug}/{zone_slug}.md"})
             nav.append({env: env_nav})
         else:
-            nav.append({env: [{"index": f"infrastructure/{env_slug}/index.md"}]})
+            nav.append({env: [{env: f"infrastructure/{env_slug}/index.md"}]})
 
     return nav

@@ -16,6 +16,34 @@ flowchart LR
 
 ## What Powers This Site
 
+??? example "The DSL Behind It"
+
+    Here is the Player Performance system -- first the generated container diagram, then the DSL that produced it:
+
+    ![Player Performance — Containers](embed:ContainerPlayerPerformance)
+
+    ```dsl
+    softwareSystemPlayerPerformance = softwareSystem "Player Performance" "Training analytics, GPS tracking, and match statistics" {
+
+        containerPlayerPerformanceDatabase = container "Performance Database" "Training sessions, GPS data, match statistics, and fitness scores" "PostgreSQL" "DATASET" {
+        }
+
+        containerPlayerPerformanceApi = container "Player Performance API" "Training data ingestion, analytics, and performance reporting" "Python" "SERVICE" {
+            properties {
+                "Repository" "https://dev.azure.com/BelFoot/_git/player-performance-api"
+            }
+            this -> containerPlayerPerformanceDatabase "Manage data" "SQL/TCP"
+        }
+
+        containerPlayerPerformanceDashboard = container "Performance Dashboard" "Visual analytics for player fitness, load management, and match performance" "Power BI" "DASHBOARD" {
+            userHeadCoach -> this "Review player performance and set training plans"
+            this -> containerPlayerPerformanceApi "Get performance data" "JSON/HTTPS"
+        }
+    }
+    ```
+
+    One block of DSL produces the diagram above and all associated pages -- automatically.
+
 === "Source Files"
 
     Everything on this site is generated from plain-text files stored in a single Git repository:
@@ -83,45 +111,89 @@ When writing documentation pages for your architecture site, the following marku
 
 ### C4 Diagram Embeds
 
-Embed any diagram defined in the workspace using the `embed:` syntax:
+Embed any diagram defined in the workspace using the `embed:` syntax. The view key matches the key defined in the Structurizr DSL views section. See the [Structurizr documentation](https://www.structurizr.com/help/documentation/diagrams) for details.
 
-```markdown
-![System Landscape](embed:SystemLandscape)
-```
+=== "Result"
 
-The view key matches the key defined in the Structurizr DSL views section. See the [Structurizr documentation](https://www.structurizr.com/help/documentation/diagrams) for details.
+    ![Communications Manager](embed:SystemLandscapeUserCommunicationsManager)
+
+=== "Markdown"
+
+    ```markdown
+    ![Communications Manager](embed:SystemLandscapeUserCommunicationsManager)
+    ```
 
 ### Mermaid Diagrams
 
 [Mermaid.js](https://mermaid.js.org/) diagrams are supported natively by MkDocs Material:
 
-````markdown
-```mermaid
-flowchart TD
-    A --> B
-    A --> C
-```
-````
+=== "Result"
+
+    ```mermaid
+    flowchart TD
+        A[Start] --> B{Decision}
+        B -->|Yes| C[Do something]
+        B -->|No| D[Do something else]
+        C --> E[End]
+        D --> E
+    ```
+
+=== "Markdown"
+
+    ````markdown
+    ```mermaid
+    flowchart TD
+        A[Start] --> B{Decision}
+        B -->|Yes| C[Do something]
+        B -->|No| D[Do something else]
+        C --> E[End]
+        D --> E
+    ```
+    ````
 
 ### PlantUML Diagrams
 
 PlantUML can be embedded directly in Markdown and will be rendered as SVG:
 
-````markdown
-```puml
-@startuml
-Foo -> Bar: doSomething()
-@enduml
-```
-````
+=== "Result"
+
+    ```puml
+    @startuml
+    actor User
+    User -> WebApp : Request
+    WebApp -> API : Forward
+    API --> WebApp : Response
+    WebApp --> User : Display
+    @enduml
+    ```
+
+=== "Markdown"
+
+    ````markdown
+    ```puml
+    @startuml
+    actor User
+    User -> WebApp : Request
+    WebApp -> API : Forward
+    API --> WebApp : Response
+    WebApp --> User : Display
+    @enduml
+    ```
+    ````
 
 ### Images
 
 Place images in the assets directory and reference them with standard Markdown syntax:
 
-```markdown
-![Alt text](/img/example.jpg)
-```
+=== "Result"
+
+    ![Leading with Capabilities](../img/leading-with-capabilities.jpg)
+
+=== "Markdown"
+
+    ```markdown
+    ![Leading with Capabilities](../img/leading-with-capabilities.jpg)
+    ```
 
 !!! tip "Bring This to Your Organization"
 

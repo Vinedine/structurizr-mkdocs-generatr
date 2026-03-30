@@ -6,10 +6,13 @@ from __future__ import annotations
 
 from structurizr_mkdocs_generatr.markdown_writer import (
     _bump_headings,
+    _element_tag_badges,
+    _extract_description_paragraph,
     _extract_puml_blocks,
     _resolve_embeds,
     _rewrite_asset_paths,
     _rewrite_decision_links,
+    _strip_description_section,
 )
 from structurizr_mkdocs_generatr.mermaid_utils import add_mermaid_view_source as _add_mermaid_view_source
 
@@ -117,7 +120,79 @@ class TestExtractPumlBlocks:
         assert (tmp_path / "inline-2.puml").exists()
 
 
-class TestAddMermaidViewSource:
+class TestExtractDescriptionParagraph:
+    def test_extracts_first_paragraph(self):
+        content = "# Description\n\nThis is the description.\n\n## Next Section\n"
+        assert _extract_description_paragraph(content) == "This is the description."
+
+    def test_returns_none_when_no_description_heading(self):
+        content = "# Overview\n\nSome text.\n"
+        assert _extract_description_paragraph(content) is None
+
+    def test_returns_none_when_description_empty(self):
+        content = "# Description\n\n## Next Section\n"
+        assert _extract_description_paragraph(content) is None
+
+    def test_works_with_h2(self):
+        content = "## Description\n\nA h2 description.\n"
+        assert _extract_description_paragraph(content) == "A h2 description."
+
+    def test_skips_blank_lines_before_paragraph(self):
+        content = "# Description\n\n\n\nActual text.\n"
+        assert _extract_description_paragraph(content) == "Actual text."
+
+
+class TestStripDescriptionSection:
+    def test_strips_description_section(self):
+        content = "# Description\n\nSome text.\n\n# Next Section\n\nKeep this.\n"
+        result = _strip_description_section(content)
+        assert "Description" not in result
+        assert "Some text." not in result
+        assert "# Next Section" in result
+        assert "Keep this." in result
+
+    def test_preserves_content_without_description(self):
+        content = "# Overview\n\nSome text.\n"
+        assert _strip_description_section(content) == content
+
+    def test_strips_h2_description(self):
+        content = "# Intro\n\n## Description\n\nDesc text.\n\n## Other\n\nKept.\n"
+        result = _strip_description_section(content)
+        assert "Desc text." not in result
+        assert "# Intro" in result
+        assert "## Other" in result
+        assert "Kept." in result
+
+    def test_strips_description_at_end(self):
+        content = "# Intro\n\n# Description\n\nLast section.\n"
+        result = _strip_description_section(content)
+        assert "Last section." not in result
+        assert "# Intro" in result
+
+
+class TestElementTagBadges:
+    def test_returns_badges_for_styled_tags(self):
+        styles = {"External System": {"background": "#999"}, "New": {"background": "#0f0"}}
+        result = _element_tag_badges(["Software System", "External System", "New"], styles)
+        assert '<span class="element-tag">External System</span>' in result
+        assert '<span class="element-tag">New</span>' in result
+
+    def test_hides_structural_tags(self):
+        styles = {"Software System": {"background": "#fff"}}
+        result = _element_tag_badges(["Element", "Software System", "Container"], styles)
+        assert result == ""
+
+    def test_skips_unstyled_tags(self):
+        styles = {"External System": {"background": "#999"}}
+        result = _element_tag_badges(["External System", "CustomTag"], styles)
+        assert "External System" in result
+        assert "CustomTag" not in result
+
+    def test_empty_tags(self):
+        assert _element_tag_badges([], {}) == ""
+
+
+
     def test_adds_view_source_when_enabled(self):
         content = "```mermaid\ngraph LR\n  A --> B\n```"
         result = _add_mermaid_view_source(content, enabled=True)
