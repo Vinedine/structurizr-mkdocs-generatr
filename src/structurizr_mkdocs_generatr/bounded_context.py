@@ -245,6 +245,40 @@ def _context_id(name: str) -> str:
     return name.replace(" ", "_").upper()
 
 
+_LABEL_SPLIT_RE = re.compile(r"(?<=/) |(?<=&) | ")
+_MARGIN_PER_EXTRA_LINE = 20  # px per line beyond the first
+
+
+def _wrap_label(name: str, max_len: int = 20) -> str:
+    """Wrap a long label with <br/> for Mermaid rendering.
+
+    Splits on spaces, ``/``, and ``&`` (keeping the delimiter with the first
+    part) and builds lines up to *max_len* characters each.
+    """
+    if len(name) <= max_len:
+        return name
+    tokens = _LABEL_SPLIT_RE.split(name)
+    lines: list[str] = []
+    current = tokens[0]
+    for token in tokens[1:]:
+        if len(current) + 1 + len(token) <= max_len:
+            current += " " + token
+        else:
+            lines.append(current)
+            current = token
+    lines.append(current)
+    return "<br/>".join(lines)
+
+
+def _mermaid_init(labels: list[str]) -> str:
+    """Build a Mermaid init directive with dynamic subgraph title margin."""
+    max_lines = max((l.count("<br/>") + 1 for l in labels), default=1)
+    if max_lines <= 1:
+        return ""
+    margin = (max_lines - 1) * _MARGIN_PER_EXTRA_LINE
+    return f'%%{{init: {{"flowchart": {{"subGraphTitleMargin": {{"bottom": {margin}}}}}}} }}%%\n'
+
+
 def write_bounded_context_index(
     model: BoundedContextModel,
     system_map: dict[str, list[SoftwareSystem]],
@@ -303,7 +337,8 @@ def write_bounded_context_index(
         lines.append("flowchart TB\n")
         for ctx in model.contexts:
             cid = _context_id(ctx.name)
-            lines.append(f"\t{cid}[{ctx.name}]\n")
+            label = _wrap_label(ctx.name)
+            lines.append(f'\t{cid}["{label}"]\n')
         lines.append("\n")
         for src, tgt, bidi in relations:
             src_id = _context_id(src)
@@ -338,14 +373,21 @@ def write_bounded_context_pages(
         lines.append("## Bounded Context\n\n")
         if ctx.description:
             lines.append(f"{ctx.description}\n\n")
+
+        # Collect related subgraph labels to calculate dynamic margin
+        related = model.related_contexts(ctx.name)
+        related_label_map = {rn: _wrap_label(rn) for rn in related}
+        init_directive = _mermaid_init(list(related_label_map.values()))
+
         lines.append("```mermaid\n")
+        if init_directive:
+            lines.append(init_directive)
         lines.append("flowchart TB\n\n")
 
         # Main context mermaid section
         lines.append(f"{ctx.mermaid_section}\n")
 
         # Related context subgraphs (only entities used in cross-links)
-        related = model.related_contexts(ctx.name)
         for related_name in sorted(related):
             related_ctx = next(
                 (c for c in model.contexts if c.name == related_name), None
@@ -353,7 +395,7 @@ def write_bounded_context_pages(
             if not related_ctx:
                 continue
             entity_ids = sorted(related[related_name])
-            lines.append(f'\n\tsubgraph "{related_name}"\n')
+            lines.append(f'\n\tsubgraph "{related_label_map[related_name]}"\n')
             for eid in entity_ids:
                 label = related_ctx.entity_labels.get(eid, eid)
                 lines.append(f"\t\t{eid}[{label}]\n")
