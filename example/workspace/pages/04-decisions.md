@@ -6,7 +6,7 @@
 
 Every IT landscape is the result of decisions: which cloud to use, which ERP to adopt, how to handle integrations, where to invest in AI. Too often these decisions live in meeting notes, emails, or someone's memory. When the people who made them leave, the rationale is lost.
 
-**Architecture Decision Records (ADRs)** solve this by documenting each strategic decision alongside the architecture itself -- in the same repository, reviewed through the same pull request process.
+**Architecture Decision Records (ADRs)** solve this by documenting each strategic decision alongside the architecture itself -- in the same repository, reviewed through the same pull request process. Learn more at [adr.github.io](https://adr.github.io/).
 
 ## What an ADR Captures
 

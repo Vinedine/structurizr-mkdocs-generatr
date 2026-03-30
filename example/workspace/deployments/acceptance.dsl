@@ -1,6 +1,6 @@
 deploymentAcceptance = deploymentEnvironment "Acceptance" {
 
-    deploymentNode "Azure Cloud" {
+    deploymentNodeAcceptanceAzure = deploymentNode "Azure Cloud" {
 
         deploymentNode "West Europe" "" "Azure Region" {
 
@@ -20,6 +20,33 @@ deploymentAcceptance = deploymentEnvironment "Acceptance" {
                     containerInstance containerMedicalRecordsApi
                     containerInstance containerYouthAcademyApi
                     containerInstance containerIntegrationPlatformApi
+                    containerInstance containerMatchdayOperationsApi
+                    containerInstance containerProductDevelopmentApi
+                    containerInstance containerMarketingPlatformApi
+                    containerInstance containerClubWebsiteCms
+                    containerInstance containerStrategyPortalApi
+                    containerInstance containerExternalRelationsApi
+                }
+
+                deploymentNode "swa-acc" "" "Azure Static Web Apps (Standard)" {
+                    containerInstance containerTicketingPlatformUi
+                    containerInstance containerWebStoreUi
+                    containerInstance containerSponsorshipPortalUi
+                    containerInstance containerFanEngagementApp
+                    containerInstance containerCashlessPaymentApp
+                    containerInstance containerLogisticsPlannerUi
+                    containerInstance containerStadiumManagementUi
+                    containerInstance containerHrPortalUi
+                    containerInstance containerComplianceManagerUi
+                    containerInstance containerMatchdayOperationsUi
+                    containerInstance containerProductDevelopmentUi
+                    containerInstance containerMarketingPlatformUi
+                    containerInstance containerClubWebsiteUi
+                    containerInstance containerStrategyPortalUi
+                    containerInstance containerExternalRelationsUi
+                    containerInstance containerMedicalRecordsUi
+                    containerInstance containerYouthAcademyUi
+                    containerInstance containerPlayerPerformanceDashboard
                 }
 
                 deploymentNode "psql-acc" "" "Azure Database for PostgreSQL (General Purpose D2s)" {
@@ -33,6 +60,12 @@ deploymentAcceptance = deploymentEnvironment "Acceptance" {
                     containerInstance containerPlayerPerformanceDatabase
                     containerInstance containerMedicalRecordsDatabase
                     containerInstance containerYouthAcademyDatabase
+                    containerInstance containerMatchdayOperationsDatabase
+                    containerInstance containerProductDevelopmentDatabase
+                    containerInstance containerMarketingPlatformDatabase
+                    containerInstance containerClubWebsiteDatabase
+                    containerInstance containerStrategyPortalDatabase
+                    containerInstance containerExternalRelationsDatabase
                 }
 
                 deploymentNode "cosmos-acc" "" "Azure Cosmos DB (Provisioned)" {
@@ -41,6 +74,27 @@ deploymentAcceptance = deploymentEnvironment "Acceptance" {
 
                 deploymentNode "sb-acc" "" "Azure Service Bus (Standard)" {
                     containerInstance containerIntegrationPlatformServiceBus
+                }
+
+                deploymentNode "adf-acc" "" "Azure Data Factory (Managed)" {
+                    containerInstance containerDataPlatformEtl
+                }
+
+                deploymentNode "dbw-acc" "" "Azure Databricks (Premium)" {
+                    containerInstance containerDataPlatformLakehouse
+                }
+
+                deploymentNode "pbi-acc" "" "Power BI Service (Premium Per User)" {
+                    containerInstance containerDataPlatformDashboard
+                }
+
+                deploymentNode "ai-foundry-acc" "" "Azure AI Foundry (Standard)" {
+                    containerInstance containerAzureAiFoundryStudio
+                    containerInstance containerAzureAiFoundryApi
+                }
+
+                deploymentNode "entra-id-acc" "" "Microsoft Entra ID" {
+                    containerInstance containerEntraIdApi
                 }
             }
         }
