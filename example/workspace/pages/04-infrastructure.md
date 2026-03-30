@@ -1,3 +1,7 @@
+!!! note "Quick Summary"
+
+    Infrastructure views map C4 containers onto real deployment targets -- cloud regions, resource groups, servers, and databases -- per environment. See exactly *where* everything runs, not just *what* runs.
+
 ## From Software Systems to Real Infrastructure
 
 C4 models traditionally stop at containers -- they tell you *what* runs, but not *where*. Structurizr's deployment views close that gap by mapping containers onto real infrastructure: cloud regions, resource groups, app services, databases, and on-premise servers.

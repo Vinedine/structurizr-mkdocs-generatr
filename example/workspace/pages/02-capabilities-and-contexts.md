@@ -1,3 +1,7 @@
+!!! note "Quick Summary"
+
+    Business capabilities describe *what* an organization does, bounded contexts group the business entities that belong together. Together they bridge the gap between business strategy and C4 software systems -- so you can trace from a business need all the way down to the code that supports it.
+
 ## The Missing Link Between Business and IT
 
 Traditional C4 models start at software systems. But business stakeholders don't think in systems -- they think in **capabilities**: *"Can we sell tickets online?"*, *"Can we track player injuries?"*, *"Can we manage sponsorship contracts?"*
@@ -58,3 +62,7 @@ Every software system's introduction page lists its bounded context and business
 !!! tip "Why This Matters"
 
     When a business stakeholder asks *"what systems are affected if we change our ticketing strategy?"*, you can answer in seconds: go to the Capability Map, find the ticketing business capability, see which bounded contexts and systems are involved, and trace down to the containers and infrastructure that run them.
+
+!!! info "Credits"
+
+    The capability-based approach used in this site is inspired by [Jonas Van Riel](https://www.linkedin.com/in/jonasvanriel/) and his book [Leading with Capabilities: Capability-Based Management and Implementation](https://www.amazon.com/Leading-Capabilities-Capability-Based-Management-Implementation/dp/1998528227). Jonas developed the BelFoot FC reference case -- a fictional football club with a fully modeled business capability map, bounded contexts, and entity relationships -- to demonstrate how capability-based thinking bridges the gap between business strategy and IT architecture. The bounded contexts and business capabilities you see throughout this site are directly based on his work.

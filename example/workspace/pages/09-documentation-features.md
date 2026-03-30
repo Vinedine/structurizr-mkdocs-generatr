@@ -14,16 +14,6 @@ Diagrams defined in the workspace can be embedded using the `embed:` syntax:
 
 See also: <https://www.structurizr.com/help/documentation/diagrams>
 
-## Images
-
-Static assets can be included using standard Markdown image syntax. Place images in the assets directory and reference them with absolute paths:
-
-```markdown
-![Leading with Capabilities](/img/leading-with-capabilities.jpg)
-```
-
-![Leading with Capabilities](/img/leading-with-capabilities.jpg)
-
 ## PlantUML Diagrams
 
 PlantUML can be embedded directly in Markdown files and will be rendered as SVG diagrams:
@@ -77,3 +67,13 @@ sequenceDiagram
     John->>Bob: How about you?
     Bob-->>John: Jolly good!
 ```
+
+## Images
+
+Static assets can be included using standard Markdown image syntax. Place images in the assets directory and reference them with absolute paths:
+
+```markdown
+![Leading with Capabilities](/img/leading-with-capabilities.jpg)
+```
+
+![Leading with Capabilities](/img/leading-with-capabilities.jpg)

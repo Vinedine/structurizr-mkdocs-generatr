@@ -2,7 +2,7 @@
 
     The C4 model provides four zoom levels -- **Context, Containers, Components, Code** -- to describe software architecture at the right level of detail for any audience. Think of it like Google Maps: zoom from country level down to street level.
 
-## Introduction
+## C4 Model
 
 The C4 model is a lean, hierarchical approach to software architecture diagramming created by [Simon Brown](https://simonbrown.je/). It provides four levels of abstraction that let you describe a system at exactly the right level of detail for your audience.
 

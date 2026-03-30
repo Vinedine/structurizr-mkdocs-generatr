@@ -624,11 +624,12 @@ def _bump_headings(content: str, levels: int) -> str:
 
 
 def _resolve_embeds(content: str, view_keys: set[str], diagrams_prefix: str) -> str:
-    """Replace ![alt](embed:ViewKey) with actual diagram image paths."""
+    """Replace ![alt](embed:ViewKey) with <object> tags for clickable SVG links."""
     def _replace(m: re.Match) -> str:
         alt, key = m.group(1), m.group(2)
         if key in view_keys:
-            return f"![{alt}]({diagrams_prefix}structurizr-{key}.svg)"
+            path = f"{diagrams_prefix}structurizr-{key}.svg"
+            return f'<object data="{path}" type="image/svg+xml" class="diagram">{alt}</object>'
         return m.group(0)
 
     return re.sub(r"!\[([^\]]*)\]\(embed:([^)]+)\)", _replace, content)
