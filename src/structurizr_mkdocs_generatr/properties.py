@@ -14,23 +14,6 @@ MATERIAL_NAMED_COLORS = frozenset({
 
 _HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{3,8}$")
 
-# Fallback mapping: mkdocs.* key -> generatr.* equivalent
-_GENERATR_FALLBACK = {
-    "mkdocs.theme": "generatr.site.theme",
-    "mkdocs.color.primary": "generatr.style.colors.primary",
-    "mkdocs.color.headerText": "generatr.style.colors.secondary",
-    "mkdocs.favicon": "generatr.style.faviconPath",
-    "mkdocs.logo": "generatr.style.logoPath",
-    "mkdocs.customCss": "generatr.style.customStylesheet",
-    "mkdocs.svgLinkTarget": "generatr.svglink.target",
-    "mkdocs.color.accent": "generatr.style.colors.accent",
-    "mkdocs.navigation.instant": "generatr.site.navigation.instant",
-    "mkdocs.navigation.tabs": "generatr.site.navigation.tabs",
-    "mkdocs.fullWidth": "generatr.site.fullWidth",
-    "mkdocs.hideLegend": "generatr.site.hideLegend",
-    "mkdocs.mermaid.viewSource": None,
-}
-
 
 @dataclass
 class SiteProperties:
@@ -45,7 +28,7 @@ class SiteProperties:
     navigation_instant: bool = False
     navigation_tabs: bool = True
     full_width: bool = True
-    hide_legend: bool = False
+    show_legend: bool = False
     mermaid_view_source: bool = False
 
     def has_hex_colors(self) -> bool:
@@ -66,15 +49,9 @@ class SiteProperties:
         return result
 
 
-def _get(props: dict[str, str], mkdocs_key: str) -> str | None:
-    """Look up mkdocs.* key first, fall back to generatr.* equivalent."""
-    val = props.get(mkdocs_key)
-    if val is not None:
-        return val
-    fallback_key = _GENERATR_FALLBACK.get(mkdocs_key)
-    if fallback_key:
-        return props.get(fallback_key)
-    return None
+def _get(props: dict[str, str], key: str) -> str | None:
+    """Look up a property by key."""
+    return props.get(key)
 
 
 def _parse_bool(value: str | None, default: bool = False) -> bool:
@@ -120,6 +97,6 @@ def resolve_properties(view_properties: dict[str, str]) -> SiteProperties:
         navigation_instant=_parse_bool(_get(view_properties, "mkdocs.navigation.instant")),
         navigation_tabs=_parse_bool(_get(view_properties, "mkdocs.navigation.tabs"), default=True),
         full_width=_parse_bool(_get(view_properties, "mkdocs.fullWidth"), default=True),
-        hide_legend=_parse_bool(_get(view_properties, "mkdocs.hideLegend")),
+        show_legend=_parse_bool(_get(view_properties, "mkdocs.showLegend")),
         mermaid_view_source=_parse_bool(_get(view_properties, "mkdocs.mermaid.viewSource")),
     )

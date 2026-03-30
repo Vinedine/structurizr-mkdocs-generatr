@@ -189,20 +189,19 @@ def _write_workspace_decisions(documentation: Documentation, docs_dir: Path, vie
     decisions_dir = docs_dir / "adrs"
 
     lines = ["# Architecture Decision Records\n\n"]
-    lines.append("## Introduction\n\n")
     lines.append(
         "An **Architecture Decision Record** (ADR) is a short document that captures "
         "an important architectural decision made along with its context and consequences. "
         "Learn more at [adr.github.io](https://adr.github.io/).\n\n"
     )
     lines.append(
-        '!!! question "What questions does this answer?"\n\n'
+        '??? question "What questions does this answer?"\n\n'
         "    - *What architectural decisions have been made and why?*\n"
         "    - *What was the context and status of each decision?*\n"
         "    - *How have our architectural choices evolved over time?*\n"
         "    - *Which decisions are still proposed vs. accepted or superseded?*\n\n"
     )
-    lines.append("## Overview\n\n")
+    lines.append("## Architecture Decision Records\n\n")
     lines.append("| ID | Date | Status | Title | Context |\n")
     lines.append("|---|---|---|---|---|\n")
     for d in sorted(decisions, key=lambda d: int(d.id)):
@@ -269,7 +268,6 @@ def _write_persons_index(workspace: Workspace, docs_dir: Path) -> None:
     if not workspace.people:
         return
     lines = ["# Persons\n\n"]
-    lines.append("## Introduction\n\n")
     lines.append(
         "A **person** in C4 terminology represents anyone — human or "
         "role — that interacts with the software systems in the enterprise. This "
@@ -277,13 +275,13 @@ def _write_persons_index(workspace: Workspace, docs_dir: Path) -> None:
         "systems they depend on.\n\n"
     )
     lines.append(
-        '!!! question "What questions does this answer?"\n\n'
+        '??? question "What questions does this answer?"\n\n'
         "    - *Who are the persons interacting with our systems?*\n"
         "    - *Which systems does a specific person interact with?*\n"
         "    - *How many systems does each person depend on?*\n"
         "    - *Are there persons with no system interactions?*\n\n"
     )
-    lines.append("## Overview\n\n")
+    lines.append("## Persons\n\n")
     lines.append("| Name | Description | Software Systems |\n")
     lines.append("|---|---|---|\n")
     for person in sorted(workspace.people, key=lambda p: p.name):
@@ -321,7 +319,6 @@ def _write_person_pages(workspace: Workspace, docs_dir: Path) -> None:
 def _write_software_systems_index(workspace: Workspace, docs_dir: Path, props: SiteProperties | None = None) -> None:
     lines = ["# Software Systems\n\n"]
 
-    lines.append("## Introduction\n\n")
     lines.append(
         "A **software system** is the highest level of abstraction in the C4 model "
         "and represents something that delivers value to its users — whether they are "
@@ -330,24 +327,22 @@ def _write_software_systems_index(workspace: Workspace, docs_dir: Path, props: S
         "microservices, etc.).\n\n"
     )
     lines.append(
-        '!!! question "What questions does this answer?"\n\n'
+        '??? question "What questions does this answer?"\n\n'
         "    - *What systems exist in our landscape and what do they do?*\n"
         "    - *Which systems are internal and which are external?*\n"
         "    - *How do our systems relate to each other at a high level?*\n"
         "    - *Who owns or is responsible for a given system?*\n\n"
     )
 
-    lines.append("## Overview\n\n")
+    lines.append("## Software Systems\n\n")
 
-    # Embed overall landscape views (SystemLandscape and SystemLandscapeSoftwareSystems)
-    overall_views = [
-        v for v in workspace.landscape_views()
-        if v.key in ("SystemLandscape", "SystemLandscapeSoftwareSystems")
-    ]
-    for v in overall_views:
-        title = v.title or v.description or v.key
-        lines.append(f"### {title}\n\n")
-        lines.append(f"{_diagram_embed(v, '../../diagrams/')}\n\n")
+    sw_view = next(
+        (v for v in workspace.landscape_views()
+         if v.key == "SystemLandscapeSoftwareSystems"),
+        None,
+    )
+    if sw_view:
+        lines.append(f"{_diagram_embed(sw_view, '../../diagrams/')}\n\n")
 
     _write_file(docs_dir / "software-systems" / "index.md", "".join(lines))
 
@@ -381,27 +376,27 @@ def _write_infrastructure_pages(workspace: Workspace, docs_dir: Path) -> None:
 
     # Infrastructure index page
     lines = ["# Infrastructure\n\n"]
-    lines.append("## Introduction\n\n")
     lines.append(
         "The **infrastructure** section documents how software systems are deployed "
         "across all environments. Each environment page shows the deployment zones "
         "and how workloads are distributed across on-premise and cloud providers.\n\n"
     )
     lines.append(
-        '!!! question "What questions does this answer?"\n\n'
+        '??? question "What questions does this answer?"\n\n'
         "    - *Where are our systems deployed in each environment?*\n"
         "    - *Which cloud providers and on-premise zones do we use?*\n"
         "    - *How does the infrastructure differ between production and lower environments?*\n"
         "    - *What is the multi-cloud strategy and how are workloads distributed?*\n\n"
     )
-    lines.append("## Overview\n\n")
-    lines.append("| Environment | Zones |\n")
-    lines.append("|---|---|\n")
+    lines.append("## Infrastructure\n\n")
+    lines.append("| Environment | Description | Zones |\n")
+    lines.append("|---|---|---|\n")
     for env in environments:
         env_slug = normalize_name(env)
+        env_desc = workspace.environment_description(env)
         zone_views = workspace.zone_level_views(env)
         zone_count = len(zone_views) if zone_views else 1
-        lines.append(f"| [{env}]({env_slug}/index.md) | {zone_count} |\n")
+        lines.append(f"| [{env}]({env_slug}/index.md) | {env_desc} | {zone_count} |\n")
     _write_file(infra_dir / "index.md", "".join(lines))
 
     # Per-environment pages
@@ -595,13 +590,14 @@ def _append_decisions(decisions: list[Decision], lines: list[str]) -> None:
     lines.append("## Architecture Decision Records\n\n")
     lines.append("| ID | Date | Status | Title | Context |\n")
     lines.append("|---|---|---|---|---|\n")
-    for d in sorted(decisions, key=lambda d: int(d.id)):
+    sorted_decisions = sorted(decisions, key=lambda d: int(d.id))
+    for d in sorted_decisions:
         date = d.date[:10] if d.date else ""
         context = _extract_decision_context(d.content)
         lines.append(f"| {d.id} | {date} | {d.status} | {d.title} | {context} |\n")
     lines.append("\n")
 
-    for d in sorted(decisions, key=lambda d: int(d.id)):
+    for d in sorted_decisions:
         lines.append(f"{_bump_headings(d.content, 2)}\n\n")
 
 
@@ -624,11 +620,12 @@ def _bump_headings(content: str, levels: int) -> str:
 
 
 def _resolve_embeds(content: str, view_keys: set[str], diagrams_prefix: str) -> str:
-    """Replace ![alt](embed:ViewKey) with actual diagram image paths."""
+    """Replace ![alt](embed:ViewKey) with <object> tags for clickable SVG links."""
     def _replace(m: re.Match) -> str:
         alt, key = m.group(1), m.group(2)
         if key in view_keys:
-            return f"![{alt}]({diagrams_prefix}structurizr-{key}.svg)"
+            path = f"{diagrams_prefix}structurizr-{key}.svg"
+            return f'<object data="{path}" type="image/svg+xml" class="diagram">{alt}</object>'
         return m.group(0)
 
     return re.sub(r"!\[([^\]]*)\]\(embed:([^)]+)\)", _replace, content)

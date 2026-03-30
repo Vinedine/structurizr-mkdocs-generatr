@@ -293,7 +293,6 @@ def write_bounded_context_index(
 
     lines: list[str] = []
     lines.append("# Capability Map\n\n")
-    lines.append("## Introduction\n\n")
     lines.append(
         "A **capability map** connects what the business *does* to the systems that "
         "make it happen. It organises the enterprise into "
@@ -304,19 +303,13 @@ def write_bounded_context_index(
         "**business capabilities** that support it.\n\n"
     )
     lines.append(
-        '!!! question "What questions does this answer?"\n\n'
+        '??? question "What questions does this answer?"\n\n'
         "    - *Which systems support our revenue stream?*\n"
         "    - *Where do we have business capability gaps or redundant overlap?*\n"
         "    - *If we decommission a system, which business areas are affected?*\n"
         "    - *How many business capabilities does each domain area actually have?*\n\n"
     )
     lines.append("## Bounded Contexts\n\n")
-    lines.append(
-        "For every bounded context the table below shows the software systems that "
-        "belong to it and the total number of business capabilities they provide. Click a "
-        "context to see the detailed **entity model**, **cross-context relationships**, "
-        "and a full **business capability breakdown** per system.\n\n"
-    )
 
     # Table
     lines.append("| Bounded Context | Description | Software Systems | Business Capabilities |\n")

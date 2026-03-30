@@ -1,3 +1,7 @@
+!!! note "Quick Summary"
+
+    Architecture Decision Records (ADRs) document every strategic choice alongside the architecture itself -- version-controlled, reviewed through pull requests, and linked to the systems they affect.
+
 ## Decisions That Shape the Architecture
 
 Every IT landscape is the result of decisions: which cloud to use, which ERP to adopt, how to handle integrations, where to invest in AI. Too often these decisions live in meeting notes, emails, or someone's memory. When the people who made them leave, the rationale is lost.
@@ -5,8 +9,6 @@ Every IT landscape is the result of decisions: which cloud to use, which ERP to 
 **Architecture Decision Records (ADRs)** solve this by documenting each strategic decision alongside the architecture itself -- in the same repository, reviewed through the same pull request process.
 
 ## What an ADR Captures
-
-Each decision record follows a simple structure:
 
 <div class="grid cards" markdown>
 
@@ -38,7 +40,7 @@ Each decision record follows a simple structure:
 
 ## ADRs and the Branching Model
 
-One of the most powerful features of Architecture as Code is that **architecture changes follow the same Git workflow as application code**:
+Architecture changes follow the same Git workflow as application code:
 
 ```mermaid
 flowchart LR
