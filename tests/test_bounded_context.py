@@ -206,7 +206,7 @@ class TestMarkdownGeneration:
         content = index.read_text(encoding="utf-8")
         assert "# Capability Map" in content
         assert "capability map" in content
-        assert '!!! question "What questions does this answer?"' in content
+        assert '??? question "What questions does this answer?"' in content
         assert "| Bounded Context | Description | Software Systems | Business Capabilities |" in content
         assert "[Alpha](alpha.md)" in content
         assert "[Beta](beta.md)" in content

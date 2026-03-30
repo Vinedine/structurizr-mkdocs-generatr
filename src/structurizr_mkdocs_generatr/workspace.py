@@ -420,7 +420,7 @@ def _parse_views(views_data: dict) -> list[View]:
 
 def parse_workspace(workspace_json: Path) -> Workspace:
     """Parse a workspace.json file into a Workspace dataclass."""
-    with open(workspace_json) as f:
+    with open(workspace_json, encoding="utf-8") as f:
         data = json.load(f)
 
     model = data.get("model", {})
