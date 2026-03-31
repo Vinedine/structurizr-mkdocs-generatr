@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -43,8 +44,19 @@ def main(
     skip_views_gen: bool,
 ) -> None:
     """Generate an MkDocs site from a Structurizr workspace directory."""
-    output = output.resolve()
     workspace_dir = workspace_dir.resolve()
+    output = output.resolve()
+
+    # When running inside the Docker image, build under /tmp to avoid
+    # filesystem permission issues on bind-mounted volumes, then copy
+    # the final site back at the end.
+    in_docker = os.environ.get("STRUCTURIZR_MKDOCS_DOCKER") == "1"
+    final_output = output
+    if in_docker:
+        output = Path("/tmp/build")
+        if output.exists():
+            shutil.rmtree(output)
+    output.mkdir(parents=True, exist_ok=True)
 
     json_dir = output / "json"
     puml_dir = output / "puml"
@@ -71,8 +83,8 @@ def main(
 
     # Step 1: Export via Docker
     if not skip_export:
-        click.echo("Step 1/4: Exporting workspace via Structurizr vNext...")
-        export_workspace(workspace_dir, output)
+        click.echo("Step 1/4: Validating and exporting workspace via Structurizr vNext...")
+        export_workspace(workspace_dir, output, workspace_file)
     else:
         click.echo("Steps 1-2: Skipping export (--skip-export)")
 
@@ -123,6 +135,7 @@ def main(
 
     click.echo("Step 4/4: Building MkDocs site...")
     mkdocs = [sys.executable, "-m", "mkdocs"]
+    site_dir = output / "site"
     if serve:
         click.echo("Serving site at http://localhost:8000")
         subprocess.run(
@@ -131,7 +144,16 @@ def main(
         )
     else:
         subprocess.run(
-            [*mkdocs, "build", "-f", str(site_src / "mkdocs.yml"), "-d", str(output / "site")],
+            [*mkdocs, "build", "-f", str(site_src / "mkdocs.yml"), "-d", str(site_dir)],
             check=True,
         )
-        click.echo(f"Site generated at {output / 'site'}")
+
+        if in_docker:
+            final_site = final_output / "site"
+            if final_site.exists():
+                shutil.rmtree(final_site)
+            final_output.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(site_dir, final_site)
+            click.echo(f"Site generated at {final_site}")
+        else:
+            click.echo(f"Site generated at {site_dir}")

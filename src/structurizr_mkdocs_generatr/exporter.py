@@ -1,4 +1,4 @@
-"""Export Structurizr workspace via Docker (vNext CLI + PlantUML)."""
+"""Export Structurizr workspace via Docker or local CLI (vNext + PlantUML)."""
 
 from __future__ import annotations
 
@@ -18,6 +18,15 @@ from .workspace import (
     normalize_name,
 )
 
+# Paths to local tools installed in the Docker image
+_LOCAL_STRUCTURIZR_CLI = Path("/opt/structurizr-cli/structurizr.sh")
+_LOCAL_PLANTUML_JAR = Path("/opt/plantuml.jar")
+
+
+def has_local_tools() -> bool:
+    """Check if Structurizr CLI and PlantUML are installed locally (i.e. inside Docker)."""
+    return _LOCAL_STRUCTURIZR_CLI.exists() and _LOCAL_PLANTUML_JAR.exists()
+
 
 def _run(args: list[str], label: str) -> None:
     print(f"  {label}...")
@@ -28,12 +37,17 @@ def _run(args: list[str], label: str) -> None:
         raise RuntimeError(f"{label} failed with exit code {result.returncode}")
 
 
-def export_workspace(workspace_dir: Path, output_dir: Path) -> tuple[Path, Path]:
-    """Run Structurizr vNext export to produce workspace.json and PlantUML files.
+def export_workspace(
+    workspace_dir: Path, output_dir: Path, workspace_file: str = "workspace.dsl",
+) -> tuple[Path, Path]:
+    """Validate and export a Structurizr workspace.
+
+    Runs validation first, then exports workspace.json and PlantUML files.
 
     Args:
-        workspace_dir: Directory containing the workspace.dsl file.
+        workspace_dir: Directory containing the DSL file.
         output_dir: Build output directory.
+        workspace_file: Name of the DSL file inside workspace_dir.
 
     Returns:
         Tuple of (json_dir, puml_dir) paths.
@@ -43,14 +57,56 @@ def export_workspace(workspace_dir: Path, output_dir: Path) -> tuple[Path, Path]
     json_dir.mkdir(parents=True, exist_ok=True)
     puml_dir.mkdir(parents=True, exist_ok=True)
 
+    if has_local_tools():
+        _export_local(workspace_dir, json_dir, puml_dir, workspace_file)
+    else:
+        _export_docker(workspace_dir, json_dir, puml_dir, workspace_file)
+
+    return json_dir, puml_dir
+
+
+def _export_local(
+    workspace_dir: Path, json_dir: Path, puml_dir: Path, workspace_file: str,
+) -> None:
+    """Export using locally installed Structurizr CLI (inside Docker container)."""
+    dsl = str(workspace_dir / workspace_file)
+
+    _run([
+        str(_LOCAL_STRUCTURIZR_CLI),
+        "validate", "-w", dsl,
+    ], "Validating workspace")
+
+    _run([
+        str(_LOCAL_STRUCTURIZR_CLI),
+        "export", "-w", dsl, "-f", "json", "-o", str(json_dir),
+    ], "Exporting workspace JSON")
+
+    _run([
+        str(_LOCAL_STRUCTURIZR_CLI),
+        "export", "-w", dsl, "-f", "plantuml/c4plantuml", "-o", str(puml_dir),
+    ], "Exporting C4 PlantUML")
+
+
+def _export_docker(
+    workspace_dir: Path, json_dir: Path, puml_dir: Path, workspace_file: str,
+) -> None:
+    """Export using Docker containers (host execution)."""
     workspace_dir_str = str(workspace_dir.resolve()).replace("\\", "/")
+
+    # Validate workspace
+    _run([
+        "docker", "run", "--rm",
+        "-v", f"{workspace_dir_str}:/usr/local/structurizr",
+        "structurizr/structurizr",
+        "validate", "-w", workspace_file,
+    ], "Validating workspace")
 
     # Export JSON
     _run([
         "docker", "run", "--rm",
         "-v", f"{workspace_dir_str}:/usr/local/structurizr",
         "structurizr/structurizr",
-        "export", "-w", "workspace.dsl", "-f", "json", "-o", "output-json",
+        "export", "-w", workspace_file, "-f", "json", "-o", "output-json",
     ], "Exporting workspace JSON")
 
     # Copy JSON output to our build dir (copy, not move — Docker creates
@@ -64,7 +120,7 @@ def export_workspace(workspace_dir: Path, output_dir: Path) -> tuple[Path, Path]
         "docker", "run", "--rm",
         "-v", f"{workspace_dir_str}:/usr/local/structurizr",
         "structurizr/structurizr",
-        "export", "-w", "workspace.dsl", "-f", "plantuml/c4plantuml", "-o", "output-puml",
+        "export", "-w", workspace_file, "-f", "plantuml/c4plantuml", "-o", "output-puml",
     ], "Exporting C4 PlantUML")
 
     # Copy PUML files to our build dir (same root-ownership issue as JSON)
@@ -73,11 +129,9 @@ def export_workspace(workspace_dir: Path, output_dir: Path) -> tuple[Path, Path]
         shutil.copy2(str(puml_file), str(puml_dir / puml_file.name))
     shutil.rmtree(puml_src_dir, ignore_errors=True)
 
-    return json_dir, puml_dir
-
 
 def render_diagrams(puml_dir: Path, svg_dir: Path) -> None:
-    """Render PlantUML files to SVG using the PlantUML Docker image.
+    """Render PlantUML files to SVG using local JAR or Docker.
 
     Args:
         puml_dir: Directory containing .puml files.
@@ -90,16 +144,25 @@ def render_diagrams(puml_dir: Path, svg_dir: Path) -> None:
         print("  No PlantUML files to render.")
         return
 
-    puml_dir_str = str(puml_dir.resolve()).replace("\\", "/")
-    svg_dir_str = str(svg_dir.resolve()).replace("\\", "/")
+    label = f"Rendering {len(puml_files)} diagrams to SVG"
 
-    _run([
-        "docker", "run", "--rm",
-        "-v", f"{puml_dir_str}:/data",
-        "-v", f"{svg_dir_str}:/output",
-        "plantuml/plantuml",
-        "-tsvg", "-o", "/output", "/data/*.puml",
-    ], f"Rendering {len(puml_files)} diagrams to SVG")
+    if has_local_tools():
+        _run([
+            "java", "-jar", str(_LOCAL_PLANTUML_JAR),
+            "-tsvg", "-o", str(svg_dir.resolve()),
+            *[str(f) for f in puml_files],
+        ], label)
+    else:
+        puml_dir_str = str(puml_dir.resolve()).replace("\\", "/")
+        svg_dir_str = str(svg_dir.resolve()).replace("\\", "/")
+
+        _run([
+            "docker", "run", "--rm",
+            "-v", f"{puml_dir_str}:/data",
+            "-v", f"{svg_dir_str}:/output",
+            "plantuml/plantuml",
+            "-tsvg", "-o", "/output", "/data/*.puml",
+        ], label)
 
 
 def _system_view_types(workspace: Workspace) -> dict[str, set[str]]:
@@ -226,5 +289,3 @@ def process_puml_files(puml_dir: Path, workspace: Workspace, *, show_legend: boo
 
         if content != original:
             puml_file.write_text(content, encoding="utf-8")
-
-
