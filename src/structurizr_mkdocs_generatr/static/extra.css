@@ -5,6 +5,81 @@ object.diagram {
   min-height: 200px;
 }
 
+/* Diagram container with zoom button */
+.diagram-container {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.diagram-zoom-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  color: #333;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s;
+}
+
+.diagram-container:hover .diagram-zoom-btn {
+  opacity: 1;
+}
+
+.diagram-zoom-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Zoom modal overlay */
+.diagram-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.8);
+  cursor: zoom-out;
+}
+
+.diagram-modal-overlay object.diagram {
+  max-width: 90vw;
+  max-height: 90vh;
+  min-height: auto;
+  cursor: default;
+}
+
+.diagram-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.diagram-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* Inline tags next to headings */
 .group-tag,
 .element-tag {

@@ -701,7 +701,16 @@ def _resolve_embeds(content: str, view_keys: set[str], diagrams_prefix: str) -> 
         alt, key = m.group(1), m.group(2)
         if key in view_keys:
             path = f"{diagrams_prefix}structurizr-{key}.svg"
-            return f'<object data="{path}" type="image/svg+xml" class="diagram">{alt}</object>'
+            return (
+                f'<div class="diagram-container">'
+                f'<button class="diagram-zoom-btn" title="Enlarge diagram" '
+                f'data-diagram-src="{path}" data-diagram-title="{alt}">'
+                f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">'
+                f'<path d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3h-6zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3v6zm6 12l-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6h6zm12-6l-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6v-6z"/>'
+                f'</svg></button>'
+                f'<object data="{path}" type="image/svg+xml" class="diagram">{alt}</object>'
+                f'</div>'
+            )
         return m.group(0)
 
     return re.sub(r"!\[([^\]]*)\]\(embed:([^)]+)\)", _replace, content)
@@ -769,7 +778,16 @@ def _diagram_embed(view: View, prefix: str = "../../diagrams/") -> str:
     title = view.title or view.description or view.key
     if view.content_type and view.content_type in _IMAGE_EXTENSIONS and view.content_type != "image/svg+xml":
         return f"![{title}]({path})"
-    return f'<object data="{path}" type="image/svg+xml" class="diagram">{title}</object>'
+    return (
+        f'<div class="diagram-container">'
+        f'<button class="diagram-zoom-btn" title="Enlarge diagram" '
+        f'data-diagram-src="{path}" data-diagram-title="{title}">'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">'
+        f'<path d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3h-6zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3v6zm6 12l-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6h6zm12-6l-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6v-6z"/>'
+        f'</svg></button>'
+        f'<object data="{path}" type="image/svg+xml" class="diagram">{title}</object>'
+        f'</div>'
+    )
 
 
 def _write_image_views(workspace: Workspace, docs_dir: Path) -> None:
