@@ -45,7 +45,9 @@ class TestResolveEmbeds:
     def test_replaces_known_view_key(self):
         content = "![diagram](embed:SystemContext)"
         result = _resolve_embeds(content, {"SystemContext"}, "diagrams/")
-        assert result == '<object data="diagrams/structurizr-SystemContext.svg" type="image/svg+xml" class="diagram">diagram</object>'
+        assert '<div class="diagram-container">' in result
+        assert '<object data="diagrams/structurizr-SystemContext.svg" type="image/svg+xml" class="diagram">diagram</object>' in result
+        assert 'class="diagram-zoom-btn"' in result
 
     def test_leaves_unknown_key_unchanged(self):
         content = "![diagram](embed:Unknown)"
@@ -61,7 +63,8 @@ class TestResolveEmbeds:
     def test_preserves_alt_text(self):
         content = "![My Alt Text](embed:Key1)"
         result = _resolve_embeds(content, {"Key1"}, "d/")
-        assert result == '<object data="d/structurizr-Key1.svg" type="image/svg+xml" class="diagram">My Alt Text</object>'
+        assert '<object data="d/structurizr-Key1.svg" type="image/svg+xml" class="diagram">My Alt Text</object>' in result
+        assert 'data-diagram-title="My Alt Text"' in result
 
 
 class TestRewriteAssetPaths:
