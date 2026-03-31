@@ -1,12 +1,12 @@
-This is an auto-generated digital architecture website for BelFoot FC -- a fictional football club with 28 software systems, 18 personas, and multi-cloud infrastructure.
+Architecture documentation shouldn't be a side project. It should be a side effect.
 
-Everything you see on this site -- diagrams, system descriptions, deployment views, bounded contexts, capability maps, decision records -- is generated directly from version-controlled code. No stale Visio files. No forgotten wikis. One source of truth, always current.
+This site -- every diagram, every system description, every deployment view -- is generated directly from code. Change the model, push to Git, and the documentation updates itself. What you're seeing is BelFoot FC's full digital architecture: 28 software systems, 13 bounded contexts, 4 environments, zero manual upkeep.
 
 ??? info "About BelFoot FC"
 
     BelFoot FC is a fictional football club from [Jonas Van Riel](https://www.linkedin.com/in/jonasvanriel/)'s book [Leading with Capabilities](https://www.amazon.com/Leading-Capabilities-Capability-Based-Management-Implementation/dp/1998528227). It serves as a reference case with a fully modeled capability map, bounded contexts, and entity relationships -- demonstrating how capability-based thinking bridges business strategy and IT architecture.
 
-Below is one of five organizational groups in the BelFoot FC IT landscape.
+The diagram below shows one of five organizational groups. Go ahead -- click any box to start the journey.
 
 ![BelFoot FC — IT Systems](embed:SystemLandscapeIT)
 
