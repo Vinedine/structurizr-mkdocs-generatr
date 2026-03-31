@@ -82,6 +82,22 @@ class DslDeploymentEnvironment:
 # DSL parsing helpers
 # ---------------------------------------------------------------------------
 
+def _find_matching_brace(text: str, open_pos: int) -> int | None:
+    """Return the index *after* the closing '}' that matches the '{' at *open_pos*.
+
+    Returns None if braces are unbalanced.
+    """
+    depth = 1
+    i = open_pos + 1
+    while i < len(text) and depth > 0:
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+        i += 1
+    return i if depth == 0 else None
+
+
 def _extract_top_level_blocks(text: str) -> list[tuple[str, str, str]]:
     """Extract top-level brace-delimited blocks from DSL text.
 
@@ -95,25 +111,18 @@ def _extract_top_level_blocks(text: str) -> list[tuple[str, str, str]]:
         if brace_pos == -1:
             break
 
-        # Get the line leading up to this brace
         line_start = text.rfind("\n", 0, brace_pos)
         line_start = line_start + 1 if line_start != -1 else 0
         pre_brace = text[line_start:brace_pos].strip()
 
-        # Track brace depth to find matching close
-        depth = 1
-        j = brace_pos + 1
-        while j < len(text) and depth > 0:
-            if text[j] == "{":
-                depth += 1
-            elif text[j] == "}":
-                depth -= 1
-            j += 1
+        end = _find_matching_brace(text, brace_pos)
+        if end is None:
+            break
 
-        body = text[brace_pos + 1 : j - 1]
-        full = text[line_start:j]
+        body = text[brace_pos + 1 : end - 1]
+        full = text[line_start:end]
         blocks.append((pre_brace, body, full))
-        i = j
+        i = end
 
     return blocks
 
@@ -123,17 +132,10 @@ def _extract_brace_body(text: str, search_start: int) -> str | None:
     brace_pos = text.find("{", search_start)
     if brace_pos == -1:
         return None
-    depth = 1
-    i = brace_pos + 1
-    while i < len(text) and depth > 0:
-        if text[i] == "{":
-            depth += 1
-        elif text[i] == "}":
-            depth -= 1
-        i += 1
-    if depth != 0:
+    end = _find_matching_brace(text, brace_pos)
+    if end is None:
         return None
-    return text[brace_pos + 1 : i - 1]
+    return text[brace_pos + 1 : end - 1]
 
 
 def _display_to_var(display_name: str, prefix: str) -> str:

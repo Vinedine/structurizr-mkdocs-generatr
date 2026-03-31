@@ -35,6 +35,71 @@ from .workspace import parse_workspace
 @click.option("--serve", is_flag=True, help="Run mkdocs serve after generation.")
 @click.option("--skip-export", is_flag=True, help="Skip Docker export (reuse existing build artifacts).")
 @click.option("--skip-views-gen", is_flag=True, help="Skip auto-generation of DSL views.")
+def _resolve_output_dir(output: Path) -> tuple[Path, Path, bool]:
+    """Resolve the build output directory, handling Docker temp-dir override.
+
+    Returns (working_output, final_output, in_docker).
+    """
+    in_docker = os.environ.get("STRUCTURIZR_MKDOCS_DOCKER") == "1"
+    final_output = output
+    if in_docker:
+        output = Path("/tmp/build")
+        if output.exists():
+            shutil.rmtree(output)
+    output.mkdir(parents=True, exist_ok=True)
+    return output, final_output, in_docker
+
+
+def _step_generate_views(
+    workspace_dir: Path, workspace_file: str, skip: bool,
+) -> None:
+    """Step 0: Auto-generate DSL views from workspace sources."""
+    if skip:
+        click.echo("Skipping view auto-generation (--skip-views-gen)")
+        return
+    click.echo("Auto-generating DSL views...")
+    generated = generate_views(workspace_dir, workspace_file)
+    if generated:
+        click.echo(f"  Generated: {generated.name}")
+        dsl_path = workspace_dir / workspace_file
+        if dsl_path.exists():
+            dsl_text = dsl_path.read_text(encoding="utf-8")
+            if OUTPUT_FILENAME not in dsl_text:
+                click.echo(
+                    f"  Note: Add '!include {OUTPUT_FILENAME}' inside your views {{ }} block in {workspace_file}"
+                )
+
+
+
+def _step_build_site(
+    site_src: Path, output: Path, final_output: Path, in_docker: bool, serve: bool,
+) -> None:
+    """Step 4: Build or serve the MkDocs site."""
+    click.echo("Step 4/4: Building MkDocs site...")
+    mkdocs = [sys.executable, "-m", "mkdocs"]
+    site_dir = output / "site"
+    if serve:
+        click.echo("Serving site at http://localhost:8000")
+        subprocess.run(
+            [*mkdocs, "serve", "-f", str(site_src / "mkdocs.yml")],
+            check=True,
+        )
+    else:
+        subprocess.run(
+            [*mkdocs, "build", "-f", str(site_src / "mkdocs.yml"), "-d", str(site_dir)],
+            check=True,
+        )
+        if in_docker:
+            final_site = final_output / "site"
+            if final_site.exists():
+                shutil.rmtree(final_site)
+            final_output.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(site_dir, final_site)
+            click.echo(f"Site generated at {final_site}")
+        else:
+            click.echo(f"Site generated at {site_dir}")
+
+
 def main(
     workspace_dir: Path,
     workspace_file: str,
@@ -47,16 +112,7 @@ def main(
     workspace_dir = workspace_dir.resolve()
     output = output.resolve()
 
-    # When running inside the Docker image, build under /tmp to avoid
-    # filesystem permission issues on bind-mounted volumes, then copy
-    # the final site back at the end.
-    in_docker = os.environ.get("STRUCTURIZR_MKDOCS_DOCKER") == "1"
-    final_output = output
-    if in_docker:
-        output = Path("/tmp/build")
-        if output.exists():
-            shutil.rmtree(output)
-    output.mkdir(parents=True, exist_ok=True)
+    output, final_output, in_docker = _resolve_output_dir(output)
 
     json_dir = output / "json"
     puml_dir = output / "puml"
@@ -64,31 +120,15 @@ def main(
     inline_puml_dir = output / "inline-puml"
     site_src = output / "site-src"
 
-    # Step 0: Auto-generate DSL views
-    if not skip_views_gen:
-        click.echo("Auto-generating DSL views...")
-        generated = generate_views(workspace_dir, workspace_file)
-        if generated:
-            click.echo(f"  Generated: {generated.name}")
-            # Check if the include line is present in the DSL
-            dsl_path = workspace_dir / workspace_file
-            if dsl_path.exists():
-                dsl_text = dsl_path.read_text(encoding="utf-8")
-                if OUTPUT_FILENAME not in dsl_text:
-                    click.echo(
-                        f"  Note: Add '!include {OUTPUT_FILENAME}' inside your views {{ }} block in {workspace_file}"
-                    )
-    else:
-        click.echo("Skipping view auto-generation (--skip-views-gen)")
+    _step_generate_views(workspace_dir, workspace_file, skip=skip_views_gen)
 
-    # Step 1: Export via Docker
+    # Export must happen before parsing workspace JSON
     if not skip_export:
         click.echo("Step 1/4: Validating and exporting workspace via Structurizr vNext...")
         export_workspace(workspace_dir, output, workspace_file)
     else:
         click.echo("Steps 1-2: Skipping export (--skip-export)")
 
-    # Parse workspace JSON (needed before rendering to inject diagram links)
     workspace_json = json_dir / "workspace.json"
     if not workspace_json.exists():
         click.echo(f"Error: {workspace_json} not found. Run without --skip-export first.", err=True)
@@ -96,26 +136,21 @@ def main(
 
     workspace = parse_workspace(workspace_json)
     props = resolve_properties(workspace.view_properties)
-
-    # Parse bounded context model if .mmd file exists
     bc_model = parse_bounded_contexts(workspace_dir / "boundedContext.mmd")
 
-    # Step 2: Post-process PlantUML and render to SVG
+    # Post-process and render PlantUML
     if not skip_export:
         click.echo("  Post-processing PlantUML diagrams...")
         process_puml_files(puml_dir, workspace, show_legend=props.show_legend)
-
         click.echo("Step 2/4: Rendering PlantUML diagrams to SVG...")
         render_diagrams(puml_dir, svg_dir)
 
+    # Step 3: Generate Markdown + mkdocs.yml
     click.echo("Step 3/4: Generating MkDocs site source...")
-
-    # Clean previous site source to avoid stale files
     docs_out = site_src / "docs"
     if docs_out.exists():
         shutil.rmtree(docs_out)
 
-    # Step 3: Generate Markdown + mkdocs.yml
     opts = GenerateOptions(
         assets_dir=workspace_dir / "assets",
         inline_puml_dir=inline_puml_dir,
@@ -133,27 +168,4 @@ def main(
         click.echo(f"  Rendering {len(inline_puml_files)} inline PlantUML diagrams...")
         render_diagrams(inline_puml_dir, diagrams_dir)
 
-    click.echo("Step 4/4: Building MkDocs site...")
-    mkdocs = [sys.executable, "-m", "mkdocs"]
-    site_dir = output / "site"
-    if serve:
-        click.echo("Serving site at http://localhost:8000")
-        subprocess.run(
-            [*mkdocs, "serve", "-f", str(site_src / "mkdocs.yml")],
-            check=True,
-        )
-    else:
-        subprocess.run(
-            [*mkdocs, "build", "-f", str(site_src / "mkdocs.yml"), "-d", str(site_dir)],
-            check=True,
-        )
-
-        if in_docker:
-            final_site = final_output / "site"
-            if final_site.exists():
-                shutil.rmtree(final_site)
-            final_output.mkdir(parents=True, exist_ok=True)
-            shutil.copytree(site_dir, final_site)
-            click.echo(f"Site generated at {final_site}")
-        else:
-            click.echo(f"Site generated at {site_dir}")
+    _step_build_site(site_src, output, final_output, in_docker, serve)

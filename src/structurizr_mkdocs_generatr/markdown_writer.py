@@ -424,17 +424,18 @@ def _element_tag_badges(tags: list[str], element_styles: dict[str, dict[str, str
     return "".join(badges)
 
 
-def _write_software_system_pages(
-    workspace: Workspace, ss: SoftwareSystem, docs_dir: Path, opts: GenerateOptions,
-) -> None:
-    slug = normalize_name(ss.name)
-    ss_dir = docs_dir / "software-systems" / slug
+def _build_system_heading(
+    workspace: Workspace, ss: SoftwareSystem,
+) -> tuple[list[str], Section | None]:
+    """Build the heading, description, and URL lines for a software system page.
 
-    lines = []
+    Returns the lines and the intro section (if found).
+    """
+    lines: list[str] = []
     tag_html = _element_tag_badges(ss.tags, workspace.element_styles)
     group_html = f" <span class=\"group-tag\">{ss.group}</span>" if ss.group else ""
     lines.append(f"# {ss.name}{group_html}{tag_html}\n\n")
-    # Extract description from intro doc if available, else fall back to DSL description
+
     intro = next(
         (s for s in ss.documentation.sections if s.filename and s.filename.endswith("introduction.md")),
         None,
@@ -446,10 +447,13 @@ def _write_software_system_pages(
     if ss.url:
         lines.append(f"**URL:** [{ss.url}]({ss.url})\n\n")
 
-    # Collect tab content
-    tabs: list[tuple[str, str]] = []
+    return lines, intro
 
-    # Info tab: introduction + decisions + other doc sections
+
+def _build_info_tab(
+    ss: SoftwareSystem, intro: Section | None, view_keys: set[str],
+) -> str | None:
+    """Build the Info tab content from introduction, decisions, and doc sections."""
     info_lines: list[str] = []
     if intro:
         intro_content = _strip_description_section(intro.content)
@@ -458,11 +462,12 @@ def _write_software_system_pages(
         _append_decisions(ss.documentation.decisions, info_lines)
     other_sections = [s for s in ss.documentation.sections if s is not intro]
     if other_sections:
-        _append_sections(other_sections, info_lines, opts.view_keys)
-    if info_lines:
-        tabs.append(("Info", "".join(info_lines)))
+        _append_sections(other_sections, info_lines, view_keys)
+    return "".join(info_lines) if info_lines else None
 
-    # Diagram tabs — one per view type
+
+def _build_diagram_tabs(workspace: Workspace, ss: SoftwareSystem) -> list[tuple[str, str]]:
+    """Build one tab per view type for a software system's diagrams."""
     system_views = workspace.views_for_system(ss.id)
     view_groups: dict[str, list[View]] = {}
     for v in system_views:
@@ -477,6 +482,7 @@ def _write_software_system_pages(
         VIEW_IMAGE: "Image views",
     }
 
+    tabs: list[tuple[str, str]] = []
     for view_type, label in type_labels.items():
         group = view_groups.get(view_type, [])
         if not group:
@@ -490,34 +496,43 @@ def _write_software_system_pages(
                     tab_lines.append(f"{v.description}\n\n")
             tab_lines.append(f"{_diagram_embed(v)}\n\n")
         tabs.append((label, "".join(tab_lines)))
+    return tabs
 
-    # Dependencies tab
+
+def _build_dependencies_tab(
+    workspace: Workspace, ss: SoftwareSystem,
+) -> str | None:
+    """Build the Dependencies tab with inbound/outbound tables."""
     inbound, outbound = workspace.dependencies_for_system(ss.id)
-    if inbound or outbound:
-        dep_lines: list[str] = []
-        dep_lines.append("### Inbound\n\n")
-        if inbound:
-            dep_lines.append("| System | Description | Technology |\n")
-            dep_lines.append("|---|---|---|\n")
-            for element_id, name, desc, tech in inbound:
-                link = _dep_link(workspace, name, element_id)
-                dep_lines.append(f"| {link} | {desc} | {tech} |\n")
-        else:
-            dep_lines.append("No inbound dependencies.\n")
-        dep_lines.append("\n")
-        dep_lines.append("### Outbound\n\n")
-        if outbound:
-            dep_lines.append("| System | Description | Technology |\n")
-            dep_lines.append("|---|---|---|\n")
-            for element_id, name, desc, tech in outbound:
-                link = _dep_link(workspace, name, element_id)
-                dep_lines.append(f"| {link} | {desc} | {tech} |\n")
-        else:
-            dep_lines.append("No outbound dependencies.\n")
-        dep_lines.append("\n")
-        tabs.append(("Dependencies", "".join(dep_lines)))
+    if not inbound and not outbound:
+        return None
 
-    # Render tabs (or flat content if only one section)
+    dep_lines: list[str] = []
+    dep_lines.append("### Inbound\n\n")
+    if inbound:
+        dep_lines.append("| System | Description | Technology |\n")
+        dep_lines.append("|---|---|---|\n")
+        for element_id, name, desc, tech in inbound:
+            link = _dep_link(workspace, name, element_id)
+            dep_lines.append(f"| {link} | {desc} | {tech} |\n")
+    else:
+        dep_lines.append("No inbound dependencies.\n")
+    dep_lines.append("\n")
+    dep_lines.append("### Outbound\n\n")
+    if outbound:
+        dep_lines.append("| System | Description | Technology |\n")
+        dep_lines.append("|---|---|---|\n")
+        for element_id, name, desc, tech in outbound:
+            link = _dep_link(workspace, name, element_id)
+            dep_lines.append(f"| {link} | {desc} | {tech} |\n")
+    else:
+        dep_lines.append("No outbound dependencies.\n")
+    dep_lines.append("\n")
+    return "".join(dep_lines)
+
+
+def _render_tabs(tabs: list[tuple[str, str]], lines: list[str]) -> None:
+    """Render tabs as MkDocs tabbed content, or flat content if only one tab."""
     if len(tabs) > 1:
         for tab_title, tab_content in tabs:
             lines.append(f'=== "{tab_title}"\n\n')
@@ -526,6 +541,29 @@ def _write_software_system_pages(
             lines.append("\n")
     elif tabs:
         lines.append(tabs[0][1])
+
+
+def _write_software_system_pages(
+    workspace: Workspace, ss: SoftwareSystem, docs_dir: Path, opts: GenerateOptions,
+) -> None:
+    slug = normalize_name(ss.name)
+    ss_dir = docs_dir / "software-systems" / slug
+
+    lines, intro = _build_system_heading(workspace, ss)
+
+    tabs: list[tuple[str, str]] = []
+
+    info_content = _build_info_tab(ss, intro, opts.view_keys)
+    if info_content:
+        tabs.append(("Info", info_content))
+
+    tabs.extend(_build_diagram_tabs(workspace, ss))
+
+    deps_content = _build_dependencies_tab(workspace, ss)
+    if deps_content:
+        tabs.append(("Dependencies", deps_content))
+
+    _render_tabs(tabs, lines)
 
     content = _resolve_embeds("".join(lines), opts.view_keys, "../../diagrams/")
     content = _rewrite_asset_paths(content, "../../")

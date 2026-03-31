@@ -5,17 +5,29 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
+from enum import StrEnum
 from pathlib import Path
 
 
-# View type constants — used across workspace parsing and markdown generation
-VIEW_SYSTEM_LANDSCAPE = "systemLandscape"
-VIEW_SYSTEM_CONTEXT = "systemContext"
-VIEW_CONTAINER = "container"
-VIEW_COMPONENT = "component"
-VIEW_DYNAMIC = "dynamic"
-VIEW_DEPLOYMENT = "deployment"
-VIEW_IMAGE = "image"
+class ViewType(StrEnum):
+    """Structurizr view types — used across workspace parsing and markdown generation."""
+    SYSTEM_LANDSCAPE = "systemLandscape"
+    SYSTEM_CONTEXT = "systemContext"
+    CONTAINER = "container"
+    COMPONENT = "component"
+    DYNAMIC = "dynamic"
+    DEPLOYMENT = "deployment"
+    IMAGE = "image"
+
+
+# Backwards-compatible aliases
+VIEW_SYSTEM_LANDSCAPE = ViewType.SYSTEM_LANDSCAPE
+VIEW_SYSTEM_CONTEXT = ViewType.SYSTEM_CONTEXT
+VIEW_CONTAINER = ViewType.CONTAINER
+VIEW_COMPONENT = ViewType.COMPONENT
+VIEW_DYNAMIC = ViewType.DYNAMIC
+VIEW_DEPLOYMENT = ViewType.DEPLOYMENT
+VIEW_IMAGE = ViewType.IMAGE
 
 
 @dataclass
@@ -395,13 +407,13 @@ def _parse_tags(tags_str: str) -> list[str]:
 def _parse_views(views_data: dict) -> list[View]:
     views = []
     view_type_map = {
-        "systemLandscapeViews": VIEW_SYSTEM_LANDSCAPE,
-        "systemContextViews": VIEW_SYSTEM_CONTEXT,
-        "containerViews": VIEW_CONTAINER,
-        "componentViews": VIEW_COMPONENT,
-        "dynamicViews": VIEW_DYNAMIC,
-        "deploymentViews": VIEW_DEPLOYMENT,
-        "imageViews": VIEW_IMAGE,
+        "systemLandscapeViews": ViewType.SYSTEM_LANDSCAPE,
+        "systemContextViews": ViewType.SYSTEM_CONTEXT,
+        "containerViews": ViewType.CONTAINER,
+        "componentViews": ViewType.COMPONENT,
+        "dynamicViews": ViewType.DYNAMIC,
+        "deploymentViews": ViewType.DEPLOYMENT,
+        "imageViews": ViewType.IMAGE,
     }
     for json_key, view_type in view_type_map.items():
         for v in views_data.get(json_key, []):
