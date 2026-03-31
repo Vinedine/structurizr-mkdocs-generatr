@@ -19,22 +19,6 @@ from .view_generator import OUTPUT_FILENAME, generate_views
 from .workspace import parse_workspace
 
 
-@click.command()
-@click.argument("workspace_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
-@click.option(
-    "--workspace-file", "-w",
-    default="workspace.dsl",
-    help="Name of the DSL file inside the workspace directory.",
-)
-@click.option(
-    "--output", "-o",
-    default="build",
-    type=click.Path(path_type=Path),
-    help="Build output directory.",
-)
-@click.option("--serve", is_flag=True, help="Run mkdocs serve after generation.")
-@click.option("--skip-export", is_flag=True, help="Skip Docker export (reuse existing build artifacts).")
-@click.option("--skip-views-gen", is_flag=True, help="Skip auto-generation of DSL views.")
 def _resolve_output_dir(output: Path) -> tuple[Path, Path, bool]:
     """Resolve the build output directory, handling Docker temp-dir override.
 
@@ -100,6 +84,22 @@ def _step_build_site(
             click.echo(f"Site generated at {site_dir}")
 
 
+@click.command()
+@click.argument("workspace_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option(
+    "--workspace-file", "-w",
+    default="workspace.dsl",
+    help="Name of the DSL file inside the workspace directory.",
+)
+@click.option(
+    "--output", "-o",
+    default="build",
+    type=click.Path(path_type=Path),
+    help="Build output directory.",
+)
+@click.option("--serve", is_flag=True, help="Run mkdocs serve after generation.")
+@click.option("--skip-export", is_flag=True, help="Skip Docker export (reuse existing build artifacts).")
+@click.option("--skip-views-gen", is_flag=True, help="Skip auto-generation of DSL views.")
 def main(
     workspace_dir: Path,
     workspace_file: str,
