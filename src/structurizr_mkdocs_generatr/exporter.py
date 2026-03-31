@@ -120,7 +120,10 @@ def _export_docker(
     shutil.rmtree(src_json_dir, ignore_errors=True)
 
     _run(
-        _docker_structurizr(workspace_dir_str, "export", "-w", workspace_file, "-f", "plantuml/c4plantuml", "-o", "output-puml"),
+        _docker_structurizr(
+            workspace_dir_str, "export", "-w", workspace_file,
+            "-f", "plantuml/c4plantuml", "-o", "output-puml",
+        ),
         "Exporting C4 PlantUML",
     )
 
