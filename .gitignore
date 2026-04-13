@@ -6,6 +6,10 @@ build/
 .venv/
 .env
 *.egg
+.coverage
+.pytest_cache/
+.mypy_cache/
+.vscode/
 .claude/
 CLAUDE.md
 .mcp.json

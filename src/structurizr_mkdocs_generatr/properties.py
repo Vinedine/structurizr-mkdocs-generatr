@@ -1,0 +1,128 @@
+"""Resolve workspace view properties into site configuration."""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+
+
+MATERIAL_NAMED_COLORS = frozenset({
+    "red", "pink", "purple", "deep-purple", "indigo", "blue", "light-blue",
+    "cyan", "teal", "green", "light-green", "lime", "yellow", "amber",
+    "orange", "deep-orange", "brown", "grey", "blue-grey", "black", "white",
+})
+
+_HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{3,8}$")
+
+# Fallback mapping: mkdocs.* key -> generatr.* equivalent
+_GENERATR_FALLBACK = {
+    "mkdocs.theme": "generatr.site.theme",
+    "mkdocs.color.primary": "generatr.style.colors.primary",
+    "mkdocs.color.headerText": "generatr.style.colors.secondary",
+    "mkdocs.favicon": "generatr.style.faviconPath",
+    "mkdocs.logo": "generatr.style.logoPath",
+    "mkdocs.customCss": "generatr.style.customStylesheet",
+    "mkdocs.svgLinkTarget": "generatr.svglink.target",
+    "mkdocs.externalTag": "generatr.site.externalTag",
+    "mkdocs.navigation.nestGroups": "generatr.site.nestGroups",
+    "mkdocs.color.accent": "generatr.style.colors.accent",
+    "mkdocs.navigation.instant": "generatr.site.navigation.instant",
+    "mkdocs.navigation.tabs": "generatr.site.navigation.tabs",
+    "mkdocs.fullWidth": "generatr.site.fullWidth",
+    "mkdocs.hideLegend": "generatr.site.hideLegend",
+}
+
+
+@dataclass
+class SiteProperties:
+    theme: str = "auto"
+    primary_color: str | None = None
+    accent_color: str | None = None
+    header_text_color: str | None = None
+    favicon: str | None = None
+    logo: str | None = None
+    custom_css: str | None = None
+    svg_link_target: str = "_blank"
+    external_tag: str | None = None
+    nest_groups: bool = False
+    navigation_instant: bool = False
+    navigation_tabs: bool = False
+    full_width: bool = False
+    hide_legend: bool = False
+
+    def has_hex_colors(self) -> bool:
+        return any(
+            v and _HEX_COLOR_RE.match(v)
+            for v in (self.primary_color, self.accent_color, self.header_text_color)
+        )
+
+    def hex_colors(self) -> dict[str, str]:
+        """Return only the color properties that are valid hex colors."""
+        result: dict[str, str] = {}
+        if self.primary_color and _HEX_COLOR_RE.match(self.primary_color):
+            result["primary"] = self.primary_color
+        if self.header_text_color and _HEX_COLOR_RE.match(self.header_text_color):
+            result["header_text"] = self.header_text_color
+        if self.accent_color and _HEX_COLOR_RE.match(self.accent_color):
+            result["accent"] = self.accent_color
+        return result
+
+
+def _get(props: dict[str, str], mkdocs_key: str) -> str | None:
+    """Look up mkdocs.* key first, fall back to generatr.* equivalent."""
+    val = props.get(mkdocs_key)
+    if val is not None:
+        return val
+    fallback_key = _GENERATR_FALLBACK.get(mkdocs_key)
+    if fallback_key:
+        return props.get(fallback_key)
+    return None
+
+
+def _parse_bool(value: str | None, default: bool = False) -> bool:
+    if value is None:
+        return default
+    return value.strip().lower() in ("true", "1", "yes")
+
+
+def _validate_color(value: str | None) -> str | None:
+    if value is None:
+        return None
+    value = value.strip()
+    if value.lower() in MATERIAL_NAMED_COLORS:
+        return value.lower()
+    if _HEX_COLOR_RE.match(value):
+        return value
+    return None
+
+
+def _validate_theme(value: str | None) -> str:
+    if value and value.strip().lower() in ("auto", "light", "dark"):
+        return value.strip().lower()
+    return "auto"
+
+
+def _validate_svg_target(value: str | None) -> str:
+    if value and value.strip() in ("_self", "_blank", "_parent", "_top"):
+        return value.strip()
+    return "_blank"
+
+
+def resolve_properties(view_properties: dict[str, str]) -> SiteProperties:
+    """Resolve workspace view properties into a SiteProperties instance."""
+    return SiteProperties(
+        theme=_validate_theme(_get(view_properties, "mkdocs.theme")),
+        primary_color=_validate_color(_get(view_properties, "mkdocs.color.primary")),
+        accent_color=_validate_color(_get(view_properties, "mkdocs.color.accent")),
+        header_text_color=_validate_color(_get(view_properties, "mkdocs.color.headerText")),
+        favicon=_get(view_properties, "mkdocs.favicon"),
+        logo=_get(view_properties, "mkdocs.logo"),
+        custom_css=_get(view_properties, "mkdocs.customCss"),
+        svg_link_target=_validate_svg_target(_get(view_properties, "mkdocs.svgLinkTarget")),
+        external_tag=_get(view_properties, "mkdocs.externalTag"),
+        nest_groups=_parse_bool(_get(view_properties, "mkdocs.navigation.nestGroups")),
+        navigation_instant=_parse_bool(_get(view_properties, "mkdocs.navigation.instant")),
+        navigation_tabs=_parse_bool(_get(view_properties, "mkdocs.navigation.tabs")),
+        full_width=_parse_bool(_get(view_properties, "mkdocs.fullWidth")),
+        hide_legend=_parse_bool(_get(view_properties, "mkdocs.hideLegend")),
+    )
