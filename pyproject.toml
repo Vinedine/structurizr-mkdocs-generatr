@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "structurizr-mkdocs-generatr"
+version = "0.1.0"
+description = "Generate MkDocs Material sites from Structurizr DSL workspaces"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.0",
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.0",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+structurizr-mkdocs = "structurizr_mkdocs_generatr.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/structurizr_mkdocs_generatr"]
