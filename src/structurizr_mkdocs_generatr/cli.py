@@ -9,10 +9,12 @@ from pathlib import Path
 
 import click
 
+from .bounded_context import parse_bounded_contexts
 from .exporter import export_workspace, process_puml_files, render_diagrams
 from .markdown_writer import GenerateOptions, generate_markdown
 from .mkdocs_config import generate_mkdocs_config
 from .properties import resolve_properties
+from .view_generator import OUTPUT_FILENAME, generate_views
 from .workspace import parse_workspace
 
 
@@ -31,12 +33,14 @@ from .workspace import parse_workspace
 )
 @click.option("--serve", is_flag=True, help="Run mkdocs serve after generation.")
 @click.option("--skip-export", is_flag=True, help="Skip Docker export (reuse existing build artifacts).")
+@click.option("--skip-views-gen", is_flag=True, help="Skip auto-generation of DSL views.")
 def main(
     workspace_dir: Path,
     workspace_file: str,
     output: Path,
     serve: bool,
     skip_export: bool,
+    skip_views_gen: bool,
 ) -> None:
     """Generate an MkDocs site from a Structurizr workspace directory."""
     output = output.resolve()
@@ -47,6 +51,23 @@ def main(
     svg_dir = output / "svg"
     inline_puml_dir = output / "inline-puml"
     site_src = output / "site-src"
+
+    # Step 0: Auto-generate DSL views
+    if not skip_views_gen:
+        click.echo("Auto-generating DSL views...")
+        generated = generate_views(workspace_dir, workspace_file)
+        if generated:
+            click.echo(f"  Generated: {generated.name}")
+            # Check if the include line is present in the DSL
+            dsl_path = workspace_dir / workspace_file
+            if dsl_path.exists():
+                dsl_text = dsl_path.read_text(encoding="utf-8")
+                if OUTPUT_FILENAME not in dsl_text:
+                    click.echo(
+                        f"  Note: Add '!include {OUTPUT_FILENAME}' inside your views {{ }} block in {workspace_file}"
+                    )
+    else:
+        click.echo("Skipping view auto-generation (--skip-views-gen)")
 
     # Step 1: Export via Docker
     if not skip_export:
@@ -63,6 +84,9 @@ def main(
 
     workspace = parse_workspace(workspace_json)
     props = resolve_properties(workspace.view_properties)
+
+    # Parse bounded context model if .mmd file exists
+    bc_model = parse_bounded_contexts(workspace_dir / "boundedContext.mmd")
 
     # Step 2: Post-process PlantUML and render to SVG
     if not skip_export:
@@ -85,9 +109,10 @@ def main(
         inline_puml_dir=inline_puml_dir,
         puml_dir=puml_dir,
         props=props,
+        bc_model=bc_model,
     )
     generate_markdown(workspace, docs_out, svg_dir, opts)
-    generate_mkdocs_config(workspace, site_src, props)
+    generate_mkdocs_config(workspace, site_src, props, bc_model=bc_model)
 
     # Render inline PlantUML blocks if any were extracted
     inline_puml_files = list(inline_puml_dir.glob("*.puml")) if inline_puml_dir.exists() else []
@@ -99,7 +124,7 @@ def main(
     click.echo("Step 4/4: Building MkDocs site...")
     mkdocs = [sys.executable, "-m", "mkdocs"]
     if serve:
-        click.echo(f"Serving site at http://localhost:8000")
+        click.echo("Serving site at http://localhost:8000")
         subprocess.run(
             [*mkdocs, "serve", "-f", str(site_src / "mkdocs.yml")],
             check=True,

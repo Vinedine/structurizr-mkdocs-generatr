@@ -11,7 +11,8 @@ class TestResolveProperties:
         assert props.theme == "auto"
         assert props.primary_color is None
         assert props.svg_link_target == "_blank"
-        assert props.full_width is False
+        assert props.full_width is True
+        assert props.navigation_tabs is True
         assert props.hide_legend is False
 
     def test_mkdocs_keys(self):
