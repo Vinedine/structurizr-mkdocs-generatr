@@ -99,7 +99,7 @@ def _build_element_url_map(workspace: Workspace) -> dict[str, str]:
     urls: dict[str, str] = {}
     for person in workspace.people:
         slug = normalize_name(person.name)
-        urls[person.name] = f"../actors/{slug}/"
+        urls[person.name] = f"../users/{slug}/"
     for ss in workspace.software_systems:
         ss_slug = normalize_name(ss.name)
         urls[ss.name] = f"../software-systems/{ss_slug}/"

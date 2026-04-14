@@ -110,6 +110,7 @@ class View:
     element_id: str | None = None
     content: str | None = None
     content_type: str | None = None
+    environment: str | None = None
 
 
 @dataclass
@@ -171,7 +172,7 @@ class Workspace:
         return None
 
     def views_for_person(self, person_id: str) -> list[View]:
-        """Return the dedicated per-actor landscape view for this person.
+        """Return the dedicated per-user landscape view for this person.
 
         Prefers views where the person is the only person element (e.g.
         SystemLandscapeUserFan) to avoid showing group-level or full landscape
@@ -282,6 +283,45 @@ class Workspace:
                         return comp.name
         return None
 
+    def deployment_environments(self) -> list[str]:
+        """Return unique environment names from deployment views, ordered by convention."""
+        env_order = ["Production", "Acceptance", "Test", "Development"]
+        envs = {v.environment for v in self.views
+                if v.type == VIEW_DEPLOYMENT and v.environment}
+        return [e for e in env_order if e in envs] + sorted(envs - set(env_order))
+
+    def zone_level_views(self, environment: str) -> list[View]:
+        """Return deployment views for an environment with no softwareSystemId (zone-level)."""
+        return [v for v in self.views
+                if v.type == VIEW_DEPLOYMENT
+                and v.environment == environment
+                and not v.software_system_id]
+
+    def environment_description(self, environment: str) -> str:
+        """Return description for a deployment environment from model properties."""
+        return self.properties.get(f"deployment.{environment}.description", "")
+
+    def zone_description(self, environment: str, zone_name: str) -> str:
+        """Return description for a deployment zone from model properties."""
+        return self.properties.get(f"deployment.{environment}.{zone_name}.description", "")
+
+
+def extract_zone_name(view: View) -> str:
+    """Extract zone name from deployment view description ('Deployment - Env - Zone')."""
+    desc = view.description or view.title or view.key
+    parts = desc.split(" - ")
+    return parts[2].strip() if len(parts) >= 3 else desc
+
+
+def sort_zone_views(views: list[View]) -> list[View]:
+    """Sort zone views: On-Premise first, then cloud providers alphabetically."""
+    def sort_key(v: View) -> tuple[int, str]:
+        name = extract_zone_name(v).lower()
+        if "on-premise" in name or "on premise" in name:
+            return (0, name)
+        return (1, name)
+    return sorted(views, key=sort_key)
+
 
 def _parse_documentation(data: dict) -> Documentation:
     doc = data.get("documentation", {})
@@ -383,6 +423,7 @@ def _parse_views(views_data: dict) -> list[View]:
                 element_id=v.get("elementId"),
                 content=v.get("content"),
                 content_type=v.get("contentType"),
+                environment=v.get("environment"),
             ))
     return views
 
@@ -431,7 +472,7 @@ def parse_workspace(workspace_json: Path) -> Workspace:
         people=people,
         documentation=_parse_documentation(data),
         views=_parse_views(views_data),
-        properties=data.get("properties", {}),
+        properties=model.get("properties", {}),
         view_properties=view_config.get("properties", {}),
     )
 

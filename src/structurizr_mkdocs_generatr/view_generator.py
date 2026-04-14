@@ -143,9 +143,36 @@ def _display_to_var(display_name: str, prefix: str) -> str:
     return prefix + "".join(w.capitalize() for w in words)
 
 
-def _parse_users(workspace_dir: Path) -> list[DslUser]:
-    """Parse person definitions from workspace-includes/users.dsl."""
-    users_path = workspace_dir / "workspace-includes" / "users.dsl"
+def _find_includes_dir(workspace_dir: Path, workspace_file: str = "workspace.dsl") -> Path | None:
+    """Detect the includes directory by checking common conventions.
+
+    Looks for ``workspace-includes/`` first, then parses ``!include`` paths
+    from the workspace DSL to find the actual directory.
+    """
+    candidates = [workspace_dir / "workspace-includes"]
+
+    dsl_path = workspace_dir / workspace_file
+    if dsl_path.exists():
+        text = dsl_path.read_text(encoding="utf-8")
+        for m in re.finditer(r"!include\s+(\S+)", text):
+            parent = Path(m.group(1)).parts[0]
+            candidate = workspace_dir / parent
+            if candidate not in candidates:
+                candidates.append(candidate)
+
+    for d in candidates:
+        if d.is_dir():
+            return d
+    return None
+
+
+def _parse_users(workspace_dir: Path, includes_dir: Path | None = None) -> list[DslUser]:
+    """Parse person definitions from users.dsl in the includes directory."""
+    if includes_dir is None:
+        includes_dir = _find_includes_dir(workspace_dir)
+    if includes_dir is None:
+        return []
+    users_path = includes_dir / "users.dsl"
     if not users_path.exists():
         return []
 
@@ -153,9 +180,13 @@ def _parse_users(workspace_dir: Path) -> list[DslUser]:
     return [DslUser(var_name=m.group(1), display_name=m.group(2)) for m in _PERSON_RE.finditer(text)]
 
 
-def _parse_groups(workspace_dir: Path) -> list[DslGroup]:
+def _parse_groups(workspace_dir: Path, includes_dir: Path | None = None) -> list[DslGroup]:
     """Parse group, software system, container, and user interaction data."""
-    groups_dir = workspace_dir / "workspace-includes" / "groups"
+    if includes_dir is None:
+        includes_dir = _find_includes_dir(workspace_dir)
+    if includes_dir is None:
+        return []
+    groups_dir = includes_dir / "groups"
     if not groups_dir.exists():
         return []
 
@@ -202,9 +233,13 @@ def _parse_groups(workspace_dir: Path) -> list[DslGroup]:
     return groups
 
 
-def _parse_deployments(workspace_dir: Path) -> list[DslDeploymentEnvironment]:
+def _parse_deployments(workspace_dir: Path, includes_dir: Path | None = None) -> list[DslDeploymentEnvironment]:
     """Parse deployment environments, named zone nodes, and container instances."""
-    deploy_dir = workspace_dir / "workspace-includes" / "deployments"
+    if includes_dir is None:
+        includes_dir = _find_includes_dir(workspace_dir)
+    if includes_dir is None:
+        return []
+    deploy_dir = includes_dir / "deployments"
     if not deploy_dir.exists():
         return []
 
@@ -343,7 +378,7 @@ def _generate_landscape_views(
 
     # 2. Software systems only (no users)
     if all_system_vars:
-        lines.append("# [auto-generated] All software systems (no actors)")
+        lines.append("# [auto-generated] All software systems (no users)")
         key = "SystemLandscapeSoftwareSystems"
         lines.append(_view_block("systemlandscape", None, key, " ".join(all_system_vars), "System Landscape - Software Systems"))
         keys.append(key)
@@ -385,9 +420,9 @@ def _generate_landscape_views(
 
     # 5. All users (no systems)
     if all_user_vars:
-        lines.append("# [auto-generated] All actors (no systems)")
+        lines.append("# [auto-generated] All users (no systems)")
         key = "SystemLandscapeUsers"
-        lines.append(_view_block("systemlandscape", None, key, " ".join(all_user_vars), "System Landscape - Actors"))
+        lines.append(_view_block("systemlandscape", None, key, " ".join(all_user_vars), "System Landscape - Users"))
         keys.append(key)
         lines.append("")
 
@@ -677,9 +712,10 @@ def generate_views(workspace_dir: Path, workspace_file: str = "workspace.dsl") -
     Returns the path to the generated file, or None if nothing was generated.
     Tries workspace-includes/ structure first, falls back to monolithic DSL.
     """
-    users = _parse_users(workspace_dir)
-    groups = _parse_groups(workspace_dir)
-    envs = _parse_deployments(workspace_dir)
+    includes_dir = _find_includes_dir(workspace_dir, workspace_file)
+    users = _parse_users(workspace_dir, includes_dir)
+    groups = _parse_groups(workspace_dir, includes_dir)
+    envs = _parse_deployments(workspace_dir, includes_dir)
     _resolve_deployed_systems(envs, groups)
 
     # Fallback: parse from monolithic workspace.dsl
@@ -690,7 +726,7 @@ def generate_views(workspace_dir: Path, workspace_file: str = "workspace.dsl") -
         click.echo("  No DSL sources found — skipping view generation.", err=True)
         return None
 
-    views_dir = workspace_dir / "workspace-includes" / "views"
+    views_dir = (includes_dir or workspace_dir / "workspace-includes") / "views"
 
     workspace_dsl = workspace_dir / workspace_file
     existing_keys = _find_existing_view_keys(views_dir, workspace_dsl)

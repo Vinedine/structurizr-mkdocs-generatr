@@ -11,7 +11,8 @@ from .workspace import SoftwareSystem, Workspace, normalize_name
 # Entity IDs in boundedContext.mmd must be UPPER_CASE with underscores
 # (e.g. ACCOUNT, LOAN_APP). camelCase or PascalCase IDs are not matched.
 _ENTITY_ID_RE = re.compile(r"([A-Z_][A-Z_0-9]*)")
-_CLICK_RE = re.compile(r"click\s+([A-Z_][A-Z_0-9]*)\s")
+# Matches node definitions like ENTITY_ID[Label]
+_NODE_DEF_RE = re.compile(r"([A-Z_][A-Z_0-9]*)\[([^\]]+)\]")
 
 
 def _extract_entity_ids(text: str, valid: dict[str, str]) -> list[str]:
@@ -25,6 +26,7 @@ class BoundedContext:
     entities: list[str] = field(default_factory=list)
     entity_labels: dict[str, str] = field(default_factory=dict)
     mermaid_section: str = ""
+    description: str = ""
 
 
 @dataclass
@@ -120,19 +122,20 @@ def parse_bounded_contexts(mmd_path: Path) -> BoundedContextModel | None:
         name = match.group(1)
         section = match.group(2).strip()
 
-        # Extract entity IDs from click lines
-        entities: list[str] = []
-        for click_match in _CLICK_RE.finditer(section):
-            entities.append(click_match.group(1))
+        # Extract description from %% [DESC] line
+        description = ""
+        desc_match = re.search(r"%% \[DESC\]\s*(.+)", section)
+        if desc_match:
+            description = desc_match.group(1).strip()
 
-        # Extract entity labels from ENTITY_ID[Label] notation
+        # Extract entity IDs and labels from node definitions like ID[Label]
+        entities: list[str] = []
         entity_labels: dict[str, str] = {}
-        for eid in entities:
-            label_match = re.search(
-                rf"{re.escape(eid)}\[([^\]]+)\]", section
-            )
-            if label_match:
-                entity_labels[eid] = label_match.group(1)
+        for node_match in _NODE_DEF_RE.finditer(section):
+            eid, label = node_match.group(1), node_match.group(2)
+            if eid not in entity_labels:
+                entities.append(eid)
+                entity_labels[eid] = label
 
         # Build mermaid section: strip comment markers, keep subgraph/edges/clicks
         mermaid_lines: list[str] = []
@@ -146,6 +149,7 @@ def parse_bounded_contexts(mmd_path: Path) -> BoundedContextModel | None:
             entities=entities,
             entity_labels=entity_labels,
             mermaid_section=mermaid_section,
+            description=description,
         )
         contexts.append(ctx)
 
@@ -183,11 +187,18 @@ def _parse_intro(intro_content: str) -> tuple[list[str], list[str]]:
                 current_section = ""
             continue
 
-        if current_section == "Business Data/Context":
+        if current_section in (
+            "Business Data/Context", "Business Data/Bounded Context",
+            "Bounded Context",
+        ):
             link_match = re.search(r"\[([^\]]+)\]", stripped)
             if link_match:
                 context_names.append(link_match.group(1))
-        elif current_section == "Business Capabilities":
+            elif stripped.startswith("- "):
+                name = stripped[2:].strip()
+                if name:
+                    context_names.append(name)
+        elif current_section == "Capabilities":
             if stripped.startswith("- "):
                 cap = stripped[2:].strip()
                 # Strip markdown links from capability text
@@ -245,6 +256,7 @@ def write_bounded_context_index(
 
     lines: list[str] = []
     lines.append("# Capability Map\n\n")
+    lines.append("## Introduction\n\n")
     lines.append(
         "A **capability map** connects what the business *does* to the systems that "
         "make it happen. It organises the enterprise into "
@@ -261,6 +273,7 @@ def write_bounded_context_index(
         "    - *If we decommission a system, which business areas are affected?*\n"
         "    - *How many capabilities does each domain area actually have?*\n\n"
     )
+    lines.append("## Bounded Contexts\n\n")
     lines.append(
         "For every bounded context the table below shows the software systems that "
         "belong to it and the total number of capabilities they provide. Click a "
@@ -269,19 +282,20 @@ def write_bounded_context_index(
     )
 
     # Table
-    lines.append("| Bounded Context | Software Systems | Capabilities |\n")
-    lines.append("|---|---|---|\n")
+    lines.append("| Bounded Context | Description | Software Systems | Capabilities |\n")
+    lines.append("|---|---|---|---|\n")
     for ctx in model.contexts:
         slug = normalize_name(ctx.name)
         sys_count = len(system_map.get(ctx.name, []))
         cap_count = sum(len(caps) for caps in cap_map.get(ctx.name, {}).values())
-        lines.append(f"| [{ctx.name}]({slug}.md) | {sys_count} | {cap_count} |\n")
+        desc = ctx.description or ""
+        lines.append(f"| [{ctx.name}]({slug}.md) | {desc} | {sys_count} | {cap_count} |\n")
     lines.append("\n")
 
     # Relations diagram
     relations = model.context_relations()
     if relations:
-        lines.append("## Bounded Context Relations\n\n")
+        lines.append("### Relations\n\n")
         lines.append("```mermaid\n")
         lines.append("flowchart TB\n")
         for ctx in model.contexts:
@@ -316,6 +330,8 @@ def write_bounded_context_pages(
         lines: list[str] = []
         lines.append(f"# {ctx.name}\n\n")
         lines.append("## Bounded Context\n\n")
+        if ctx.description:
+            lines.append(f"{ctx.description}\n\n")
         lines.append("```mermaid\n")
         lines.append("flowchart TB\n\n")
 

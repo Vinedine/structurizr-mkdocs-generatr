@@ -9,11 +9,14 @@ import yaml
 from .bounded_context import BoundedContextModel
 from .properties import MATERIAL_NAMED_COLORS, SiteProperties
 from .workspace import (
+    VIEW_DEPLOYMENT,
     Documentation,
     Workspace,
+    extract_zone_name,
     normalize_name,
     section_slug,
     section_title,
+    sort_zone_views,
 )
 
 
@@ -93,6 +96,7 @@ def _build_theme(props: SiteProperties) -> dict:
         features.append("navigation.instant")
     if props.navigation_tabs:
         features.append("navigation.tabs")
+        features.append("navigation.tabs.sticky")
     theme["features"] = features
 
     # Favicon and logo
@@ -148,7 +152,8 @@ def _build_nav(workspace: Workspace, bc_model: BoundedContextModel | None = None
     # Workspace documentation sections under "Main" section (index.md is the home page)
     skip_slugs = {"bounded-contexts", "capability-map"} if bc_model else set()
     sorted_sections = sorted(workspace.documentation.sections, key=lambda s: s.order)
-    main_nav: list = [{"index": "index.md"}]
+    home_title = section_title(sorted_sections[0]) if sorted_sections else "Home"
+    main_nav: list = [{home_title: "index.md"}]
     for section in sorted_sections[1:]:
         slug = section_slug(section)
         if slug in skip_slugs:
@@ -165,17 +170,22 @@ def _build_nav(workspace: Workspace, bc_model: BoundedContextModel | None = None
             bc_nav.append({ctx.name: f"capability-map/{ctx_slug}.md"})
         nav.append({"Capability Map": bc_nav})
 
-    # Actors section (expandable)
-    actors_nav = _actors_nav(workspace)
-    if actors_nav:
-        nav.append({"Actors": actors_nav})
+    # Users section (expandable)
+    users_nav = _users_nav(workspace)
+    if users_nav:
+        nav.append({"Users": users_nav})
 
     # Software Systems section (expandable)
     systems_nav = _systems_nav(workspace)
     nav.append({"Software Systems": systems_nav})
 
+    # Infrastructure section (before ADRs)
+    infra_nav = _infrastructure_nav(workspace)
+    if infra_nav:
+        nav.append({"Infrastructure": infra_nav})
+
     # Workspace decisions
-    decisions_nav = _decisions_nav(workspace.documentation, prefix="decisions")
+    decisions_nav = _decisions_nav(workspace.documentation, prefix="adrs")
     if decisions_nav:
         nav.append({"Architecture Decision Records": decisions_nav})
 
@@ -193,13 +203,13 @@ def _decisions_nav(documentation: Documentation, prefix: str) -> list:
     return nav
 
 
-def _actors_nav(workspace: Workspace) -> list:
+def _users_nav(workspace: Workspace) -> list:
     if not workspace.people:
         return []
-    nav: list = [{"index": "actors/index.md"}]
+    nav: list = [{"index": "users/index.md"}]
     for person in sorted(workspace.people, key=lambda p: p.name):
         slug = normalize_name(person.name)
-        nav.append({person.name: f"actors/{slug}/index.md"})
+        nav.append({person.name: f"users/{slug}/index.md"})
     return nav
 
 
@@ -230,5 +240,31 @@ def _systems_nav(workspace: Workspace) -> list:
         for ss in sorted(workspace.software_systems, key=lambda s: s.name):
             slug = normalize_name(ss.name)
             nav.append({ss.name: f"software-systems/{slug}/index.md"})
+
+    return nav
+
+
+def _infrastructure_nav(workspace: Workspace) -> list:
+    """Build Infrastructure section nav entries."""
+    environments = workspace.deployment_environments()
+    if not environments:
+        return []
+
+    nav: list = [{"index": "infrastructure/index.md"}]
+
+    for env in environments:
+        env_slug = normalize_name(env)
+        zone_views = workspace.zone_level_views(env)
+
+        if zone_views:
+            env_nav: list = [{"index": f"infrastructure/{env_slug}/index.md"}]
+            zone_views_sorted = sort_zone_views(zone_views)
+            for v in zone_views_sorted:
+                zone_name = extract_zone_name(v)
+                zone_slug = normalize_name(zone_name)
+                env_nav.append({zone_name: f"infrastructure/{env_slug}/{zone_slug}.md"})
+            nav.append({env: env_nav})
+        else:
+            nav.append({env: [{"index": f"infrastructure/{env_slug}/index.md"}]})
 
     return nav

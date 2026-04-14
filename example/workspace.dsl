@@ -1,371 +1,208 @@
-/*
- * This is a combined version of the following workspaces:
- *
- * - "Big Bank plc - System Landscape" (https://structurizr.com/share/28201/)
- * - "Big Bank plc - Internet Banking System" (https://structurizr.com/share/36141/)
-*/
-workspace "Big Bank plc" "This is an example workspace to illustrate the key features of Structurizr, via the DSL, based around a fictional online banking system." {
-    !docs workspace-docs
-    !adrs workspace-adrs
+workspace "BelFoot FC IT Landscape" {
+
+    !docs workspace/pages
+    !adrs workspace/adrs
 
     model {
+
         properties {
             "structurizr.groupSeparator" "/"
+            "group.Commercial.description" "The Commercial group owns all revenue-generating and fan-facing systems: ticketing, merchandise, sponsorship, marketing, and CRM. These systems share a common fan identity and push events into the integration platform so downstream analytics can track the full customer journey."
+            "group.Corporate.description" "Corporate systems handle finance (SAP S/4HANA), HR, compliance, strategy, and external relations. They form the governance backbone of the club, with payroll and procurement data flowing between HR, SAP, and the data platform for consolidated reporting."
+            "group.IT.description" "The IT group provides shared infrastructure that every other group depends on: identity management (Entra ID), event-driven integration (Service Bus), data platform (ETL + Power BI), the Databricks lakehouse, and AI/ML capabilities. These are the horizontal enablers that tie the landscape together."
+            "group.Operations.description" "Operations covers everything that happens at the stadium: facility management, IoT sensors, matchday coordination, and cashless payments. These systems run on-premise for latency-critical gameday scenarios, while their data feeds into the cloud for long-term analytics and AI-driven crowd predictions."
+            "group.Sporting.description" "Sporting systems track player performance (GPS, biometrics, match stats), medical records, and youth academy scouting. They run on AWS to leverage its sports analytics ecosystem and feed injury risk models through Azure AI Foundry."
+            "deployment.Production.description" "Production hosts all live workloads across three infrastructure zones. BelFoot FC follows a multi-cloud strategy where each workload runs in the environment best suited to its latency, ecosystem, and regulatory requirements. This is a deliberate architectural decision driven by latency, ecosystem, and compliance considerations."
+            "deployment.Production.On-Premise.description" "Latency-critical gameday systems (ticketing validation, stadium access control, IoT sensors) run in the stadium data center. Sub-second response times during peak crowd flow cannot depend on an internet round-trip. Event data is replicated to the cloud asynchronously for analytics."
+            "deployment.Production.Azure Cloud.description" "The majority of the landscape runs on Azure: fan-facing digital platforms, corporate systems, the data platform, integration backbone, and AI/ML workloads. Resources are organized into dedicated resource groups per domain, each with its own scaling and cost boundaries."
+            "deployment.Production.AWS Cloud.description" "Sporting analytics (player performance, medical records, youth academy) run on AWS to leverage its sports-specific ecosystem. ECS Fargate services keep operational overhead low, while RDS PostgreSQL handles persistence and Amazon Managed Grafana provides coaching dashboards."
+            "deployment.Acceptance.description" "Acceptance mirrors production topology at reduced scale for final validation before release. All services run in a single Azure resource group with appropriately sized SKUs."
+            "deployment.Test.description" "Test provides isolated environments for integration and regression testing. Infrastructure matches acceptance but with minimal SKUs to keep costs low."
+            "deployment.Development.description" "Development uses shared, cost-optimized Azure infrastructure for daily development work. All services are consolidated into a single resource group with burstable and serverless SKUs."
         }
 
-        customer = person "Personal Banking Customer" "A customer of the bank, with personal bank accounts." "Customer"
+        !include workspace/users.dsl
 
-        acquirer = softwaresystem "Acquirer" "Facilitates PIN transactions for merchants." "External System"
+        !include workspace/groups/it.dsl
+        !include workspace/groups/commercial.dsl
+        !include workspace/groups/corporate.dsl
+        !include workspace/groups/sporting.dsl
+        !include workspace/groups/operations.dsl
 
-        group "Big Bank plc" {
-            supportStaff = person "Customer Service Staff" "Customer service staff within the bank." "Bank Staff" {
-                properties {
-                    "Location" "Customer Services"
-                }
-            }
-            backoffice = person "Back Office Staff" "Administration and support staff within the bank." "Bank Staff" {
-                properties {
-                    "Location" "Internal Services"
-                }
-            }
+        !include workspace/deployments/development.dsl
+        !include workspace/deployments/test.dsl
+        !include workspace/deployments/acceptance.dsl
+        !include workspace/deployments/production.dsl
 
-            mainframe = softwaresystem "Mainframe Banking System" "Stores all of the core banking information about customers, accounts, transactions, etc." "Existing System"
-            email = softwaresystem "E-mail System" "The internal Microsoft Exchange e-mail system." "Existing System"
-            atm = softwaresystem "ATM" "Allows customers to withdraw cash." "Existing System"
+        // ============================================================
+        // Cross-group relationships: Commercial
+        // ============================================================
 
-            internetBankingSystem = softwaresystem "Internet Banking System" "Allows customers to view information about their bank accounts, and make payments." {
-                !adrs software-system-docs/internet-banking-system/adr
-                !docs software-system-docs/internet-banking-system/docs
-                properties {
-                    "Owner" "Customer Services"
-                    "Development Team" "Dev/Internet Services"
-                }
-                url https://en.wikipedia.org/wiki/Online_banking
+        containerTicketingPlatformApi -> containerSalesforceCrmApi "Sync customer data on ticket purchase" "JSON/HTTPS"
+        containerTicketingPlatformApi -> containerStripeApi "Process ticket payments" "JSON/HTTPS"
+        containerTicketingPlatformApi -> containerIntegrationPlatformServiceBus "Publish ticket purchase events" "AMQP/TCP"
 
-                singlePageApplication = container "Single-Page Application" "Provides all of the Internet banking functionality to customers via their web browser." "JavaScript and Angular" "Web Browser"
-                mobileApp = container "Mobile App" "Provides a limited subset of the Internet banking functionality to customers via their mobile device." "Xamarin" "Mobile App"
-                webApplication = container "Web Application" "Delivers the static content and the Internet banking single page application." "Java and Spring MVC"
-                apiApplication = container "API Application" "Provides Internet banking functionality via a JSON/HTTPS API." "Java and Spring MVC" {
-                    properties {
-                        Owner "Team 1"
-                    }
-                    signinController = component "Sign In Controller" "Allows users to sign in to the Internet Banking System." "Spring MVC Rest Controller"
-                    accountsSummaryController = component "Accounts Summary Controller" "Provides customers with a summary of their bank accounts." "Spring MVC Rest Controller"
-                    resetPasswordController = component "Reset Password Controller" "Allows users to reset their passwords with a single use URL." "Spring MVC Rest Controller"
-                    securityComponent = component "Security Component" "Provides functionality related to signing in, changing passwords, etc." "Spring Bean"
-                    mainframeBankingSystemFacade = component "Mainframe Banking System Facade" "A facade onto the mainframe banking system." "Spring Bean" {
-                        !adrs software-system-docs/internet-banking-system/api-application/mainframe-banking-system-facade/adr
-                        !docs software-system-docs/internet-banking-system/api-application/mainframe-banking-system-facade/docs
-                    }
-                    emailComponent = component "E-mail Component" "Sends e-mails to users." "Spring Bean" {
-                        !adrs software-system-docs/internet-banking-system/api-application/email-component/adr
-                        !docs software-system-docs/internet-banking-system/api-application/email-component/docs
-                    }
-                }
-                database = container "Database" "Stores user registration information, hashed authentication credentials, access logs, etc." "Oracle Database Schema" "Database" {
-                    !adrs software-system-docs/internet-banking-system/database/adr
-                    !docs software-system-docs/internet-banking-system/database/docs
-                }
-            }
-        }
+        containerWebStoreApi -> containerStripeApi "Process merchandise payments" "JSON/HTTPS"
+        containerWebStoreApi -> containerSapS4HanaApi "Sync inventory and orders" "JSON/HTTPS"
+        containerWebStoreApi -> containerIntegrationPlatformServiceBus "Publish order events" "AMQP/TCP"
 
-        # relationships between people and software systems
-        customer -> internetBankingSystem "Views account balances, and makes payments using"
-        internetBankingSystem -> mainframe "Gets account information from, and makes payments using"
-        internetBankingSystem -> email "Sends e-mail using"
-        email -> customer "Sends e-mails to"
-        customer -> supportStaff "Asks questions to" "Telephone"
-        supportStaff -> mainframe "Uses"
-        customer -> atm "Withdraws cash using"
-        atm -> mainframe "Uses"
-        backoffice -> mainframe "Uses"
+        containerSponsorshipPortalApi -> containerSalesforceCrmApi "Sync sponsor contacts" "JSON/HTTPS"
 
-        acquirer -> mainframe "Peforms clearing and settlement"
+        containerFanEngagementApi -> containerSalesforceCrmApi "Get fan profile data" "JSON/HTTPS"
+        containerFanEngagementApi -> containerTicketingPlatformApi "Get ticket purchase history" "JSON/HTTPS"
 
-        # relationships to/from containers
-        customer -> webApplication "Visits bigbank.com/ib using" "HTTPS"
-        customer -> singlePageApplication "Views account balances, and makes payments using"
-        customer -> mobileApp "Views account balances, and makes payments using"
-        webApplication -> singlePageApplication "Delivers to the customer's web browser"
+        containerMarketingPlatformApi -> containerSalesforceCrmApi "Get customer and account data" "JSON/HTTPS"
+        containerMarketingPlatformApi -> containerSponsorshipPortalApi "Get sponsor and campaign data" "JSON/HTTPS"
+        containerMarketingPlatformApi -> containerFanEngagementApi "Target fan segments for campaigns" "JSON/HTTPS"
 
-        # relationships to/from components
-        singlePageApplication -> signinController "Makes API calls to" "JSON/HTTPS"
-        singlePageApplication -> accountsSummaryController "Makes API calls to" "JSON/HTTPS"
-        singlePageApplication -> resetPasswordController "Makes API calls to" "JSON/HTTPS"
-        mobileApp -> signinController "Makes API calls to" "JSON/HTTPS"
-        mobileApp -> accountsSummaryController "Makes API calls to" "JSON/HTTPS"
-        mobileApp -> resetPasswordController "Makes API calls to" "JSON/HTTPS"
-        signinController -> securityComponent "Uses"
-        accountsSummaryController -> mainframeBankingSystemFacade "Uses"
-        resetPasswordController -> securityComponent "Uses"
-        resetPasswordController -> emailComponent "Uses"
-        securityComponent -> database "Reads from and writes to" "JDBC"
-        mainframeBankingSystemFacade -> mainframe "Makes API calls to" "XML/HTTPS"
-        emailComponent -> email "Sends e-mail using"
+        containerProductDevelopmentApi -> containerWebStoreApi "Publish new products" "JSON/HTTPS"
+        containerProductDevelopmentApi -> containerTicketingPlatformApi "Publish ticket products" "JSON/HTTPS"
 
-        deploymentEnvironment "Development" {
-            deploymentNode "Developer Laptop" "" "Microsoft Windows 10 or Apple macOS" {
-                deploymentNode "Web Browser" "" "Chrome, Firefox, Safari, or Edge" {
-                    developerSinglePageApplicationInstance = containerInstance singlePageApplication
-                }
-                deploymentNode "Docker Container - Web Server" "" "Docker" {
-                    deploymentNode "Apache Tomcat" "" "Apache Tomcat 8.x" {
-                        developerWebApplicationInstance = containerInstance webApplication
-                        developerApiApplicationInstance = containerInstance apiApplication
-                    }
-                }
-                deploymentNode "Docker Container - Database Server" "" "Docker" {
-                    deploymentNode "Database Server" "" "Oracle 12c" {
-                        developerDatabaseInstance = containerInstance database
-                    }
-                }
-            }
-            deploymentNode "Big Bank plc" "" "Big Bank plc data center" "" {
-                deploymentNode "bigbank-dev001" "" "" "" {
-                    softwareSystemInstance mainframe
-                }
-            }
+        // ============================================================
+        // Cross-group relationships: Operations
+        // ============================================================
 
-        }
+        containerCashlessPaymentApi -> containerStripeApi "Process in-stadium payments" "JSON/HTTPS"
+        containerCashlessPaymentApi -> containerIntegrationPlatformServiceBus "Publish transaction events" "AMQP/TCP"
 
-        deploymentEnvironment "Live" {
-            deploymentNode "Customer's mobile device" "" "Apple iOS or Android" {
-                liveMobileAppInstance = containerInstance mobileApp
-            }
-            deploymentNode "Customer's computer" "" "Microsoft Windows or Apple macOS" {
-                deploymentNode "Web Browser" "" "Chrome, Firefox, Safari, or Edge" {
-                    liveSinglePageApplicationInstance = containerInstance singlePageApplication
-                }
-            }
+        containerStadiumManagementApi -> containerAzureAiFoundryApi "Predict crowd density from sensor data" "JSON/HTTPS"
 
-            deploymentNode "Big Bank plc" "" "Big Bank plc data center" {
-                deploymentNode "bigbank-web***" "" "Ubuntu 16.04 LTS" "" 4 {
-                    deploymentNode "Apache Tomcat" "" "Apache Tomcat 8.x" {
-                        liveWebApplicationInstance = containerInstance webApplication
-                    }
-                }
-                deploymentNode "bigbank-api***" "" "Ubuntu 16.04 LTS" "" 8 {
-                    deploymentNode "Apache Tomcat" "" "Apache Tomcat 8.x" {
-                        liveApiApplicationInstance = containerInstance apiApplication
-                    }
-                }
+        containerLogisticsPlannerApi -> containerSapS4HanaApi "Manage purchase orders and supplier data" "JSON/HTTPS"
 
-                deploymentNode "bigbank-db01" "" "Ubuntu 16.04 LTS" {
-                    primaryDatabaseServer = deploymentNode "Oracle - Primary" "" "Oracle 12c" {
-                        livePrimaryDatabaseInstance = containerInstance database
-                    }
-                }
-                deploymentNode "bigbank-db02" "" "Ubuntu 16.04 LTS" "Failover" {
-                    secondaryDatabaseServer = deploymentNode "Oracle - Secondary" "" "Oracle 12c" "Failover" {
-                        liveSecondaryDatabaseInstance = containerInstance database "Failover"
-                    }
-                }
-                deploymentNode "bigbank-prod001" "" "" "" {
-                    softwareSystemInstance mainframe
-                }
-            }
+        containerMatchdayOperationsApi -> containerStadiumManagementApi "Get venue and zone data" "JSON/HTTPS"
+        containerMatchdayOperationsApi -> containerTicketingPlatformApi "Get event and ticket data" "JSON/HTTPS"
+        containerMatchdayOperationsApi -> containerAzureAiFoundryApi "Predict crowd density for safety planning" "JSON/HTTPS"
 
-            primaryDatabaseServer -> secondaryDatabaseServer "Replicates data to"
-        }
+        // ============================================================
+        // Cross-group relationships: Sporting
+        // ============================================================
 
-        deploymentEnvironment "Environment Landscape" {
-            deploymentNode "bigbank-prod001" {
-                softwareSystemInstance mainframe
-            }
-            deploymentNode "bigbank-preprod001" {
-                softwareSystemInstance mainframe
-            }
-            deploymentNode "bigbank-test001" {
-                softwareSystemInstance mainframe
-            }
-            deploymentNode "bigbank-staging1" {
-                softwareSystemInstance email
-            }
-            deploymentNode "bigbank-prod1" {
-                softwareSystemInstance email
-            }
-        }
+        containerPlayerPerformanceApi -> containerAzureAiFoundryApi "Run injury risk prediction models" "JSON/HTTPS"
+        containerPlayerPerformanceApi -> containerDatabricksWorkspace "Store and query training data" "JSON/HTTPS"
+
+        containerMedicalRecordsApi -> containerPlayerPerformanceApi "Get player fitness data" "JSON/HTTPS"
+
+        // ============================================================
+        // Cross-group relationships: Corporate
+        // ============================================================
+
+        containerHrPortalApi -> containerSapS4HanaApi "Sync payroll and employee data" "JSON/HTTPS"
+
+        containerComplianceManagerApi -> containerSapS4HanaApi "Query financial audit records" "JSON/HTTPS"
+
+        containerStrategyPortalApi -> containerDataPlatformDashboard "Access strategic KPI dashboards" "JSON/HTTPS"
+
+        containerExternalRelationsApi -> containerSalesforceCrmApi "Get stakeholder contact data" "JSON/HTTPS"
+
+        // ============================================================
+        // Cross-group relationships: IT
+        // ============================================================
+
+        containerIntegrationPlatformServiceBus -> containerDataPlatformEtl "Route events for data ingestion" "AMQP/TCP"
+        containerDataPlatformEtl -> containerDatabricksUnityCatalog "Load transformed data into lakehouse" "SQL/TCP"
+        containerDataPlatformLakehouse -> containerDatabricksUnityCatalog "Read curated data products" "SQL/TCP"
+
     }
 
     views {
+
+        !include workspace/views/dynamic.dsl
         !include _auto_generated_views.dsl
 
         properties {
-            "c4plantuml.elementProperties" "true"
             "c4plantuml.tags" "true"
-
-            # "mkdocs.theme" "auto"
-            # "mkdocs.color.primary" "#485fc7"
-            # "mkdocs.color.accent" "indigo"
-            # "mkdocs.color.headerText" "#ffffff"
-            # "mkdocs.favicon" "site/favicon.ico"
-            # "mkdocs.logo" "site/logo.png"
-            # "mkdocs.customCss" "site/custom.css"
-            # "mkdocs.svgLinkTarget" "_self"
-            # "mkdocs.externalTag" "External System"
-            # "mkdocs.navigation.nestGroups" "false"
-            # "mkdocs.navigation.instant" "false"
-            # "mkdocs.navigation.tabs" "false"
-            # "mkdocs.fullWidth" "true"
-            # "mkdocs.hideLegend" "true"
-        }
-
-        systemlandscape "SystemLandscape" {
-            include *
-            autoLayout
-        }
-
-        image atm {
-            image software-system-docs/atm/atm-example.png
-            title "ATM System"
-            description "Image View to show how the ATM system works internally"
-        }
-
-        systemcontext internetBankingSystem "SystemContext" {
-            include *
-            animation {
-                internetBankingSystem
-                customer
-                mainframe
-                email
-            }
-            autoLayout
-            title "System Context of Internet Banking System"
-            description "Describes the overall context"
-        }
-
-        container internetBankingSystem "Containers" {
-            include *
-            animation {
-                customer mainframe email
-                webApplication
-                singlePageApplication
-                mobileApp
-                apiApplication
-                database
-            }
-            autoLayout
-        }
-
-        component apiApplication "Components" {
-            include *
-            animation {
-                singlePageApplication mobileApp database email mainframe
-                signinController securityComponent
-                accountsSummaryController mainframeBankingSystemFacade
-                resetPasswordController emailComponent
-            }
-            autoLayout
-        }
-
-        image database {
-            image software-system-docs/internet-banking-system/database-erd-example.jpg
-            title "Entity Relationship Diagram"
-            description "Image View to show the ERD diagram for the database container"
-        }
-
-        image accountsSummaryController {
-            image software-system-docs/internet-banking-system/uml-class-diagram.png
-            title "AccountsSummaryController Zoom-In"
-            description "This is a sample imageView for code of a component"
-        }
-
-        dynamic apiApplication "SignIn" "Summarises how the sign in feature works in the single-page application." {
-            singlePageApplication -> signinController "Submits credentials to"
-            signinController -> securityComponent "Validates credentials using"
-            securityComponent -> database "select * from users where username = ?"
-            database -> securityComponent "Returns user data to"
-            securityComponent -> signinController "Returns true if the hashed password matches"
-            signinController -> singlePageApplication "Sends back an authentication token to"
-            autoLayout
-        }
-
-        deployment internetBankingSystem "Development" "DevelopmentDeployment" {
-            include *
-            animation {
-                developerSinglePageApplicationInstance
-                developerWebApplicationInstance developerApiApplicationInstance
-                developerDatabaseInstance
-            }
-            autoLayout
-        }
-
-        deployment internetBankingSystem "Live" "LiveDeployment" {
-            include *
-            animation {
-                liveSinglePageApplicationInstance
-                liveMobileAppInstance
-                liveWebApplicationInstance liveApiApplicationInstance
-                livePrimaryDatabaseInstance
-                liveSecondaryDatabaseInstance
-            }
-            autoLayout
-        }
-
-        deployment * "Environment Landscape" "EnvLandscapeMainframe" {
-            include mainframe
-            autoLayout
-            properties {
-                "generatr.view.deployment.belongsTo" "Mainframe Banking System"
-            }
+            "mkdocs.navigation.nestGroups" "true"
+            "mkdocs.color.primary" "#2c4390"
+            "mkdocs.color.headerText" "#ffffff"
+            "mkdocs.favicon" "site/favicon.ico"
+            "mkdocs.externalTag" "External System"
         }
 
         styles {
+
             element "Person" {
+                shape person
+                background #7bb6b3
                 color #ffffff
-                shape Person
             }
-            element "Customer" {
-                background #686868
-            }
-            element "Bank Staff" {
-                background #08427B
-            }
+
             element "Software System" {
-                background #1168bd
+                background #2c4390
                 color #ffffff
             }
+
             element "External System" {
-                background #686868
+                background #324b4a
             }
-            element "Existing System" {
-                background #999999
-                color #ffffff
+
+            element "Shared" {
+                background #158582
             }
-            element "Container" {
-                background #438dd5
-                color #ffffff
+
+            element "New" {
+                background #d88c42
             }
-            element "Web Browser" {
+
+            // Container Types (https://support.atlassian.com/compass/docs/what-are-components/)
+
+            // An independently-deployable software unit that is usually is operated by a person or a team. Services can be as large as monoliths or smaller microservices.
+            // Service components have a Tier field to indicate how critical the service is to your business.
+            element "SERVICE" {
+                shape RoundedBox
+            }
+            // A reusable collection of objects, functions, and methods. A library is typically used by other components.
+            element "LIBRARY" {
+                shape Robot
+            }
+
+            // A fully-packaged application, like a mobile application, desktop application, or a CLI-type tool.
+            element "APPLICATION" {
+                shape Window
+            }
+
+            // A higher-level product functionality that end-users understand and in which they see value. A capability is an abstraction of one or more underlying software components that power it.
+            element "CAPABILITY" {
+                shape Component
+            }
+
+            // An entity or service provided by a cloud vendor, with consumer-managed configuration and monitoring.
+            element "CLOUD_RESOURCE" {
                 shape WebBrowser
             }
-            element "Mobile App" {
-                shape MobileDeviceLandscape
+
+            // A sequence of tools and processes used to automate the transformation and movement of data from a source to a target system.
+            element "DATA_PIPELINE" {
+                shape Pipe
             }
-            element "Database" {
+
+            // Reusable building blocks of a design system that meet a specific interaction or user interface need and work together to create patterns and user experiences.
+            element "UI_ELEMENT" {
+                shape WebBrowser
+            }
+
+            // Website — A single web page or a collection of related web pages under a single domain. Websites mainly consist of audio-visual or text content for reading, listening, or viewing.
+            // People can't edit, contribute to, or affect the website content. Websites are typically publicly accessible and don't require authentication.
+            element "WEBSITE" {
+                shape WebBrowser
+            }
+
+            // A collection of data about a specific topic that can be referenced by code, generally a table.
+            element "DATASET" {
                 shape Cylinder
             }
-            element "Component" {
-                background #85bbf0
-                color #000000
-            }
-            element "Failover" {
-                opacity 25
+
+            // Data visuals that provide views of key performance indicators relevant to a particular objective or business process.
+            element "DASHBOARD" {
+                shape WebBrowser
             }
 
-            element "Group" {
-                background #f1f1f1
-                color #444444
-            }
-            element "Boundary" {
-                background #f1f1f1
-                color #444444
+            // A governed, self-contained, cohesive, read-optimized data unit.
+            element "DATA_PRODUCT" {
+                shape Folder
             }
 
-            // default style
-            element "Element" {
-                fontSize 24
-            }
         }
+
     }
+
 }

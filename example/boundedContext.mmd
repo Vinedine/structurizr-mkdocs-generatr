@@ -1,179 +1,319 @@
 flowchart TB
 
-    %% [START.CONTEXT] [Core Banking]
+    %% [START.CONTEXT] [Club Strategy Management]
+    %% [DESC] Long-term planning, innovation portfolio, and competitive positioning that guide the club's strategic direction.
 
-    subgraph Core Banking
-        CUSTOMER_ACCOUNT[Customer Account]
+    subgraph Club Strategy Management
+        STRATEGIC_PLAN[Strategic Plan]
+        TREND_REPORT[Trend Report]
+        INNOVATION_PROPOSAL[Innovation Proposal]
+        PORTFOLIO_ITEM[Portfolio Item]
+        COMPETITION_ANALYSIS[Competition Analysis]
+        BRAND_STRATEGY[Brand Strategy]
+    end
+
+    STRATEGIC_PLAN --> |guides| PORTFOLIO_ITEM
+    TREND_REPORT --> |informs| STRATEGIC_PLAN
+    COMPETITION_ANALYSIS --> |feeds| TREND_REPORT
+    INNOVATION_PROPOSAL --> |evaluated for| PORTFOLIO_ITEM
+    BRAND_STRATEGY --> |shapes| STRATEGIC_PLAN
+
+    %% [END.CONTEXT] [Club Strategy Management]
+
+    %% [START.CONTEXT] [Products & Services Development]
+    %% [DESC] Design and packaging of commercial offerings including sponsorships, tickets, and B2B products.
+
+    subgraph "Products & Services Development"
+        PRODUCT_CONCEPT[Product Concept]
+        SPONSORSHIP_OFFERING[Sponsorship Offering]
+        B2B_OFFERING[B2B Offering]
+        TICKET_PRODUCT[Ticket Product]
+        TOUCHPOINT_DESIGN[Touchpoint Design]
+    end
+
+    PRODUCT_CONCEPT --> |packaged as| B2B_OFFERING
+    SPONSORSHIP_OFFERING --> |is a| B2B_OFFERING
+    TICKET_PRODUCT --> |delivered via| TOUCHPOINT_DESIGN
+
+    %% [END.CONTEXT] [Products & Services Development]
+
+    %% [START.CONTEXT] [Marketing & Sales]
+    %% [DESC] Campaign execution, sponsor management, brand assets, and the sales pipeline from opportunity to contract.
+
+    subgraph "Marketing & Sales"
+        MARKETING_CAMPAIGN[Marketing Campaign]
+        BRAND_ASSET[Brand Asset]
+        SPONSORSHIP_PROGRAM[Sponsorship Program]
+        SPONSOR[Sponsor]
+        CONTRACT[Contract]
+        CAMPAIGN[Campaign]
+        HOSPITALITY_PACKAGE[Hospitality Package]
+        SALES_OPPORTUNITY[Sales Opportunity]
+        ACCOUNT[Account]
+    end
+
+    SPONSOR --> |signs| CONTRACT
+    SPONSOR --> |runs| CAMPAIGN
+    CONTRACT --> |includes| HOSPITALITY_PACKAGE
+    MARKETING_CAMPAIGN --> |uses| BRAND_ASSET
+    SPONSOR --> |participates in| SPONSORSHIP_PROGRAM
+    ACCOUNT --> |generates| SALES_OPPORTUNITY
+
+    %% [END.CONTEXT] [Marketing & Sales]
+
+    %% [START.CONTEXT] [Product Delivery & Material Management]
+    %% [DESC] End-to-end supply chain from procurement through inventory, ordering, fulfilment, and point-of-sale transactions.
+
+    subgraph "Product Delivery & Material Management"
+        SUPPLIER[Supplier]
+        PURCHASE_ORDER[Purchase Order]
+        DELIVERY_SCHEDULE[Delivery Schedule]
+        INVENTORY[Inventory]
+        PRODUCT[Product]
+        ORDER[Order]
+        CART[Cart]
+        SHIPMENT[Shipment]
         TRANSACTION[Transaction]
-        BALANCE[Balance]
-        PAYMENT[Payment]
-        STANDING_ORDER[Standing Order]
-        DIRECT_DEBIT[Direct Debit]
+        DIGITAL_WALLET[Digital Wallet]
+        MENU[Menu]
     end
 
-    CUSTOMER_ACCOUNT --> |has| BALANCE
-    CUSTOMER_ACCOUNT --> |records| TRANSACTION
-    PAYMENT --> |creates| TRANSACTION
-    STANDING_ORDER --> |triggers| PAYMENT
-    DIRECT_DEBIT --> |triggers| PAYMENT
+    CART --> |becomes| ORDER
+    ORDER --> |fulfilled by| SHIPMENT
+    PRODUCT --> |tracked in| INVENTORY
+    SUPPLIER --> |fulfills| PURCHASE_ORDER
+    PURCHASE_ORDER --> |scheduled via| DELIVERY_SCHEDULE
+    DIGITAL_WALLET --> |records| TRANSACTION
+    MENU --> |offered with| PRODUCT
 
-    click CUSTOMER_ACCOUNT 'CUSTOMER_ACCOUNT'
-    click TRANSACTION 'TRANSACTION'
-    click BALANCE 'BALANCE'
-    click PAYMENT 'PAYMENT'
-    click STANDING_ORDER 'STANDING_ORDER'
-    click DIRECT_DEBIT 'DIRECT_DEBIT'
+    %% [END.CONTEXT] [Product Delivery & Material Management]
 
-    %% [END.CONTEXT] [Core Banking]
+    %% [START.CONTEXT] [Gameday Match/Event Delivery]
+    %% [DESC] Matchday and event operations including ticketing, access control, security deployment, and away-trip logistics.
 
-    %% [START.CONTEXT] [Internet Banking]
-
-    subgraph Internet Banking
-        WEB_SESSION[Web Session]
-        USER_CREDENTIAL[User Credential]
-        ACCESS_LOG[Access Log]
-        REGISTRATION[Registration]
-        PASSWORD_RESET[Password Reset]
-        AUTHENTICATION_TOKEN[Authentication Token]
+    subgraph "Gameday Match/Event Delivery"
+        MATCH[Match]
+        EVENT[Event]
+        TICKET[Ticket]
+        SEASON_PASS[Season Pass]
+        SEAT[Seat]
+        ACCESS_BADGE[Access Badge]
+        MATCHDAY_PLAN[Matchday Plan]
+        SECURITY_DEPLOYMENT[Security Deployment]
+        AWAY_TRIP[Away Trip]
+        ESPORTS_EVENT[E-Sports Event]
     end
 
-    REGISTRATION --> |creates| USER_CREDENTIAL
-    USER_CREDENTIAL --> |validates| WEB_SESSION
-    WEB_SESSION --> |recorded in| ACCESS_LOG
-    PASSWORD_RESET --> |updates| USER_CREDENTIAL
-    WEB_SESSION --> |issues| AUTHENTICATION_TOKEN
+    EVENT --> |is a| MATCH
+    TICKET --> |assigns| SEAT
+    TICKET --> |for| EVENT
+    SEASON_PASS --> |covers| SEAT
+    MATCHDAY_PLAN --> |for| MATCH
+    MATCHDAY_PLAN --> |includes| SECURITY_DEPLOYMENT
+    ACCESS_BADGE --> |grants entry to| EVENT
 
-    click WEB_SESSION 'WEB_SESSION'
-    click USER_CREDENTIAL 'USER_CREDENTIAL'
-    click ACCESS_LOG 'ACCESS_LOG'
-    click REGISTRATION 'REGISTRATION'
-    click PASSWORD_RESET 'PASSWORD_RESET'
-    click AUTHENTICATION_TOKEN 'AUTHENTICATION_TOKEN'
+    %% [END.CONTEXT] [Gameday Match/Event Delivery]
 
-    %% [END.CONTEXT] [Internet Banking]
+    %% [START.CONTEXT] [Customer/Fan Services & Relationship]
+    %% [DESC] Fan and customer profiles, loyalty programmes, support cases, and multi-channel engagement through web, mobile, and social.
 
-    %% [START.CONTEXT] [Payment Acquisition]
-
-    subgraph Payment Acquisition
-        MERCHANT[Merchant]
-        PIN_TRANSACTION[PIN Transaction]
-        CLEARING[Clearing]
-        SETTLEMENT[Settlement]
-        TERMINAL[Terminal]
-    end
-
-    MERCHANT --> |operates| TERMINAL
-    TERMINAL --> |initiates| PIN_TRANSACTION
-    PIN_TRANSACTION --> |processed via| CLEARING
-    CLEARING --> |results in| SETTLEMENT
-
-    click MERCHANT 'MERCHANT'
-    click PIN_TRANSACTION 'PIN_TRANSACTION'
-    click CLEARING 'CLEARING'
-    click SETTLEMENT 'SETTLEMENT'
-    click TERMINAL 'TERMINAL'
-
-    %% [END.CONTEXT] [Payment Acquisition]
-
-    %% [START.CONTEXT] [ATM Services]
-
-    subgraph ATM Services
-        ATM_DEVICE[ATM Device]
-        CASH_WITHDRAWAL[Cash Withdrawal]
-        CARD[Card]
-        PIN_VERIFICATION[PIN Verification]
-        CASH_INVENTORY[Cash Inventory]
-    end
-
-    CARD --> |authenticated by| PIN_VERIFICATION
-    PIN_VERIFICATION --> |authorizes| CASH_WITHDRAWAL
-    ATM_DEVICE --> |dispenses| CASH_WITHDRAWAL
-    ATM_DEVICE --> |tracks| CASH_INVENTORY
-
-    click ATM_DEVICE 'ATM_DEVICE'
-    click CASH_WITHDRAWAL 'CASH_WITHDRAWAL'
-    click CARD 'CARD'
-    click PIN_VERIFICATION 'PIN_VERIFICATION'
-    click CASH_INVENTORY 'CASH_INVENTORY'
-
-    %% [END.CONTEXT] [ATM Services]
-
-    %% [START.CONTEXT] [Customer Communication]
-
-    subgraph Customer Communication
-        EMAIL_MESSAGE[Email Message]
-        EMAIL_TEMPLATE[Email Template]
-        NOTIFICATION[Notification]
-        RECIPIENT[Recipient]
-    end
-
-    EMAIL_TEMPLATE --> |renders| EMAIL_MESSAGE
-    EMAIL_MESSAGE --> |sent to| RECIPIENT
-    NOTIFICATION --> |delivered as| EMAIL_MESSAGE
-
-    click EMAIL_MESSAGE 'EMAIL_MESSAGE'
-    click EMAIL_TEMPLATE 'EMAIL_TEMPLATE'
-    click NOTIFICATION 'NOTIFICATION'
-    click RECIPIENT 'RECIPIENT'
-
-    %% [END.CONTEXT] [Customer Communication]
-
-    %% [START.CONTEXT] [Customer Relationship]
-
-    subgraph Customer Relationship
-        CUSTOMER[Customer]
+    subgraph "Customer/Fan Services & Relationship"
+        FAN_PROFILE[Fan Profile]
+        CUSTOMER_PROFILE[Customer Profile]
+        LOYALTY_POINTS[Loyalty Points]
+        ACHIEVEMENT[Achievement]
         SUPPORT_CASE[Support Case]
-        KYC_RECORD[KYC Record]
-        CONTACT_DETAILS[Contact Details]
+        PUSH_NOTIFICATION[Push Notification]
+        WEBSITE[Website]
+        MOBILE_APP[Mobile App]
+        SOCIAL_MEDIA_CHANNEL[Social Media Channel]
     end
 
-    CUSTOMER --> |has| CONTACT_DETAILS
-    CUSTOMER --> |verified by| KYC_RECORD
-    CUSTOMER --> |raises| SUPPORT_CASE
+    FAN_PROFILE --> |linked to| CUSTOMER_PROFILE
+    FAN_PROFILE --> |earns| LOYALTY_POINTS
+    FAN_PROFILE --> |unlocks| ACHIEVEMENT
+    FAN_PROFILE --> |receives| PUSH_NOTIFICATION
+    CUSTOMER_PROFILE --> |raises| SUPPORT_CASE
+    WEBSITE --> |serves| FAN_PROFILE
+    MOBILE_APP --> |engages| FAN_PROFILE
 
-    click CUSTOMER 'CUSTOMER'
-    click SUPPORT_CASE 'SUPPORT_CASE'
-    click KYC_RECORD 'KYC_RECORD'
-    click CONTACT_DETAILS 'CONTACT_DETAILS'
+    %% [END.CONTEXT] [Customer/Fan Services & Relationship]
 
-    %% [END.CONTEXT] [Customer Relationship]
+    %% [START.CONTEXT] [Staff, Player & Team Development]
+    %% [DESC] Player lifecycle from scouting and youth development through contracts, training, fitness tracking, injury management, and staff recruitment.
 
-    %% [START.CONTEXT] [Back Office Operations]
-
-    subgraph Back Office Operations
-        ACCOUNT_REVIEW[Account Review]
-        RECONCILIATION[Reconciliation]
-        REPORT[Report]
-        FRAUD_ALERT[Fraud Alert]
-        AUDIT_LOG[Audit Log]
+    subgraph "Staff, Player & Team Development"
+        PLAYER[Player]
+        TRAINING_SESSION[Training Session]
+        MATCH_PERFORMANCE[Match Performance]
+        FITNESS_SCORE[Fitness Score]
+        PLAYER_CONTRACT[Player Contract]
+        TRANSFER[Transfer]
+        SCOUT_REPORT[Scout Report]
+        YOUTH_PLAYER[Youth Player]
+        DEVELOPMENT_MILESTONE[Development Milestone]
+        INJURY[Injury]
+        MEDICAL_RECORD[Medical Record]
+        REHABILITATION_PLAN[Rehabilitation Plan]
+        EMPLOYEE[Employee]
+        VOLUNTEER[Volunteer]
+        RECRUITMENT_PIPELINE[Recruitment Pipeline]
     end
 
-    ACCOUNT_REVIEW --> |produces| REPORT
-    RECONCILIATION --> |verified by| AUDIT_LOG
-    FRAUD_ALERT --> |triggers| ACCOUNT_REVIEW
+    PLAYER --> |participates in| TRAINING_SESSION
+    PLAYER --> |has| MATCH_PERFORMANCE
+    PLAYER --> |measured by| FITNESS_SCORE
+    PLAYER --> |signs| PLAYER_CONTRACT
+    PLAYER --> |subject of| TRANSFER
+    PLAYER --> |may have| INJURY
+    INJURY --> |documented in| MEDICAL_RECORD
+    INJURY --> |treated via| REHABILITATION_PLAN
+    SCOUT_REPORT --> |identifies| YOUTH_PLAYER
+    YOUTH_PLAYER --> |achieves| DEVELOPMENT_MILESTONE
+    RECRUITMENT_PIPELINE --> |hires| EMPLOYEE
 
-    click ACCOUNT_REVIEW 'ACCOUNT_REVIEW'
-    click RECONCILIATION 'RECONCILIATION'
-    click REPORT 'REPORT'
-    click FRAUD_ALERT 'FRAUD_ALERT'
-    click AUDIT_LOG 'AUDIT_LOG'
+    %% [END.CONTEXT] [Staff, Player & Team Development]
 
-    %% [END.CONTEXT] [Back Office Operations]
+    %% [START.CONTEXT] [IT Management]
+    %% [DESC] Data products, integration topics, and reporting dashboards that underpin the club's technology landscape.
+
+    subgraph IT Management
+        DATA_PRODUCT[Data Product]
+        INTEGRATION_TOPIC[Integration Topic]
+        DASHBOARD_REPORT[Dashboard Report]
+    end
+
+    INTEGRATION_TOPIC --> |feeds| DATA_PRODUCT
+    DATA_PRODUCT --> |visualized in| DASHBOARD_REPORT
+
+    %% [END.CONTEXT] [IT Management]
+
+    %% [START.CONTEXT] [Financial Resources Management]
+    %% [DESC] Budgeting, invoicing, payments, payroll, asset accounting, and financial forecasting across the organisation.
+
+    subgraph Financial Resources Management
+        INVOICE[Invoice]
+        PAYMENT[Payment]
+        BUDGET[Budget]
+        COST_CENTER[Cost Center]
+        PAYROLL_RECORD[Payroll Record]
+        FORECAST[Forecast]
+        ASSET_RECORD[Asset Record]
+    end
+
+    INVOICE --> |settled by| PAYMENT
+    BUDGET --> |allocated to| COST_CENTER
+    PAYROLL_RECORD --> |charged to| COST_CENTER
+    FORECAST --> |projects| BUDGET
+    ASSET_RECORD --> |charged to| COST_CENTER
+
+    %% [END.CONTEXT] [Financial Resources Management]
+
+    %% [START.CONTEXT] [Asset/Infrastructure Management]
+    %% [DESC] Venue and facility management including zones, IoT monitoring, energy tracking, maintenance, and construction projects.
+
+    subgraph "Asset/Infrastructure Management"
+        VENUE[Venue]
+        ZONE[Zone]
+        IOT_SENSOR_READING[IoT Sensor Reading]
+        MAINTENANCE_REQUEST[Maintenance Request]
+        ENERGY_READING[Energy Reading]
+        SUSTAINABILITY_TARGET[Sustainability Target]
+        ROLLING_ASSET[Rolling Asset]
+        RENTAL_CONTRACT[Rental Contract]
+        CONSTRUCTION_PROJECT[Construction Project]
+    end
+
+    VENUE --> |divided into| ZONE
+    ZONE --> |monitored by| IOT_SENSOR_READING
+    ZONE --> |has| MAINTENANCE_REQUEST
+    VENUE --> |tracked by| ENERGY_READING
+    ENERGY_READING --> |measured against| SUSTAINABILITY_TARGET
+    VENUE --> |may have| CONSTRUCTION_PROJECT
+    VENUE --> |governed by| RENTAL_CONTRACT
+    ROLLING_ASSET --> |located in| ZONE
+
+    %% [END.CONTEXT] [Asset/Infrastructure Management]
+
+    %% [START.CONTEXT] [Enterprise Risk, Compliance & Resiliency]
+    %% [DESC] Risk registers, audits, legal cases, regulatory compliance, licensing, and whistleblower reporting.
+
+    subgraph "Enterprise Risk, Compliance & Resiliency"
+        RISK_REGISTER[Risk Register]
+        AUDIT[Audit]
+        LEGAL_CASE[Legal Case]
+        POLICY[Policy]
+        LICENSE[License]
+        WHISTLEBLOWER_REPORT[Whistleblower Report]
+        REGULATION[Regulation]
+    end
+
+    AUDIT --> |assesses| RISK_REGISTER
+    LEGAL_CASE --> |governed by| POLICY
+    LICENSE --> |requires| REGULATION
+    WHISTLEBLOWER_REPORT --> |may trigger| LEGAL_CASE
+
+    %% [END.CONTEXT] [Enterprise Risk, Compliance & Resiliency]
+
+    %% [START.CONTEXT] [External Relationships Management]
+    %% [DESC] Stakeholder communications, federation memberships, community programmes, and government liaison activities.
+
+    subgraph External Relationships Management
+        PRESS_RELEASE[Press Release]
+        STAKEHOLDER[Stakeholder]
+        FEDERATION_MEMBERSHIP[Federation Membership]
+        COMMUNITY_PROGRAM[Community Program]
+        GOVERNMENT_LIAISON[Government Liaison]
+    end
+
+    STAKEHOLDER --> |receives| PRESS_RELEASE
+    FEDERATION_MEMBERSHIP --> |involves| STAKEHOLDER
+    COMMUNITY_PROGRAM --> |engages| STAKEHOLDER
+
+    %% [END.CONTEXT] [External Relationships Management]
+
+    %% [START.CONTEXT] [Fan Engagement & Communications]
+    %% [DESC] Content publishing, fixture schedules, match results, league standings, and media asset management for fan-facing channels.
+
+    subgraph "Fan Engagement & Communications"
+        ARTICLE[Article]
+        FIXTURE[Fixture]
+        SQUAD_PROFILE[Squad Profile]
+        MEDIA_ASSET[Media Asset]
+        MATCH_RESULT[Match Result]
+        LEAGUE_STANDING[League Standing]
+    end
+
+    ARTICLE --> |features| MEDIA_ASSET
+    FIXTURE --> |produces| MATCH_RESULT
+    MATCH_RESULT --> |updates| LEAGUE_STANDING
+
+    %% [END.CONTEXT] [Fan Engagement & Communications]
 
     %% [START.LINK]
 
-    CUSTOMER --> |owns| CUSTOMER_ACCOUNT
-    CUSTOMER --> |registers for| REGISTRATION
-    CUSTOMER --> |holds| CARD
-    CUSTOMER --> |is| RECIPIENT
-    WEB_SESSION --> |views| BALANCE
-    WEB_SESSION --> |initiates| PAYMENT
-    CASH_WITHDRAWAL --> |creates| TRANSACTION
-    PIN_TRANSACTION --> |creates| TRANSACTION
-    PASSWORD_RESET --> |sends| NOTIFICATION
-    SUPPORT_CASE --> |handled by| ACCOUNT_REVIEW
-    FRAUD_ALERT --> |monitors| TRANSACTION
-    SETTLEMENT --> |creates| TRANSACTION
-    MERCHANT --> |settles via| CUSTOMER_ACCOUNT
+    CUSTOMER_PROFILE --> |purchases| TICKET
+    CUSTOMER_PROFILE --> |places| ORDER
+    FAN_PROFILE --> |purchases| TICKET
+    SPONSOR --> |attends| MATCH
+    PLAYER --> |generates| PAYROLL_RECORD
+    EMPLOYEE --> |generates| PAYROLL_RECORD
+    INVOICE --> |for| ORDER
+    IOT_SENSOR_READING --> |during| MATCH
+    TRANSACTION --> |at| VENUE
+    MARKETING_CAMPAIGN --> |promotes| PRODUCT
+    MARKETING_CAMPAIGN --> |targets| FAN_PROFILE
+    MATCHDAY_PLAN --> |at| VENUE
+    ACCESS_BADGE --> |for| ZONE
+    PRODUCT_CONCEPT --> |becomes| PRODUCT
+    BRAND_STRATEGY --> |guides| MARKETING_CAMPAIGN
+    SALES_OPPORTUNITY --> |generates| ORDER
+    INTEGRATION_TOPIC --> |carries| TRANSACTION
+    DATA_PRODUCT --> |analyzes| MATCH_PERFORMANCE
+    AUDIT --> |reviews| INVOICE
+    STAKEHOLDER --> |attends| EVENT
+    FIXTURE --> |scheduled for| MATCH
+    MATCH_RESULT --> |outcome of| MATCH
+    SQUAD_PROFILE --> |presents| PLAYER
 
     %% [END.LINK]

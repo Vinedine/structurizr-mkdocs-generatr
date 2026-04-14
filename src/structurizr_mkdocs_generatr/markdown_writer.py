@@ -29,8 +29,10 @@ from .workspace import (
     SoftwareSystem,
     Workspace,
     View,
+    extract_zone_name,
     normalize_name,
     section_slug,
+    sort_zone_views,
 )
 
 
@@ -60,12 +62,13 @@ def generate_markdown(
 
     _copy_workspace_assets(opts.assets_dir, docs_dir)
     _write_home_page(workspace, docs_dir, opts)
-    _write_workspace_decisions(workspace.documentation, docs_dir)
+    _write_workspace_decisions(workspace.documentation, docs_dir, opts.view_keys)
     _write_workspace_docs(workspace.documentation, docs_dir, opts)
-    _write_actors_index(workspace, docs_dir)
-    _write_actor_pages(workspace, docs_dir)
+    _write_users_index(workspace, docs_dir)
+    _write_user_pages(workspace, docs_dir)
     _write_software_systems_index(workspace, docs_dir, opts.props)
     _write_group_pages(workspace, docs_dir, opts.props)
+    _write_infrastructure_pages(workspace, docs_dir)
     _copy_diagrams(svg_dir, docs_dir, opts.puml_dir)
     _write_image_views(workspace, docs_dir)
 
@@ -177,25 +180,55 @@ def _write_home_page(workspace: Workspace, docs_dir: Path, opts: GenerateOptions
     _write_file(docs_dir / "index.md", content)
 
 
-def _write_workspace_decisions(documentation: Documentation, docs_dir: Path) -> None:
+def _write_workspace_decisions(documentation: Documentation, docs_dir: Path, view_keys: set[str] | None = None) -> None:
     decisions = documentation.decisions
     if not decisions:
         return
 
-    decisions_dir = docs_dir / "decisions"
+    decisions_dir = docs_dir / "adrs"
 
     lines = ["# Architecture Decision Records\n\n"]
-    lines.append("| ID | Date | Status | Title |\n")
-    lines.append("|---|---|---|---|\n")
+    lines.append("## Introduction\n\n")
+    lines.append(
+        "An **Architecture Decision Record** (ADR) is a short document that captures "
+        "an important architectural decision made along with its context and consequences. "
+        "Learn more at [adr.github.io](https://adr.github.io/).\n\n"
+    )
+    lines.append(
+        '!!! question "What questions does this answer?"\n\n'
+        "    - *What architectural decisions have been made and why?*\n"
+        "    - *What was the context and status of each decision?*\n"
+        "    - *How have our architectural choices evolved over time?*\n"
+        "    - *Which decisions are still proposed vs. accepted or superseded?*\n\n"
+    )
+    lines.append("## Overview\n\n")
+    lines.append("| ID | Date | Status | Title | Context |\n")
+    lines.append("|---|---|---|---|---|\n")
     for d in sorted(decisions, key=lambda d: int(d.id)):
         date = d.date[:10] if d.date else ""
-        lines.append(f"| {d.id} | {date} | {d.status} | [{d.title}]({d.id}.md) |\n")
+        context = _extract_decision_context(d.content)
+        lines.append(f"| {d.id} | {date} | {d.status} | [{d.title}]({d.id}.md) | {context} |\n")
     _write_file(decisions_dir / "index.md", "".join(lines))
 
     decision_ids = {d.id for d in decisions}
     for d in decisions:
         content = _rewrite_decision_links(d.content, decision_ids)
+        if view_keys:
+            content = _resolve_embeds(content, view_keys, "../diagrams/")
         _write_file(decisions_dir / f"{d.id}.md", content)
+
+
+_CONTEXT_SECTION_RE = re.compile(r"## Context\s*\n\s*\n(.+?)(?:\n\s*\n|\n##|\Z)", re.DOTALL)
+
+
+def _extract_decision_context(content: str) -> str:
+    """Extract the first paragraph of the ## Context section from decision content."""
+    match = _CONTEXT_SECTION_RE.search(content)
+    if not match:
+        return ""
+    first_para = match.group(1).strip().split("\n\n")[0]
+    # Collapse to single line for table cell
+    return " ".join(first_para.split())
 
 
 def _rewrite_decision_links(content: str, decision_ids: set[str]) -> str:
@@ -206,6 +239,11 @@ def _rewrite_decision_links(content: str, decision_ids: set[str]) -> str:
         return m.group(0)
 
     return re.sub(r"\]\(#(\d+)\)", _replace, content)
+
+
+def _rewrite_absolute_decision_links(content: str, prefix: str) -> str:
+    """Rewrite absolute /decisions/{id}/ links to relative paths."""
+    return re.sub(r"\]\(/decisions/(\d+)/?\)", lambda m: f"]({prefix}{m.group(1)}.md)", content)
 
 
 def _write_workspace_docs(documentation: Documentation, docs_dir: Path, opts: GenerateOptions) -> None:
@@ -226,10 +264,25 @@ def _write_workspace_docs(documentation: Documentation, docs_dir: Path, opts: Ge
         _write_file(docs_sections_dir / f"{slug}.md", content)
 
 
-def _write_actors_index(workspace: Workspace, docs_dir: Path) -> None:
+def _write_users_index(workspace: Workspace, docs_dir: Path) -> None:
     if not workspace.people:
         return
-    lines = ["# Actors\n\n"]
+    lines = ["# Users\n\n"]
+    lines.append("## Introduction\n\n")
+    lines.append(
+        "A **user** (or *person* in C4 terminology) represents anyone — human or "
+        "role — that interacts with the software systems in the enterprise. This "
+        "page lists every user identified in the workspace together with the "
+        "systems they depend on.\n\n"
+    )
+    lines.append(
+        '!!! question "What questions does this answer?"\n\n'
+        "    - *Who are the users of our systems?*\n"
+        "    - *Which systems does a specific user interact with?*\n"
+        "    - *How many systems does each user depend on?*\n"
+        "    - *Are there users with no system interactions?*\n\n"
+    )
+    lines.append("## Overview\n\n")
     lines.append("| Name | Description | Software Systems |\n")
     lines.append("|---|---|---|\n")
     for person in sorted(workspace.people, key=lambda p: p.name):
@@ -242,29 +295,49 @@ def _write_actors_index(workspace: Workspace, docs_dir: Path) -> None:
         }
         count = len(system_ids)
         lines.append(f"| [{person.name}]({slug}/index.md) | {person.description} | {count} |\n")
-    _write_file(docs_dir / "actors" / "index.md", "".join(lines))
+    _write_file(docs_dir / "users" / "index.md", "".join(lines))
 
 
-def _write_actor_pages(workspace: Workspace, docs_dir: Path) -> None:
+def _write_user_pages(workspace: Workspace, docs_dir: Path) -> None:
     for person in sorted(workspace.people, key=lambda p: p.name):
         slug = normalize_name(person.name)
-        actor_dir = docs_dir / "actors" / slug
+        user_dir = docs_dir / "users" / slug
 
         lines = [f"# {person.name}\n\n"]
         if person.description:
+            lines.append(f"## Description\n\n")
             lines.append(f"{person.description}\n\n")
 
         person_views = workspace.views_for_person(person.id)
         if person_views:
+            lines.append(f"## Context\n\n")
             for v in person_views:
                 lines.append(f"{_diagram_embed(v)}\n\n")
 
-        _write_file(actor_dir / "index.md", "".join(lines))
+        _write_file(user_dir / "index.md", "".join(lines))
 
 
 def _write_software_systems_index(workspace: Workspace, docs_dir: Path, props: SiteProperties | None = None) -> None:
     external_tag = props.external_tag if props else None
     lines = ["# Software Systems\n\n"]
+
+    lines.append("## Introduction\n\n")
+    lines.append(
+        "A **software system** is the highest level of abstraction in the C4 model "
+        "and represents something that delivers value to its users — whether they are "
+        "human or other systems. Each software system is owned by a single team and "
+        "is composed of one or more **containers** (applications, data stores, "
+        "microservices, etc.).\n\n"
+    )
+    lines.append(
+        '!!! question "What questions does this answer?"\n\n'
+        "    - *What systems exist in our landscape and what do they do?*\n"
+        "    - *Which systems are internal and which are external?*\n"
+        "    - *How do our systems relate to each other at a high level?*\n"
+        "    - *Who owns or is responsible for a given system?*\n\n"
+    )
+
+    lines.append("## Overview\n\n")
 
     # Embed overall landscape views (SystemLandscape and SystemLandscapeSoftwareSystems)
     overall_views = [
@@ -273,7 +346,7 @@ def _write_software_systems_index(workspace: Workspace, docs_dir: Path, props: S
     ]
     for v in overall_views:
         title = v.title or v.description or v.key
-        lines.append(f"## {title}\n\n")
+        lines.append(f"### {title}\n\n")
         lines.append(f"{_diagram_embed(v, '../../diagrams/')}\n\n")
 
     # List ungrouped systems so they're discoverable from the index page
@@ -305,27 +378,84 @@ def _write_group_pages(workspace: Workspace, docs_dir: Path, props: SiteProperti
 
         description = workspace.group_description(group_name)
         if description:
-            lines.append(f"{description}\n\n")
+            lines.append(f"## Description\n\n{description}\n\n")
 
         # Group landscape diagram
         group_view = workspace.group_landscape_view(group_name)
         if group_view:
-            lines.append(f"{_diagram_embed(group_view, '../../diagrams/')}\n\n")
-
-        # Systems table
-        systems = workspace.systems_in_group(group_name)
-        if systems:
-            lines.append("## Systems\n\n")
-            lines.append("| Name | Description |\n")
-            lines.append("|---|---|\n")
-            for ss in systems:
-                ss_slug = normalize_name(ss.name)
-                name = ss.name
-                if external_tag and external_tag in ss.tags:
-                    name = f"{ss.name} :material-open-in-new:{{ title=\"External\" }}"
-                lines.append(f"| [{name}](../{ss_slug}/index.md) | {ss.description} |\n")
+            lines.append(f"## System Landscape\n\n{_diagram_embed(group_view, '../../diagrams/')}\n\n")
 
         _write_file(group_dir / "index.md", "".join(lines))
+
+
+def _write_infrastructure_pages(workspace: Workspace, docs_dir: Path) -> None:
+    """Generate Infrastructure section: index + per-environment + per-zone pages."""
+    infra_dir = docs_dir / "infrastructure"
+
+    environments = workspace.deployment_environments()
+    if not environments:
+        return
+
+    # Infrastructure index page
+    lines = ["# Infrastructure\n\n"]
+    lines.append("## Introduction\n\n")
+    lines.append(
+        "The **infrastructure** section documents how software systems are deployed "
+        "across all environments. Each environment page shows the deployment zones "
+        "and how workloads are distributed across on-premise and cloud providers.\n\n"
+    )
+    lines.append(
+        '!!! question "What questions does this answer?"\n\n'
+        "    - *Where are our systems deployed in each environment?*\n"
+        "    - *Which cloud providers and on-premise zones do we use?*\n"
+        "    - *How does the infrastructure differ between production and lower environments?*\n"
+        "    - *What is the multi-cloud strategy and how are workloads distributed?*\n\n"
+    )
+    lines.append("## Overview\n\n")
+    lines.append("| Environment | Zones |\n")
+    lines.append("|---|---|\n")
+    for env in environments:
+        env_slug = normalize_name(env)
+        zone_views = workspace.zone_level_views(env)
+        zone_count = len(zone_views) if zone_views else 1
+        lines.append(f"| [{env}]({env_slug}/index.md) | {zone_count} |\n")
+    _write_file(infra_dir / "index.md", "".join(lines))
+
+    # Per-environment pages
+    for env in environments:
+        env_slug = normalize_name(env)
+        env_dir = infra_dir / env_slug
+
+        env_lines = [f"# {env}\n\n"]
+        env_desc = workspace.environment_description(env)
+        if env_desc:
+            env_lines.append(f"{env_desc}\n\n")
+
+        zone_views = workspace.zone_level_views(env)
+
+        if zone_views:
+            zone_views_sorted = sort_zone_views(zone_views)
+
+            for v in zone_views_sorted:
+                zone_name = extract_zone_name(v)
+                zone_slug = normalize_name(zone_name)
+                env_lines.append(f"- [{zone_name}]({zone_slug}.md)\n")
+
+            _write_file(env_dir / "index.md", "".join(env_lines))
+
+            # Per-zone pages
+            for v in zone_views_sorted:
+                zone_name = extract_zone_name(v)
+                zone_slug = normalize_name(zone_name)
+                zone_lines = [f"# {zone_name}\n\n"]
+                zone_desc = workspace.zone_description(env, zone_name)
+                if zone_desc:
+                    zone_lines.append(f"{zone_desc}\n\n")
+                zone_lines.append(f"{_diagram_embed(v, '../../diagrams/')}\n\n")
+                _write_file(env_dir / f"{zone_slug}.md", "".join(zone_lines))
+        else:
+            # No zone-level views — description only
+            _write_file(env_dir / "index.md", "".join(env_lines))
 
 
 def _write_software_system_pages(
@@ -334,11 +464,13 @@ def _write_software_system_pages(
     slug = normalize_name(ss.name)
     ss_dir = docs_dir / "software-systems" / slug
 
-    lines = [f"# {ss.name}\n\n"]
+    lines = []
+    if ss.group:
+        lines.append(f"# {ss.name} <span class=\"group-tag\">{ss.group}</span>\n\n")
+    else:
+        lines.append(f"# {ss.name}\n\n")
     if ss.description:
         lines.append(f"*{ss.description}*\n{{ .subtitle }}\n\n")
-    if ss.group:
-        lines.append(f"**Group:** {ss.group}\n\n")
     if ss.url:
         lines.append(f"**URL:** [{ss.url}]({ss.url})\n\n")
 
@@ -365,7 +497,49 @@ def _write_software_system_pages(
     if opts.inline_puml_dir:
         content = _extract_puml_blocks(content, opts.inline_puml_dir, "../../diagrams/", opts.puml_counter)
     content = _add_mermaid_view_source(content)
+    if opts.bc_model:
+        content = _rewrite_bc_links(content, opts.bc_model)
+    content = _rewrite_absolute_decision_links(content, "../../adrs/")
     _write_file(ss_dir / "index.md", content)
+
+
+def _rewrite_bc_links(content: str, bc_model: BoundedContextModel) -> str:
+    """Rewrite bounded-context references in introduction docs.
+
+    - Plain-text context names under a ``## Bounded Context`` heading are
+      turned into links: ``- Name`` → ``- [Name](../../capability-map/{slug}.md)``
+    - ``[Label](ENTITY_ID)`` → ``[Label](../../capability-map/{context-slug}.md)``
+    """
+    ctx_slugs = {normalize_name(c.name): c.name for c in bc_model.contexts}
+
+    # Turn plain-text bounded-context names into links
+    result_lines: list[str] = []
+    in_bc_section = False
+    for line in content.splitlines(keepends=True):
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            in_bc_section = stripped in ("## Bounded Context", "## Bounded Contexts")
+        if in_bc_section and stripped.startswith("- "):
+            name = stripped[2:].strip()
+            slug = normalize_name(name)
+            if slug in ctx_slugs:
+                line = line.replace(
+                    stripped, f"- [{name}](../../capability-map/{slug}.md)"
+                )
+        result_lines.append(line)
+    content = "".join(result_lines)
+
+    # Rewrite entity ID links to their bounded-context page
+    def _replace_entity(m: re.Match) -> str:
+        entity_id = m.group(1)
+        ctx_name = bc_model.entity_to_context.get(entity_id)
+        if ctx_name:
+            ctx_slug = normalize_name(ctx_name)
+            return f"](../../capability-map/{ctx_slug}.md)"
+        return m.group(0)
+
+    content = re.sub(r"\]\(([A-Z_][A-Z_0-9]*)\)", _replace_entity, content)
+    return content
 
 
 def _append_diagrams(views: list[View], lines: list[str]) -> None:
@@ -400,7 +574,7 @@ def _dep_link(workspace: Workspace, name: str, element_id: str) -> str:
     slug = normalize_name(name)
     for p in workspace.people:
         if p.id == element_id:
-            return f"[{name}](../../actors/{slug}/index.md)"
+            return f"[{name}](../../users/{slug}/index.md)"
     return f"[{name}](../{slug}/index.md)"
 
 
@@ -436,11 +610,12 @@ def _append_dependencies(workspace: Workspace, ss: SoftwareSystem, lines: list[s
 
 def _append_decisions(decisions: list[Decision], lines: list[str]) -> None:
     lines.append("## Architecture Decision Records\n\n")
-    lines.append("| ID | Date | Status | Title |\n")
-    lines.append("|---|---|---|---|\n")
+    lines.append("| ID | Date | Status | Title | Context |\n")
+    lines.append("|---|---|---|---|---|\n")
     for d in sorted(decisions, key=lambda d: int(d.id)):
         date = d.date[:10] if d.date else ""
-        lines.append(f"| {d.id} | {date} | {d.status} | {d.title} |\n")
+        context = _extract_decision_context(d.content)
+        lines.append(f"| {d.id} | {date} | {d.status} | {d.title} | {context} |\n")
     lines.append("\n")
 
     for d in sorted(decisions, key=lambda d: int(d.id)):
