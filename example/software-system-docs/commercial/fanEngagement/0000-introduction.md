@@ -2,7 +2,7 @@
 
 Mobile-first fan engagement platform providing loyalty rewards, push notifications, gamification, exclusive content, and digital touchpoint management for BelFoot FC supporters.
 
-# Capabilities
+# Business Capabilities
 
 - Manage loyalty points earned from ticket purchases and merchandise
 - Send targeted push notifications for match day and promotions

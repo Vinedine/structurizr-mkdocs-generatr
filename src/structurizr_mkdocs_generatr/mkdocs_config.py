@@ -170,10 +170,10 @@ def _build_nav(workspace: Workspace, bc_model: BoundedContextModel | None = None
             bc_nav.append({ctx.name: f"capability-map/{ctx_slug}.md"})
         nav.append({"Capability Map": bc_nav})
 
-    # Users section (expandable)
-    users_nav = _users_nav(workspace)
-    if users_nav:
-        nav.append({"Users": users_nav})
+    # Persons section (expandable)
+    persons_nav = _persons_nav(workspace)
+    if persons_nav:
+        nav.append({"Persons": persons_nav})
 
     # Software Systems section (expandable)
     systems_nav = _systems_nav(workspace)
@@ -199,17 +199,17 @@ def _decisions_nav(documentation: Documentation, prefix: str) -> list:
 
     nav: list = [{"Overview": f"{prefix}/index.md"}]
     for d in sorted(decisions, key=lambda d: int(d.id)):
-        nav.append({d.title: f"{prefix}/{d.id}.md"})
+        nav.append({f"{d.id}. {d.title}": f"{prefix}/{d.id}.md"})
     return nav
 
 
-def _users_nav(workspace: Workspace) -> list:
+def _persons_nav(workspace: Workspace) -> list:
     if not workspace.people:
         return []
-    nav: list = [{"index": "users/index.md"}]
+    nav: list = [{"index": "persons/index.md"}]
     for person in sorted(workspace.people, key=lambda p: p.name):
         slug = normalize_name(person.name)
-        nav.append({person.name: f"users/{slug}/index.md"})
+        nav.append({person.name: f"persons/{slug}/index.md"})
     return nav
 
 

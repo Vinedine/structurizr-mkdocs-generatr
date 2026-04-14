@@ -2,7 +2,7 @@
 
 External stakeholder management platform for press communications, federation relations, community programs, and government liaison coordination.
 
-# Capabilities
+# Business Capabilities
 
 - Manage press releases and media communications
 - Maintain relationships with sports and referee federations

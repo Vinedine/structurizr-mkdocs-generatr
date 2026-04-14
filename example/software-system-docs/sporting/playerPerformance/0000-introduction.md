@@ -2,7 +2,7 @@
 
 Training analytics and match statistics platform providing GPS tracking data, fitness scores, AI-driven injury risk predictions, and player contract and transfer management for coaching staff.
 
-# Capabilities
+# Business Capabilities
 
 - Ingest GPS and biometric data from training sessions
 - Calculate player fitness scores and workload metrics

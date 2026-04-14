@@ -5,13 +5,13 @@ from __future__ import annotations
 
 
 from structurizr_mkdocs_generatr.markdown_writer import (
-    _add_mermaid_view_source,
     _bump_headings,
     _extract_puml_blocks,
     _resolve_embeds,
     _rewrite_asset_paths,
     _rewrite_decision_links,
 )
+from structurizr_mkdocs_generatr.mermaid_utils import add_mermaid_view_source as _add_mermaid_view_source
 
 
 class TestBumpHeadings:
@@ -118,18 +118,24 @@ class TestExtractPumlBlocks:
 
 
 class TestAddMermaidViewSource:
-    def test_adds_view_source(self):
+    def test_adds_view_source_when_enabled(self):
         content = "```mermaid\ngraph LR\n  A --> B\n```"
-        result = _add_mermaid_view_source(content)
+        result = _add_mermaid_view_source(content, enabled=True)
         assert "```mermaid" in result
         assert '??? info "View Source"' in result
         assert "    graph LR" in result
 
+    def test_disabled_by_default(self):
+        content = "```mermaid\ngraph LR\n  A --> B\n```"
+        result = _add_mermaid_view_source(content)
+        assert '??? info "View Source"' not in result
+        assert result == content
+
     def test_skips_nested_mermaid(self):
         content = "````markdown\n```mermaid\ngraph LR\n```\n````"
-        result = _add_mermaid_view_source(content)
+        result = _add_mermaid_view_source(content, enabled=True)
         assert '??? info "View Source"' not in result
 
     def test_preserves_non_mermaid_content(self):
         content = "# Title\n\nSome text.\n"
-        assert _add_mermaid_view_source(content) == content
+        assert _add_mermaid_view_source(content, enabled=True) == content

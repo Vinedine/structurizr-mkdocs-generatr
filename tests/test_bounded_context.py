@@ -207,7 +207,7 @@ class TestMarkdownGeneration:
         assert "# Capability Map" in content
         assert "capability map" in content
         assert '!!! question "What questions does this answer?"' in content
-        assert "| Bounded Context | Description | Software Systems | Capabilities |" in content
+        assert "| Bounded Context | Description | Software Systems | Business Capabilities |" in content
         assert "[Alpha](alpha.md)" in content
         assert "[Beta](beta.md)" in content
         assert "| 0 |" in content
@@ -251,7 +251,7 @@ class TestMarkdownGeneration:
         cap_map = {"Alpha": {"My System": ["Do thing one", "Do thing two"]}, "Beta": {}}
         write_bounded_context_pages(model, system_map, cap_map, ws, docs_dir)
         content = (docs_dir / "capability-map" / "alpha.md").read_text(encoding="utf-8")
-        assert "## Capabilities" in content
+        assert "## Business Capabilities" in content
         assert "### [My System](../software-systems/my-system/index.md)" in content
         assert "- Do thing one" in content
         assert "- Do thing two" in content

@@ -2,7 +2,7 @@
 
 Staff management platform handling recruitment, onboarding, employee records, coaching staff, volunteer coordination, and payroll integration with SAP S4HANA.
 
-# Capabilities
+# Business Capabilities
 
 - Manage recruitment pipeline from vacancy to offer
 - Onboard new employees with digital document signing

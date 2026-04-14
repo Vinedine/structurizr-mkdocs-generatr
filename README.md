@@ -114,14 +114,12 @@ Properties are set in the `views { properties { } }` block of your Structurizr D
 |---|---|---|
 | `mkdocs.navigation.tabs` | `true` | Show top-level sections as tabs in the header bar. |
 | `mkdocs.navigation.instant` | `false` | Enable instant navigation (XHR-based page loads without full reload). |
-| `mkdocs.navigation.nestGroups` | `false` | Nest Structurizr groups as sub-sections in the navigation. |
 
 ### Behavior
 
 | Property | Default | Description |
 |---|---|---|
 | `mkdocs.svgLinkTarget` | `_blank` | Link target for clickable SVG diagrams: `_self`, `_blank`, `_parent`, or `_top`. |
-| `mkdocs.externalTag` | -- | Structurizr tag used to identify external systems (shown with a badge in the UI). |
 | `mkdocs.fullWidth` | `true` | Use full-width layout instead of the default centered content. |
 | `mkdocs.hideLegend` | `false` | Strip legend boxes from generated PlantUML diagrams. |
 
@@ -135,7 +133,6 @@ views {
         "mkdocs.color.accent" "indigo"
         "mkdocs.navigation.tabs" "true"
         "mkdocs.svgLinkTarget" "_self"
-        "mkdocs.externalTag" "External System"
     }
 }
 ```
@@ -154,8 +151,6 @@ The following `generatr.*` properties from structurizr-site-generatr are support
 | `mkdocs.logo` | `generatr.style.logoPath` |
 | `mkdocs.customCss` | `generatr.style.customStylesheet` |
 | `mkdocs.svgLinkTarget` | `generatr.svglink.target` |
-| `mkdocs.externalTag` | `generatr.site.externalTag` |
-| `mkdocs.navigation.nestGroups` | `generatr.site.nestGroups` |
 | `mkdocs.navigation.instant` | `generatr.site.navigation.instant` |
 | `mkdocs.navigation.tabs` | `generatr.site.navigation.tabs` |
 | `mkdocs.fullWidth` | `generatr.site.fullWidth` |

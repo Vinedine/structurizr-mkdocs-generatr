@@ -2,7 +2,7 @@
 
 AI and ML platform for training, deploying, and managing predictive models including crowd density prediction and injury risk assessment.
 
-# Capabilities
+# Business Capabilities
 
 - Train and deploy crowd density prediction models for stadium safety
 - Run injury risk assessment models for player management

@@ -2,7 +2,7 @@
 
 Matchday coordination platform managing gameday planning, security deployments, access control, away match logistics, and e-sports event operations.
 
-# Capabilities
+# Business Capabilities
 
 - Plan and coordinate matchday operations and logistics
 - Manage security deployments and crowd safety

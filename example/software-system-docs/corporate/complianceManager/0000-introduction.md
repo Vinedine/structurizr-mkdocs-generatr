@@ -2,7 +2,7 @@
 
 Risk and compliance management platform maintaining risk registers, audit trails, ethical governance policies, legal case tracking, sports licensing, and whistleblower reporting.
 
-# Capabilities
+# Business Capabilities
 
 - Maintain enterprise risk registers with impact and likelihood scoring
 - Track compliance audit schedules and findings

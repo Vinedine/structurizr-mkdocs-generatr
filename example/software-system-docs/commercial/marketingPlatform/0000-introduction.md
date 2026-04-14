@@ -2,7 +2,7 @@
 
 Marketing campaign management and brand activation platform for planning multi-channel campaigns, managing brand assets, and coordinating sponsorship program marketing.
 
-# Capabilities
+# Business Capabilities
 
 - Develop and execute marketing campaigns across all channels
 - Manage brand assets, guidelines, and visual identity

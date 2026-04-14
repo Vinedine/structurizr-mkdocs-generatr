@@ -2,7 +2,7 @@
 
 Product development platform for designing and managing new merchandise, sponsorship offerings, B2B packages, ticketing products, and fan touchpoint experiences.
 
-# Capabilities
+# Business Capabilities
 
 - Develop new merchandise concepts and product lines
 - Design sponsorship and partnership offerings for B2B clients

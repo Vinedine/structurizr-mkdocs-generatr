@@ -2,7 +2,7 @@
 
 Unified analytics and data lakehouse platform providing centralized data storage, transformation, and ML experimentation capabilities.
 
-# Capabilities
+# Business Capabilities
 
 - Provide unified data lakehouse for all operational and analytical data
 - Enable self-service data exploration and notebook-based analysis

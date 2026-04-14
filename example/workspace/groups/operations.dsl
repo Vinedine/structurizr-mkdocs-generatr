@@ -25,7 +25,7 @@ groupOperations = group "Operations" {
         }
     }
 
-    softwareSystemCashlessPayment = softwareSystem "Cashless Payment" "Contactless in-stadium payments for food, drinks, and merchandise" {
+    softwareSystemCashlessPayment = softwareSystem "Cashless Payment" "Contactless in-stadium payments for food, drinks, and merchandise" "New" {
 
         !docs ../../software-system-docs/operations/cashlessPayment
 

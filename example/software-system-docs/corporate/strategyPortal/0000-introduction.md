@@ -2,7 +2,7 @@
 
 Club strategy management platform for defining strategic plans, tracking market trends, evaluating innovations, and managing the portfolio of club initiatives.
 
-# Capabilities
+# Business Capabilities
 
 - Develop and maintain club strategic plans and long-term vision
 - Monitor market trends and competitive landscape

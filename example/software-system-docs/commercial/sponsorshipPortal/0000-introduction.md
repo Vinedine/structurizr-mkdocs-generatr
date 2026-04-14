@@ -2,7 +2,7 @@
 
 B2B partner and sponsor management platform for onboarding sponsors, managing contracts, tracking campaigns, and coordinating hospitality packages.
 
-# Capabilities
+# Business Capabilities
 
 - Onboard new sponsors and manage partner profiles
 - Track sponsorship contract terms and renewal dates

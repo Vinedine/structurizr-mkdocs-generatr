@@ -2,7 +2,7 @@
 
 Player health management system tracking medical history, injuries, rehabilitation protocols, and return-to-play clearance for BelFoot FC squad.
 
-# Capabilities
+# Business Capabilities
 
 - Record player medical history and pre-season examinations
 - Log injuries with diagnosis, treatment plans, and timelines

@@ -2,7 +2,7 @@
 
 Procurement and logistics platform managing suppliers, purchase orders, and inbound deliveries for stadium operations and merchandise.
 
-# Capabilities
+# Business Capabilities
 
 - Onboard and manage supplier profiles and catalogs
 - Create and track purchase orders through approval workflows

@@ -2,7 +2,7 @@
 
 Facility operations platform managing stadium zones, IoT sensor monitoring, maintenance scheduling, energy management, and infrastructure assets for BelFoot Arena.
 
-# Capabilities
+# Business Capabilities
 
 - Monitor crowd levels and zone occupancy in real-time via IoT sensors
 - Schedule and track facility maintenance requests

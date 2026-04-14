@@ -130,20 +130,10 @@ class Workspace:
                 return ss
         return None
 
-    def find_container_by_id(self, container_id: str) -> tuple[SoftwareSystem, Container] | None:
-        for ss in self.software_systems:
-            for c in ss.containers:
-                if c.id == container_id:
-                    return ss, c
-        return None
-
     def views_for_system(self, system_id: str) -> list[View]:
         return [v for v in self.views
                 if v.software_system_id == system_id or v.element_id == system_id]
 
-    def views_for_container(self, container_id: str) -> list[View]:
-        return [v for v in self.views
-                if v.container_id == container_id or v.element_id == container_id]
 
     def landscape_views(self) -> list[View]:
         return [v for v in self.views if v.type == VIEW_SYSTEM_LANDSCAPE]
