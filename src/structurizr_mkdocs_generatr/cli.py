@@ -91,7 +91,7 @@ def main(
     # Step 2: Post-process PlantUML and render to SVG
     if not skip_export:
         click.echo("  Post-processing PlantUML diagrams...")
-        process_puml_files(puml_dir, workspace, hide_legend=props.hide_legend)
+        process_puml_files(puml_dir, workspace, show_legend=props.show_legend)
 
         click.echo("Step 2/4: Rendering PlantUML diagrams to SVG...")
         render_diagrams(puml_dir, svg_dir)

@@ -1,85 +1,88 @@
-## Welcome to the BelFoot FC Digital Architecture
+Every diagram, system page, and decision record on this site is **generated from code** -- a single [Structurizr DSL](https://docs.structurizr.com/dsl/language) workspace, version-controlled in Git, rebuilt on every merge. Nothing is drawn by hand. The model is the documentation.
 
-Every organization has the same problem: architecture documentation that is outdated the moment it is published. Drawn diagrams drift. Wiki pages rot. Nobody trusts them.
+Below is one of five organizational groups in the BelFoot FC IT landscape -- a fictional football club with 28 software systems, 18 personas, and multi-cloud infrastructure.
 
-This site takes a different approach. Every diagram, system description, and decision record you see here is **generated from code** -- version-controlled, reviewed through pull requests, and rebuilt on every merge. Nothing is drawn by hand. Nothing goes stale.
+![BelFoot FC — IT Systems](embed:SystemLandscapeIT)
 
-Behind it is 15+ years of experience across development, architecture, operations, and business analysis -- and the conviction that architecture should be as maintainable as the software it describes. Built with the [C4 Model](https://c4model.com/) and [MkDocs Material](https://squidfundry.github.io/mkdocs-material/).
+<div class="grid cards" markdown>
 
-## From Business Strategy to Infrastructure -- One Connected Model
+- :material-domain: **[From Business to Infrastructure](documentation/01-business-to-infrastructure.md)**
 
-Most architecture tools stop at software diagrams. This framework goes further. It connects the **capability map** (business capabilities, bounded contexts, and their entities) to **C4 models** (software systems, containers, components) to **infrastructure** -- all in a single model, all generated from code.
+    ---
 
-<div style="text-align: center;" markdown>
+    Trace from a business capability through bounded contexts and software systems down to the infrastructure that runs it. See all five organizational groups and 13 bounded contexts.
 
-```mermaid
-flowchart LR
-    A["Capability Map"] --->|" "| B["C4 Models"] --->|" "| C["Infrastructure"]
+- :material-sitemap: **[Systems and Workflows](documentation/02-systems-and-workflows.md)**
 
-    style A fill:#388E3C,color:#fff
-    style B fill:#1976D2,color:#fff
-    style C fill:#F57C00,color:#fff
-```
+    ---
+
+    Browse 28 software systems with auto-generated diagrams, and four animated workflows showing how systems collaborate at runtime.
+
+- :material-server-network: **[Infrastructure](documentation/03-infrastructure.md)**
+
+    ---
+
+    Multi-cloud deployment across on-premise, Azure, and AWS -- with deployment views per environment for production, acceptance, test, and development.
 
 </div>
 
 <div class="grid cards" markdown>
 
-- :material-strategy: **Capability Map**
+- :material-shape-outline: **[13 Bounded Contexts](capability-map/index.md)**
 
     ---
 
-    Business capabilities mapped to bounded contexts and their entities. See what your organization does and how data flows across domain boundaries.
+    Business domains mapped to data entities and software systems
 
-- :material-sitemap: **C4 Models**
-
-    ---
-
-    Software systems, containers, and components at every zoom level -- from landscape overview to container internals.
-
-- :material-server-network: **Infrastructure**
+- :material-account-group: **[18 Personas](persons/index.md)**
 
     ---
 
-    Map containers onto real infrastructure per environment. Deployment views for production, acceptance, development, and test -- on-premise, Azure, AWS, multi-cloud.
+    From fans and sponsors to coaches, analysts, and IT architects
+
+- :material-domain: **[5 Org Groups](software-systems/index.md)**
+
+    ---
+
+    Commercial, Corporate, IT, Operations, and Sporting -- each with its own landscape view
+
+- :material-package-variant-closed: **[28 Software Systems](software-systems/index.md)**
+
+    ---
+
+    Browse every system with auto-generated diagrams, dependencies, and documentation
+
+- :material-cloud-outline: **[4 Environments](infrastructure/index.md)**
+
+    ---
+
+    Production (multi-cloud), acceptance, test, and development
+
+- :material-file-document-check-outline: **[6 ADRs](adrs/index.md)**
+
+    ---
+
+    Strategic decisions with full context, consequences, and audit trail
 
 </div>
 
-
-## Who Is This For?
+---
 
 === "For Technical Teams"
 
-    You define your architecture once in [Structurizr DSL](https://docs.structurizr.com/dsl/language) and get a fully navigable website with:
-
-    - **[Auto-generated C4 diagrams](documentation/01-examples.md)** at every level -- landscape, context, container, component, deployment
-    - **[Bounded contexts and business capability maps](documentation/02-capabilities-and-contexts.md)** linking business domains to software systems
-    - **[Deployment views per environment](documentation/04-infrastructure.md)** -- see exactly where containers run across production, acceptance, development, and test
+    - **[Auto-generated C4 diagrams](documentation/02-systems-and-workflows.md)** at every level -- landscape, context, container, component, deployment
+    - **[Bounded contexts and capability maps](documentation/01-business-to-infrastructure.md)** linking business domains to software systems
+    - **[Deployment views per environment](documentation/03-infrastructure.md)** -- see exactly where containers run across production, acceptance, development, and test
+    - **[AI-powered automation](documentation/05-ai-automation.md)** -- every system on this site was generated using Claude Code skills
     - **[Git-based governance](documentation/06-how-it-works.md)** -- every change goes through branch, pull request, review, merge, auto-deploy
-    - **[Architecture Decision Records](documentation/05-architecture-decisions.md)** tracking every strategic decision with full context
-    - **[Tool connectors](documentation/07-connectors.md)** pushing data to Atlassian Compass, Backstage, or Port
-    - **[AI automation](documentation/08-ai-automation.md)** generating architecture from Git repos and Azure DevOps
-
 
 === "For Business Leaders"
 
-    Most organizations cannot confidently answer *"what do we have, and how does it fit together?"* This framework changes that:
-
-    - **[Business capabilities mapped to IT systems](documentation/02-capabilities-and-contexts.md)** -- see which software supports which part of the business
-    - **[Bounded contexts reveal domain complexity](documentation/02-capabilities-and-contexts.md)** -- understand how data flows between business areas
-    - **[Impact analysis before any change](documentation/04-infrastructure.md)** -- trace from a business capability down to the infrastructure that runs it
-    - **[Architecture decisions are transparent](documentation/05-architecture-decisions.md)** -- every strategic choice is documented with context and consequences
+    - **[Business capabilities mapped to IT systems](documentation/01-business-to-infrastructure.md)** -- see which software supports which part of the business
+    - **[Impact analysis before any change](documentation/01-business-to-infrastructure.md)** -- trace from a business capability down to the infrastructure that runs it
+    - **[Architecture decisions are transparent](documentation/04-decisions.md)** -- every strategic choice is documented with context and consequences
     - **[Documentation stays current by design](documentation/06-how-it-works.md)** -- generated from the same code that defines the architecture
-
-
-??? question "Why Not ArchiMate or TOGAF?"
-
-    This framework does not replace ArchiMate or TOGAF -- it complements them. The philosophy is **right-sized architecture**: enough structure to answer the questions that matter (*what do we have, where does it run, how does it connect*) without the overhead of a full enterprise metamodel.
-
-    For most organizations, the pragmatic path is to start here -- model your systems in C4, map them to business capabilities, document your decisions -- and layer formal frameworks on top when the organization genuinely needs them. ArchiMate can sit above C4 as a strategic enterprise-level model linking architecture views (C4, BPMN, ERD) for organizations at that scale.
-
-    The long-term vision points toward integrated platforms like LeanIX or SAP Signavio. This tool is the practical starting point: low overhead, version-controlled, and immediately useful.
 
 !!! tip "Bring This to Your Organization"
 
-    This framework can be set up for any enterprise -- from startups to large organizations with hundreds of software systems. It is driven by passion, not profit -- a personal project born from the conviction that architecture should be accessible, not locked behind expensive tooling or heavyweight processes. Interested in what this could look like for your landscape? Get in touch.
+    This framework can be set up for any enterprise -- from startups to large organizations with hundreds of software systems. Interested in what this could look like for your landscape? [Get in touch](https://www.linkedin.com/in/vincent-weijburg-191aa9/).

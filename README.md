@@ -121,7 +121,7 @@ Properties are set in the `views { properties { } }` block of your Structurizr D
 |---|---|---|
 | `mkdocs.svgLinkTarget` | `_blank` | Link target for clickable SVG diagrams: `_self`, `_blank`, `_parent`, or `_top`. |
 | `mkdocs.fullWidth` | `true` | Use full-width layout instead of the default centered content. |
-| `mkdocs.hideLegend` | `false` | Strip legend boxes from generated PlantUML diagrams. |
+| `mkdocs.showLegend` | `false` | Show legend boxes on generated PlantUML diagrams. |
 
 ### Example
 
@@ -137,24 +137,6 @@ views {
 }
 ```
 
-### Backward Compatibility
-
-The following `generatr.*` properties from structurizr-site-generatr are supported as fallbacks:
-
-| `mkdocs.*` key | `generatr.*` fallback |
-|---|---|
-| `mkdocs.theme` | `generatr.site.theme` |
-| `mkdocs.color.primary` | `generatr.style.colors.primary` |
-| `mkdocs.color.accent` | `generatr.style.colors.accent` |
-| `mkdocs.color.headerText` | `generatr.style.colors.secondary` |
-| `mkdocs.favicon` | `generatr.style.faviconPath` |
-| `mkdocs.logo` | `generatr.style.logoPath` |
-| `mkdocs.customCss` | `generatr.style.customStylesheet` |
-| `mkdocs.svgLinkTarget` | `generatr.svglink.target` |
-| `mkdocs.navigation.instant` | `generatr.site.navigation.instant` |
-| `mkdocs.navigation.tabs` | `generatr.site.navigation.tabs` |
-| `mkdocs.fullWidth` | `generatr.site.fullWidth` |
-| `mkdocs.hideLegend` | `generatr.site.hideLegend` |
 
 ## Pipeline
 
