@@ -113,7 +113,7 @@ def _build_element_url_map(workspace: Workspace) -> dict[str, str]:
 _ELEMENT_NAME_RE = re.compile(r'\(\w+,\s*"([^"]+)"')
 
 
-def process_puml_files(puml_dir: Path, workspace: Workspace, *, hide_legend: bool = False) -> None:
+def process_puml_files(puml_dir: Path, workspace: Workspace, *, show_legend: bool = False) -> None:
     """Single-pass post-processing of .puml files: inject links, strip titles/legends."""
     url_map = _build_element_url_map(workspace)
 
@@ -139,7 +139,7 @@ def process_puml_files(puml_dir: Path, workspace: Workspace, *, hide_legend: boo
         content = re.sub(r"^title .*\n?", "", content, flags=re.MULTILINE)
 
         # Strip legends
-        if hide_legend:
+        if not show_legend:
             content = re.sub(r"^SHOW_LEGEND\(.*\)\s*\n?", "", content, flags=re.MULTILINE)
 
         if content != original:

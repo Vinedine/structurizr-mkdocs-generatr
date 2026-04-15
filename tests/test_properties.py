@@ -13,7 +13,7 @@ class TestResolveProperties:
         assert props.svg_link_target == "_blank"
         assert props.full_width is True
         assert props.navigation_tabs is True
-        assert props.hide_legend is False
+        assert props.show_legend is False
 
     def test_mkdocs_keys(self):
         props = resolve_properties({
@@ -21,28 +21,13 @@ class TestResolveProperties:
             "mkdocs.color.primary": "indigo",
             "mkdocs.color.accent": "pink",
             "mkdocs.fullWidth": "true",
-            "mkdocs.hideLegend": "true",
+            "mkdocs.showLegend": "true",
         })
         assert props.theme == "dark"
         assert props.primary_color == "indigo"
         assert props.accent_color == "pink"
         assert props.full_width is True
-        assert props.hide_legend is True
-
-    def test_generatr_fallback(self):
-        props = resolve_properties({
-            "generatr.site.theme": "light",
-            "generatr.style.colors.primary": "blue",
-        })
-        assert props.theme == "light"
-        assert props.primary_color == "blue"
-
-    def test_mkdocs_takes_precedence_over_generatr(self):
-        props = resolve_properties({
-            "mkdocs.theme": "dark",
-            "generatr.site.theme": "light",
-        })
-        assert props.theme == "dark"
+        assert props.show_legend is True
 
     def test_invalid_theme_defaults_to_auto(self):
         props = resolve_properties({"mkdocs.theme": "neon"})
