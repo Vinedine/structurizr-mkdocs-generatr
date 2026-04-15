@@ -1,4 +1,4 @@
-workspace "BelFoot FC IT Landscape" {
+workspace "BelFoot FC Digital Architecture" {
 
     !docs workspace/pages
     !adrs workspace/adrs
@@ -111,10 +111,9 @@ workspace "BelFoot FC IT Landscape" {
 
         properties {
             "c4plantuml.tags" "true"
-            "mkdocs.color.primary" "teal"
+            "mkdocs.color.primary" "blue-grey"
             "mkdocs.color.accent" "amber"
             "mkdocs.favicon" "site/favicon.ico"
-            #"mkdocs.logo" "site/logo.png"
         }
 
         styles {

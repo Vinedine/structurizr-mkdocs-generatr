@@ -53,7 +53,7 @@ flowchart LR
 | Modeling | [Structurizr DSL](https://structurizr.com/) | Define architecture as code using the C4 model |
 | Export | [Structurizr vNext](https://structurizr.com/) (Docker) | Export DSL to JSON + C4 PlantUML diagrams |
 | Diagrams | [PlantUML](https://plantuml.com/) (Docker) | Render .puml files to clickable SVG diagrams |
-| Generation | [structurizr-mkdocs-generatr](https://github.com/xxx/structurizr-mkdocs-generatr) | Parse workspace, generate Markdown + MkDocs config |
+| Generation | [structurizr-mkdocs-generatr](https://github.com/xxx/structurizr-mkdocs-generatr) | Parse workspace, generate Markdown + MkDocs config (inspired by [structurizr-site-generatr](https://github.com/avisi-cloud/structurizr-site-generatr)) |
 | Site | [MkDocs Material](https://squidfundry.github.io/mkdocs-material/) | Build the static site with Material theme |
 | Governance | Git + Pull Requests | Track every change with full audit trail |
 | AI | Claude Code | Automate system creation, audits, and documentation generation |
