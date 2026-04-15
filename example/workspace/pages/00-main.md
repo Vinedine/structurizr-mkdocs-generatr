@@ -1,6 +1,12 @@
-Every diagram, system page, and decision record on this site is **generated from code** -- a single [Structurizr DSL](https://docs.structurizr.com/dsl/language) workspace, version-controlled in Git, rebuilt on every merge. Nothing is drawn by hand. The model is the documentation.
+This is an auto-generated digital architecture website for BelFoot FC -- a fictional football club with 28 software systems, 18 personas, and multi-cloud infrastructure.
 
-Below is one of five organizational groups in the BelFoot FC IT landscape -- a fictional football club with 28 software systems, 18 personas, and multi-cloud infrastructure.
+Everything you see on this site -- diagrams, system descriptions, deployment views, bounded contexts, capability maps, decision records -- is generated directly from version-controlled code. No stale Visio files. No forgotten wikis. One source of truth, always current.
+
+??? info "About BelFoot FC"
+
+    BelFoot FC is a fictional football club from [Jonas Van Riel](https://www.linkedin.com/in/jonasvanriel/)'s book [Leading with Capabilities](https://www.amazon.com/Leading-Capabilities-Capability-Based-Management-Implementation/dp/1998528227). It serves as a reference case with a fully modeled capability map, bounded contexts, and entity relationships -- demonstrating how capability-based thinking bridges business strategy and IT architecture.
+
+Below is one of five organizational groups in the BelFoot FC IT landscape.
 
 ![BelFoot FC — IT Systems](embed:SystemLandscapeIT)
 
@@ -82,6 +88,26 @@ Below is one of five organizational groups in the BelFoot FC IT landscape -- a f
     - **[Impact analysis before any change](documentation/01-business-to-infrastructure.md)** -- trace from a business capability down to the infrastructure that runs it
     - **[Architecture decisions are transparent](documentation/04-decisions.md)** -- every strategic choice is documented with context and consequences
     - **[Documentation stays current by design](documentation/06-how-it-works.md)** -- generated from the same code that defines the architecture
+
+??? question "But what about TOGAF / ArchiMate / Lean IX?"
+
+    Great question -- and one that comes up in every architecture conversation.
+
+    **This site uses C4 + Structurizr deliberately.** Not because TOGAF and ArchiMate are wrong, but because they solve different problems at a different pace.
+
+    | | C4 / Structurizr | ArchiMate / TOGAF |
+    |---|---|---|
+    | **Focus** | Software systems, containers, components | Enterprise-wide: strategy, business, application, technology |
+    | **Audience** | Development teams, tech leads, architects | Enterprise architects, governance boards |
+    | **Maintenance** | DSL-as-code in Git, auto-generated on every merge | Typically a separate modeling tool, manually maintained |
+    | **Time to value** | Days | Months |
+    | **Process modeling** | Not its job (use BPMN) | Built-in motivation, business process, and migration views |
+
+    C4 is intentionally narrow. It answers *"what software do we have, how does it connect, and where does it run?"* -- and keeps that answer current because it lives in the same Git workflow as the code.
+
+    ArchiMate answers broader questions -- strategy, business processes, data flows across the enterprise. If your organization needs that, C4 doesn't replace it. But C4 **feeds into it**: the Application layer in ArchiMate maps directly to C4 models.
+
+    **Our approach:** Start with C4 to get immediate, maintainable value. If the organization later adopts ArchiMate or Lean IX, nothing is wasted -- the C4 models slot right into the application architecture viewpoint.
 
 !!! tip "Bring This to Your Organization"
 
