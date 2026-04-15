@@ -53,11 +53,11 @@ def export_workspace(workspace_dir: Path, output_dir: Path) -> tuple[Path, Path]
         "export", "-w", "workspace.dsl", "-f", "json", "-o", "output-json",
     ], "Exporting workspace JSON")
 
-    # Move JSON output to our build dir
-    src_json = workspace_dir / "output-json" / "workspace.json"
-    dst_json = json_dir / "workspace.json"
-    shutil.move(str(src_json), str(dst_json))
-    (workspace_dir / "output-json").rmdir()
+    # Copy JSON output to our build dir (copy, not move — Docker creates
+    # root-owned files that cannot be unlinked by the runner user in CI)
+    src_json_dir = workspace_dir / "output-json"
+    shutil.copy2(src_json_dir / "workspace.json", json_dir / "workspace.json")
+    shutil.rmtree(src_json_dir, ignore_errors=True)
 
     # Export PlantUML
     _run([
@@ -67,11 +67,11 @@ def export_workspace(workspace_dir: Path, output_dir: Path) -> tuple[Path, Path]
         "export", "-w", "workspace.dsl", "-f", "plantuml/c4plantuml", "-o", "output-puml",
     ], "Exporting C4 PlantUML")
 
-    # Move PUML files to our build dir
+    # Copy PUML files to our build dir (same root-ownership issue as JSON)
     puml_src_dir = workspace_dir / "output-puml"
     for puml_file in puml_src_dir.glob("*.puml"):
-        shutil.move(str(puml_file), str(puml_dir / puml_file.name))
-    puml_src_dir.rmdir()
+        shutil.copy2(str(puml_file), str(puml_dir / puml_file.name))
+    shutil.rmtree(puml_src_dir, ignore_errors=True)
 
     return json_dir, puml_dir
 
