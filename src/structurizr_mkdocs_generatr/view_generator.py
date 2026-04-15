@@ -380,7 +380,8 @@ def _generate_landscape_views(
     if all_system_vars:
         lines.append("# [auto-generated] All software systems (no users)")
         key = "SystemLandscapeSoftwareSystems"
-        lines.append(_view_block("systemlandscape", None, key, " ".join(all_system_vars), "System Landscape - Software Systems"))
+        title = "System Landscape - Software Systems"
+        lines.append(_view_block("systemlandscape", None, key, " ".join(all_system_vars), title))
         keys.append(key)
         lines.append("")
 
@@ -396,7 +397,8 @@ def _generate_landscape_views(
         if include_items:
             key = f"SystemLandscape{group.display_name.replace(' ', '')}"
             lines.append(f"# [auto-generated] {group.display_name} group landscape")
-            lines.append(_view_block("systemlandscape", None, key, " ".join(include_items), f"System Landscape - {group.display_name}"))
+            title = f"System Landscape - {group.display_name}"
+            lines.append(_view_block("systemlandscape", None, key, " ".join(include_items), title))
             keys.append(key)
             lines.append("")
 
@@ -414,7 +416,9 @@ def _generate_landscape_views(
             short = user.display_name.replace(" ", "")
             key = f"SystemLandscapeUser{short}"
             lines.append(f"# [auto-generated] {user.display_name} landscape")
-            lines.append(_view_block("systemlandscape", None, key, f"{user.var_name} {' '.join(sys_vars)}", f"System Landscape - {user.display_name}"))
+            includes = f"{user.var_name} {' '.join(sys_vars)}"
+            title = f"System Landscape - {user.display_name}"
+            lines.append(_view_block("systemlandscape", None, key, includes, title))
             keys.append(key)
             lines.append("")
 
@@ -501,7 +505,8 @@ def _generate_deployment_views(
                 zone_short = zone.display_name.replace(" ", "")
             key = f"Deployment{env_short}{zone_short}"
             lines.append(f"# [auto-generated] {env.display_name} — {zone.display_name}")
-            lines.append(_deployment_view_block(None, env_ref, key, zone.var_name, f"Deployment - {env.display_name} - {zone.display_name}"))
+            title = f"Deployment - {env.display_name} - {zone.display_name}"
+            lines.append(_deployment_view_block(None, env_ref, key, zone.var_name, title))
             keys.append(key)
             lines.append("")
 
@@ -511,7 +516,8 @@ def _generate_deployment_views(
             sys_display = sys_display_map.get(sys_var, _camel_to_spaced(short))
             key = f"Deployment{env_short}{short}"
             lines.append("# [auto-generated]")
-            lines.append(_deployment_view_block(sys_var, env_ref, key, "*", f"Deployment - {env.display_name} - {sys_display}"))
+            title = f"Deployment - {env.display_name} - {sys_display}"
+            lines.append(_deployment_view_block(sys_var, env_ref, key, "*", title))
             keys.append(key)
             lines.append("")
 

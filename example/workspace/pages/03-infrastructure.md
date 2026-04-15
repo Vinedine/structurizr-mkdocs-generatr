@@ -24,18 +24,9 @@ Production runs across three infrastructure zones. Each zone exists for a specif
 
     ![Production — AWS](embed:DeploymentProductionAws)
 
-## Environment Comparison
+## All Environments
 
-The same containers are deployed differently across environments:
-
-| Environment | Infrastructure | Purpose |
-|---|---|---|
-| **Production** | On-premise + Azure + AWS (3 zones) | Live operations, full scale |
-| **Acceptance** | Single Azure resource group | Validation before production release |
-| **Test** | Isolated Azure environment | Integration and regression testing |
-| **Development** | Shared Azure, cost-optimized | Day-to-day development with burstable/serverless SKUs |
-
-Each environment has its own deployment view in the Infrastructure tab, generated from the same DSL model.
+Each environment has its own deployment view with zone-level detail -- see the full breakdown in [Infrastructure](../infrastructure/index.md).
 
 !!! warning "The Gap Operations Teams Face"
 

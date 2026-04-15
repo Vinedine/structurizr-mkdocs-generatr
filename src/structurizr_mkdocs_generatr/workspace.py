@@ -123,6 +123,7 @@ class Workspace:
     views: list[View]
     properties: dict[str, str]
     view_properties: dict[str, str] = field(default_factory=dict)
+    element_styles: dict[str, dict[str, str]] = field(default_factory=dict)
 
     def find_system_by_id(self, system_id: str) -> SoftwareSystem | None:
         for ss in self.software_systems:
@@ -223,7 +224,9 @@ class Workspace:
         self._cached_relationships = rels
         return rels
 
-    def dependencies_for_system(self, system_id: str) -> tuple[list[tuple[str, str, str, str]], list[tuple[str, str, str, str]]]:
+    def dependencies_for_system(
+        self, system_id: str,
+    ) -> tuple[list[tuple[str, str, str, str]], list[tuple[str, str, str, str]]]:
         """Return (inbound, outbound) dependencies as (element_id, name, description, technology) tuples.
 
         Deduplicates by source/target — shows system-level dependencies, not per-container.
@@ -455,6 +458,15 @@ def parse_workspace(workspace_json: Path) -> Workspace:
     views_data = data.get("views", {})
     view_config = views_data.get("configuration", {})
 
+    # Parse element styles (tag -> {background, color, ...})
+    element_styles: dict[str, dict[str, str]] = {}
+    for style in view_config.get("styles", {}).get("elements", []):
+        tag = style.get("tag", "")
+        if tag:
+            props = {k: v for k, v in style.items() if k != "tag" and isinstance(v, str)}
+            if props:
+                element_styles[tag] = props
+
     return Workspace(
         name=data.get("name", ""),
         description=data.get("description", ""),
@@ -464,6 +476,7 @@ def parse_workspace(workspace_json: Path) -> Workspace:
         views=_parse_views(views_data),
         properties=model.get("properties", {}),
         view_properties=view_config.get("properties", {}),
+        element_styles=element_styles,
     )
 
 

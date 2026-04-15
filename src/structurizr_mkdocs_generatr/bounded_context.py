@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .fileutils import write_file
 from .mermaid_utils import add_mermaid_view_source
 from .workspace import SoftwareSystem, Workspace, normalize_name
 
@@ -272,7 +273,7 @@ def _wrap_label(name: str, max_len: int = 20) -> str:
 
 def _mermaid_init(labels: list[str]) -> str:
     """Build a Mermaid init directive with dynamic subgraph title margin."""
-    max_lines = max((l.count("<br/>") + 1 for l in labels), default=1)
+    max_lines = max((label.count("<br/>") + 1 for label in labels), default=1)
     if max_lines <= 1:
         return ""
     margin = (max_lines - 1) * _MARGIN_PER_EXTRA_LINE
@@ -293,15 +294,6 @@ def write_bounded_context_index(
 
     lines: list[str] = []
     lines.append("# Capability Map\n\n")
-    lines.append(
-        "A **capability map** connects what the business *does* to the systems that "
-        "make it happen. It organises the enterprise into "
-        "**bounded contexts**{ title=\"A linguistic and organisational boundary around "
-        "a specific business domain, containing its own unified model and key data "
-        "entities\" } — distinct domain areas such as ticketing, finance, or player "
-        "development — and then maps each context to the **software systems** and "
-        "**business capabilities** that support it.\n\n"
-    )
     lines.append(
         '??? question "What questions does this answer?"\n\n'
         "    - *Which systems support our revenue stream?*\n"
@@ -343,7 +335,7 @@ def write_bounded_context_index(
         lines.append("```\n")
 
     content = add_mermaid_view_source("".join(lines), mermaid_view_source)
-    (bc_dir / "index.md").write_text(content, encoding="utf-8")
+    write_file(bc_dir / "index.md", content)
 
 
 def write_bounded_context_pages(
@@ -358,6 +350,8 @@ def write_bounded_context_pages(
     """Write individual bounded context pages to docs/capability-map/{slug}.md."""
     bc_dir = docs_dir / "capability-map"
     bc_dir.mkdir(parents=True, exist_ok=True)
+
+    context_by_name = {c.name: c for c in model.contexts}
 
     for ctx in model.contexts:
         slug = normalize_name(ctx.name)
@@ -382,9 +376,7 @@ def write_bounded_context_pages(
 
         # Related context subgraphs (only entities used in cross-links)
         for related_name in sorted(related):
-            related_ctx = next(
-                (c for c in model.contexts if c.name == related_name), None
-            )
+            related_ctx = context_by_name.get(related_name)
             if not related_ctx:
                 continue
             entity_ids = sorted(related[related_name])
@@ -435,4 +427,4 @@ def write_bounded_context_pages(
             lines.append("\n")
 
         content = add_mermaid_view_source("".join(lines), mermaid_view_source)
-        (bc_dir / f"{slug}.md").write_text(content, encoding="utf-8")
+        write_file(bc_dir / f"{slug}.md", content)
