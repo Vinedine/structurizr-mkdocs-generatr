@@ -4,13 +4,29 @@ Generate MkDocs Material sites from Structurizr DSL workspaces.
 
 > Inspired by and based on [structurizr-site-generatr](https://github.com/avisi-cloud/structurizr-site-generatr) by Avisi Cloud. This project provides similar functionality using Python, MkDocs Material, and Structurizr vNext instead of the archived Java libraries. Thank you to the original authors for their excellent work!
 
-**Backwards compatible** -- any workspace that works with [structurizr-site-generatr](https://github.com/avisi-cloud/structurizr-site-generatr) will also work with this tool. The same DSL properties (`generatr.*`) are supported, so you can switch without modifying your workspace.
+**Live demo:** [belfoot.trotstar.tech](https://belfoot.trotstar.tech) -- generated from the included BelFoot FC example workspace.
 
 ## Quick Start
 
+### Docker (recommended)
+
+No local dependencies needed -- everything is bundled in the image.
+
 ```bash
-# Install
-pip install structurizr-mkdocs-generatr
+# Generate a static site
+docker run --rm -v ./my-workspace:/var/model ghcr.io/vinedine/structurizr-mkdocs-generatr .
+
+# Serve locally with live reload
+docker run --rm -v ./my-workspace:/var/model -p 8000:8000 ghcr.io/vinedine/structurizr-mkdocs-generatr . --serve
+```
+
+### Python
+
+```bash
+# Install from source
+git clone https://github.com/Vinedine/structurizr-mkdocs-generatr.git
+cd structurizr-mkdocs-generatr
+pip install -e .
 
 # Generate the example site and serve it locally
 structurizr-mkdocs example/ --serve
@@ -18,26 +34,45 @@ structurizr-mkdocs example/ --serve
 
 ## Prerequisites
 
-- Docker (for Structurizr vNext and PlantUML)
-- Python >= 3.11
+**Docker image:** No prerequisites -- Java, Structurizr CLI, PlantUML, and Python are all bundled.
+
+**Python install:** Docker (for Structurizr vNext and PlantUML) + Python >= 3.11
 
 ## The Example: BelFoot FC IT Landscape
 
-This repo ships with a complete enterprise architecture example: the **BelFoot FC IT Landscape** -- a fictional football club with 26 software systems across 5 organizational groups, multi-cloud deployments, 17 actors, 13 bounded contexts, and 6 architecture decision records.
+This repo ships with a complete enterprise architecture example: the **BelFoot FC IT Landscape** -- a fictional football club with 28 software systems across 5 organizational groups, multi-cloud deployments (on-premise + Azure + AWS), 18 actors, 13 bounded contexts, 4 dynamic workflow views, and 6 architecture decision records.
 
 BelFoot FC is created by [Jonas Van Riel](https://www.linkedin.com/in/jonasvanriel/) in his book [Leading with Capabilities](https://www.amazon.com/Leading-Capabilities-Capability-Based-Management-Implementation/dp/1998528227). It serves as a realistic reference case to demonstrate what a fully governed enterprise architecture looks like in practice.
 
 The example workspace is in [`example/`](example/) and includes:
 
 - **Modular DSL** -- `workspace.dsl` with includes for groups, users, deployments, and views
-- **Software system docs** -- 26 `0000-introduction.md` files with business capabilities and data entity mappings
-- **Bounded contexts** -- `boundedContext.mmd` defining 13 business domains with entity relationships
-- **Architecture Decision Records** -- 6 ADRs covering multi-cloud strategy, event-driven integration, and more
-- **Multi-cloud deployments** -- On-premise stadium systems, Azure cloud platform, AWS sporting analytics
+- **5 organizational groups** -- Commercial (8 systems), Corporate (5), IT (5), Operations (4), Sporting (3)
+- **Software system docs** -- 28 `0000-introduction.md` files with business capabilities and data entity mappings
+- **Bounded contexts** -- `boundedContext.mmd` defining 13 business domains with 100+ entities and cross-context relationships
+- **Dynamic views** -- 4 animated workflows: ticket purchasing, gameday operations, data ingestion, and AI injury prediction
+- **Architecture Decision Records** -- 6 ADRs covering multi-cloud strategy, event-driven integration, data lakehouse, AI, and more
+- **Multi-cloud deployments** -- 4 environments (production, acceptance, test, dev) with on-premise stadium systems, Azure cloud platform, and AWS sporting analytics
+- **7 documentation pages** -- Landing page, business-to-infrastructure traceability, systems overview, infrastructure guide, decisions lifecycle, AI automation, and a writing guide
 
-Run `structurizr-mkdocs example/ --serve` to explore it locally.
+Run `structurizr-mkdocs example/ --serve` to explore it locally, or see the [live demo](https://belfoot.trotstar.tech).
 
 ## Usage
+
+### Docker
+
+```bash
+# Generate a static site (output appears in ./my-workspace/build/site/)
+docker run --rm -v ./my-workspace:/var/model ghcr.io/vinedine/structurizr-mkdocs-generatr .
+
+# Serve locally with live reload
+docker run --rm -v ./my-workspace:/var/model -p 8000:8000 ghcr.io/vinedine/structurizr-mkdocs-generatr . --serve
+
+# Custom workspace filename
+docker run --rm -v ./my-workspace:/var/model ghcr.io/vinedine/structurizr-mkdocs-generatr . -w custom.dsl
+```
+
+### Python CLI
 
 ```bash
 # Generate a static site
@@ -83,14 +118,19 @@ See [example/boundedContext.mmd](example/boundedContext.mmd) for the expected fo
 
 From a single Structurizr DSL workspace, the tool produces:
 
-- **C4 diagrams** at every level (landscape, context, container, component, deployment, dynamic)
-- **Software system pages** with overview, diagrams, dependencies, documentation, and decisions
-- **Actor pages** showing which systems each person interacts with
+- **C4 diagrams** at every level (landscape, context, container, component, deployment, dynamic) as clickable SVGs with drill-down navigation between levels
+- **Software system pages** with tabbed sections for overview, context/container/component/dynamic views, deployment views, dependencies (inbound & outbound tables), documentation, and decisions
+- **Software system groups** with group-level landscape diagrams and tag badges (External, Shared, New)
+- **Actor/person pages** showing which systems each person interacts with
+- **Infrastructure pages** organized by deployment environment and infrastructure zone
 - **Bounded context pages** with entity relationship diagrams and cross-context links
 - **Capability maps** linking business capabilities to software systems
-- **Architecture Decision Records** with status tracking
-- **Deployment views** per environment and infrastructure zone
+- **Architecture Decision Records** with status tracking, context summaries, and cross-linking between decisions
+- **Workspace-level documentation** rendered from Structurizr `!docs` sections
+- **Inline diagram support** -- PlantUML code blocks in documentation are extracted, rendered to SVG, and embedded automatically; Mermaid blocks pass through natively
+- **Image views** with base64 decoding for embedded PNG, JPEG, GIF, and SVG
 - **Full-text search** via MkDocs Material
+- **Theme customization** with color overrides, custom CSS, logos, and favicons
 
 ## Configuration Properties
 
@@ -155,7 +195,7 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 
 ```bash
 # Development setup
-git clone https://github.com/xxx/structurizr-mkdocs-generatr.git
+git clone https://github.com/Vinedine/structurizr-mkdocs-generatr.git
 cd structurizr-mkdocs-generatr
 pip install -e .
 pytest
@@ -165,7 +205,7 @@ pytest
 
 - [structurizr-site-generatr](https://github.com/avisi-cloud/structurizr-site-generatr) by Avisi Cloud -- the original Kotlin tool that inspired this project
 - [Structurizr](https://structurizr.com/) by Simon Brown -- the C4 model tooling
-- [MkDocs Material](https://squidfundry.github.io/mkdocs-material/) -- the theme powering the generated sites
+- [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) -- the theme powering the generated sites
 - [Jonas Van Riel](https://www.linkedin.com/in/jonasvanriel/) -- creator of the BelFoot FC fictional case study from [Leading with Capabilities](https://www.amazon.com/Leading-Capabilities-Capability-Based-Management-Implementation/dp/1998528227)
 
 ## License
