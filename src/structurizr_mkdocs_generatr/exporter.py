@@ -87,27 +87,31 @@ def _export_local(
     ], "Exporting C4 PlantUML")
 
 
+def _docker_structurizr(workspace_dir_str: str, *cmd_args: str) -> list[str]:
+    """Build a ``docker run`` command for the Structurizr CLI image."""
+    return [
+        "docker", "run", "--rm",
+        "-v", f"{workspace_dir_str}:/usr/local/structurizr",
+        "structurizr/structurizr",
+        *cmd_args,
+    ]
+
+
 def _export_docker(
     workspace_dir: Path, json_dir: Path, puml_dir: Path, workspace_file: str,
 ) -> None:
     """Export using Docker containers (host execution)."""
     workspace_dir_str = str(workspace_dir.resolve()).replace("\\", "/")
 
-    # Validate workspace
-    _run([
-        "docker", "run", "--rm",
-        "-v", f"{workspace_dir_str}:/usr/local/structurizr",
-        "structurizr/structurizr",
-        "validate", "-w", workspace_file,
-    ], "Validating workspace")
+    _run(
+        _docker_structurizr(workspace_dir_str, "validate", "-w", workspace_file),
+        "Validating workspace",
+    )
 
-    # Export JSON
-    _run([
-        "docker", "run", "--rm",
-        "-v", f"{workspace_dir_str}:/usr/local/structurizr",
-        "structurizr/structurizr",
-        "export", "-w", workspace_file, "-f", "json", "-o", "output-json",
-    ], "Exporting workspace JSON")
+    _run(
+        _docker_structurizr(workspace_dir_str, "export", "-w", workspace_file, "-f", "json", "-o", "output-json"),
+        "Exporting workspace JSON",
+    )
 
     # Copy JSON output to our build dir (copy, not move — Docker creates
     # root-owned files that cannot be unlinked by the runner user in CI)
@@ -115,13 +119,10 @@ def _export_docker(
     shutil.copy2(src_json_dir / "workspace.json", json_dir / "workspace.json")
     shutil.rmtree(src_json_dir, ignore_errors=True)
 
-    # Export PlantUML
-    _run([
-        "docker", "run", "--rm",
-        "-v", f"{workspace_dir_str}:/usr/local/structurizr",
-        "structurizr/structurizr",
-        "export", "-w", workspace_file, "-f", "plantuml/c4plantuml", "-o", "output-puml",
-    ], "Exporting C4 PlantUML")
+    _run(
+        _docker_structurizr(workspace_dir_str, "export", "-w", workspace_file, "-f", "plantuml/c4plantuml", "-o", "output-puml"),
+        "Exporting C4 PlantUML",
+    )
 
     # Copy PUML files to our build dir (same root-ownership issue as JSON)
     puml_src_dir = workspace_dir / "output-puml"
