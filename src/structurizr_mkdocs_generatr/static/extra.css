@@ -24,11 +24,11 @@ object.diagram {
   height: 36px;
   border: none;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.25);
+  color: #333;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, background 0.2s;
 }
 
 .diagram-container:hover .diagram-zoom-btn {
@@ -36,7 +36,7 @@ object.diagram {
 }
 
 .diagram-zoom-btn:hover {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(255, 255, 255, 0.5);
 }
 
 /* Zoom modal overlay */
