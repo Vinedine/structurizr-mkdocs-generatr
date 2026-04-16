@@ -1,0 +1,13 @@
+.git
+.github
+build
+example
+tests
+*.md
+!README.md
+.claude
+.claude-*
+.mcp.json
+__pycache__
+*.pyc
+.ruff_cache
