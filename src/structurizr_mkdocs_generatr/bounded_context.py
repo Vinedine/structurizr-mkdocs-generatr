@@ -303,21 +303,9 @@ def write_bounded_context_index(
     )
     lines.append("## Bounded Contexts\n\n")
 
-    # Table
-    lines.append("| Bounded Context | Description | Software Systems | Business Capabilities |\n")
-    lines.append("|---|---|---|---|\n")
-    for ctx in model.contexts:
-        slug = normalize_name(ctx.name)
-        sys_count = len(system_map.get(ctx.name, []))
-        cap_count = sum(len(caps) for caps in cap_map.get(ctx.name, {}).values())
-        desc = ctx.description or ""
-        lines.append(f"| [{ctx.name}]({slug}.md) | {desc} | {sys_count} | {cap_count} |\n")
-    lines.append("\n")
-
     # Relations diagram
     relations = model.context_relations()
     if relations:
-        lines.append("### Relations\n\n")
         lines.append("```mermaid\n")
         lines.append("flowchart TB\n")
         for ctx in model.contexts:
@@ -332,7 +320,18 @@ def write_bounded_context_index(
                 lines.append(f"\t{src_id} <--> {tgt_id}\n")
             else:
                 lines.append(f"\t{src_id} --> {tgt_id}\n")
-        lines.append("```\n")
+        lines.append("```\n\n")
+
+    # Table
+    lines.append("| Bounded Context | Description | Software Systems | Business Capabilities |\n")
+    lines.append("|---|---|---|---|\n")
+    for ctx in model.contexts:
+        slug = normalize_name(ctx.name)
+        sys_count = len(system_map.get(ctx.name, []))
+        cap_count = sum(len(caps) for caps in cap_map.get(ctx.name, {}).values())
+        desc = ctx.description or ""
+        lines.append(f"| [{ctx.name}]({slug}.md) | {desc} | {sys_count} | {cap_count} |\n")
+    lines.append("\n")
 
     content = add_mermaid_view_source("".join(lines), mermaid_view_source)
     write_file(bc_dir / "index.md", content)
