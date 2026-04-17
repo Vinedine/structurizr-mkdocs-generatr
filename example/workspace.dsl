@@ -1,4 +1,4 @@
-workspace "BelFoot FC Digital Architecture" {
+workspace "BelFoot FC Digital Architecture" "BelFoot FC Digital Architecture — a demo by TrotStar Technologies showcasing Architecture as Code with C4, Structurizr, and AI automation." {
 
     !docs workspace/pages
     !adrs workspace/adrs
@@ -114,6 +114,8 @@ workspace "BelFoot FC Digital Architecture" {
             "mkdocs.color.primary" "blue-grey"
             "mkdocs.color.accent" "amber"
             "mkdocs.favicon" "site/favicon.ico"
+            "mkdocs.copyright" "Built by <a href='https://trotstar.tech'>TrotStar Technologies</a>"
+            "mkdocs.siteUrl" "https://belfoot.trotstar.tech"
         }
 
         styles {

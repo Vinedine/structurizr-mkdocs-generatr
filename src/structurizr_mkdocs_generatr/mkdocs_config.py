@@ -58,6 +58,8 @@ def generate_mkdocs_config(
     config = {
         "site_name": workspace.name or "Architecture",
         "site_description": workspace.description,
+        **({"copyright": props.copyright} if props.copyright else {}),
+        **({"site_url": props.site_url} if props.site_url else {}),
         "theme": _build_theme(props),
         "plugins": ["search", "glightbox"],
         "docs_dir": "docs",

@@ -111,4 +111,4 @@ The diagram below shows one of five organizational groups. Go ahead -- click any
 
 !!! tip "Bring This to Your Organization"
 
-    This framework can be set up for any enterprise -- from startups to large organizations with hundreds of software systems. Interested in what this could look like for your landscape? [Get in touch](https://www.linkedin.com/in/vincent-weijburg-191aa9/).
+    This framework can be set up for any enterprise -- from startups to large organizations with hundreds of software systems. Interested in what this could look like for your landscape? [Get in touch](https://trotstar.tech).

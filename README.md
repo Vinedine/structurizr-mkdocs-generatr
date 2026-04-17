@@ -163,6 +163,13 @@ Properties are set in the `views { properties { } }` block of your Structurizr D
 | `mkdocs.fullWidth` | `true` | Use full-width layout instead of the default centered content. |
 | `mkdocs.showLegend` | `false` | Show legend boxes on generated PlantUML diagrams. |
 
+### Site
+
+| Property | Default | Description |
+|---|---|---|
+| `mkdocs.siteUrl` | -- | Site URL for sitemap generation and canonical links (e.g. `https://example.com`). |
+| `mkdocs.copyright` | -- | Footer copyright/attribution text. Supports HTML (e.g. `Built by <a href='...'>Company</a>`). |
+
 ### Example
 
 ```dsl
@@ -207,6 +214,10 @@ pytest
 - [Structurizr](https://structurizr.com/) by Simon Brown -- the C4 model tooling
 - [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) -- the theme powering the generated sites
 - [Jonas Van Riel](https://www.linkedin.com/in/jonasvanriel/) -- creator of the BelFoot FC fictional case study from [Leading with Capabilities](https://www.amazon.com/Leading-Capabilities-Capability-Based-Management-Implementation/dp/1998528227)
+
+## Built by
+
+[TrotStar Technologies](https://trotstar.tech) -- Architecture as Code, automated.
 
 ## License
 
