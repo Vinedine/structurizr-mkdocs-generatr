@@ -30,6 +30,7 @@ class SiteProperties:
     full_width: bool = True
     show_legend: bool = False
     mermaid_view_source: bool = False
+    description: str | None = None
     copyright: str | None = None
     site_url: str | None = None
 
@@ -101,6 +102,7 @@ def resolve_properties(view_properties: dict[str, str]) -> SiteProperties:
         full_width=_parse_bool(_get(view_properties, "mkdocs.fullWidth"), default=True),
         show_legend=_parse_bool(_get(view_properties, "mkdocs.showLegend")),
         mermaid_view_source=_parse_bool(_get(view_properties, "mkdocs.mermaid.viewSource")),
+        description=_get(view_properties, "mkdocs.description"),
         copyright=_get(view_properties, "mkdocs.copyright"),
         site_url=_get(view_properties, "mkdocs.siteUrl"),
     )

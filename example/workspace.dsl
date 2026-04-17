@@ -111,6 +111,7 @@ workspace "BelFoot FC Digital Architecture" "BelFoot FC Digital Architecture —
 
         properties {
             "c4plantuml.tags" "true"
+            "mkdocs.description" "BelFoot FC Digital Architecture — a demo by TrotStar Technologies showcasing Architecture as Code with C4, Structurizr, and AI automation."
             "mkdocs.color.primary" "blue-grey"
             "mkdocs.color.accent" "amber"
             "mkdocs.favicon" "site/favicon.ico"

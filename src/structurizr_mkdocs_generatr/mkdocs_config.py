@@ -57,7 +57,7 @@ def generate_mkdocs_config(
     """Generate mkdocs.yml for the workspace."""
     config = {
         "site_name": workspace.name or "Architecture",
-        "site_description": workspace.description,
+        "site_description": props.description or workspace.description,
         **({"copyright": props.copyright} if props.copyright else {}),
         **({"site_url": props.site_url} if props.site_url else {}),
         "theme": _build_theme(props),
