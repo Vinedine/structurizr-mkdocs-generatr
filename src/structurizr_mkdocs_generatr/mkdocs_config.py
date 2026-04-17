@@ -61,7 +61,7 @@ def generate_mkdocs_config(
         **({"copyright": props.copyright} if props.copyright else {}),
         **({"site_url": props.site_url} if props.site_url else {}),
         "theme": _build_theme(props),
-        "plugins": ["search", "glightbox", "sitemap"],
+        "plugins": ["search", "glightbox"],
         "docs_dir": "docs",
         "use_directory_urls": False,
         "nav": _build_nav(workspace, bc_model),
