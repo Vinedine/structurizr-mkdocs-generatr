@@ -72,7 +72,7 @@ def generate_mkdocs_config(
             "tables",
             "attr_list",
             "md_in_html",
-            {"toc": {"permalink": True}},
+            {"toc": {"permalink": True, "toc_depth": 2}},
             {"pymdownx.superfences": {
                 "custom_fences": [{
                     "name": "mermaid",

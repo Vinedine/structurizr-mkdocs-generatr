@@ -34,6 +34,7 @@ from .workspace import (
     extract_zone_name,
     normalize_name,
     section_slug,
+    section_title,
     sort_zone_views,
 )
 
@@ -460,19 +461,34 @@ def _build_system_heading(
 
 
 def _build_info_tab(
-    ss: SoftwareSystem, intro: Section | None, view_keys: set[str],
+    ss: SoftwareSystem, intro: Section | None,
 ) -> str | None:
-    """Build the Info tab content from introduction, decisions, and doc sections."""
+    """Build the Info tab content from introduction and decisions."""
     info_lines: list[str] = []
     if intro:
         intro_content = _strip_description_section(intro.content)
         info_lines.append(f"{_bump_headings(intro_content, 1)}\n\n")
     if ss.documentation.decisions:
         _append_decisions(ss.documentation.decisions, info_lines)
-    other_sections = [s for s in ss.documentation.sections if s is not intro]
-    if other_sections:
-        _append_sections(other_sections, info_lines, view_keys)
     return "".join(info_lines) if info_lines else None
+
+
+def _build_section_tabs(
+    ss: SoftwareSystem, intro: Section | None, view_keys: set[str],
+) -> list[tuple[str, str]]:
+    """Build one tab per documentation section other than the introduction.
+
+    Tab title is derived from the section's filename (e.g. ``0001-technical.md``
+    becomes ``Technical``) via ``section_title``.
+    """
+    other_sections = [s for s in ss.documentation.sections if s is not intro]
+    tabs: list[tuple[str, str]] = []
+    for section in sorted(other_sections, key=lambda s: s.order):
+        content = section.content
+        if view_keys:
+            content = _resolve_embeds(content, view_keys, "../../diagrams/")
+        tabs.append((section_title(section), f"{_bump_headings(content, 1)}\n\n"))
+    return tabs
 
 
 def _build_diagram_tabs(workspace: Workspace, ss: SoftwareSystem) -> list[tuple[str, str]]:
@@ -562,7 +578,7 @@ def _write_software_system_pages(
 
     tabs: list[tuple[str, str]] = []
 
-    info_content = _build_info_tab(ss, intro, opts.view_keys)
+    info_content = _build_info_tab(ss, intro)
     if info_content:
         tabs.append(("Info", info_content))
 
@@ -571,6 +587,8 @@ def _write_software_system_pages(
     deps_content = _build_dependencies_tab(workspace, ss)
     if deps_content:
         tabs.append(("Dependencies", deps_content))
+
+    tabs.extend(_build_section_tabs(ss, intro, opts.view_keys))
 
     _render_tabs(tabs, lines)
 
@@ -646,15 +664,6 @@ def _append_decisions(decisions: list[Decision], lines: list[str]) -> None:
 
     for d in sorted_decisions:
         lines.append(f"{_bump_headings(d.content, 2)}\n\n")
-
-
-def _append_sections(sections: list[Section], lines: list[str], view_keys: set[str] | None = None) -> None:
-    lines.append("## Documentation\n\n")
-    for section in sorted(sections, key=lambda s: s.order):
-        content = section.content
-        if view_keys:
-            content = _resolve_embeds(content, view_keys, "../../diagrams/")
-        lines.append(f"{_bump_headings(content, 2)}\n\n")
 
 
 def _strip_description_section(content: str) -> str:
