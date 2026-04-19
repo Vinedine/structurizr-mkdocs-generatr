@@ -22,6 +22,14 @@ from .workspace import (
 _LOCAL_STRUCTURIZR_CLI = Path("/opt/structurizr-cli/structurizr.sh")
 _LOCAL_PLANTUML_JAR = Path("/opt/plantuml.jar")
 
+# Pinned Docker image tags — bump deliberately after testing.
+# `:latest` has regressed validation behaviour (e.g. `structurizr/structurizr:2026.04.19`
+# tightened dynamic-view relationship checks and broke previously-valid DSL).
+# Structurizr image tags are date-based (YYYY.MM.DD) and independent of the CLI
+# version in the Dockerfile ARG — they cannot be kept in sync automatically.
+_STRUCTURIZR_IMAGE = "structurizr/structurizr:2026.03.06"
+_PLANTUML_IMAGE = "plantuml/plantuml:1.2026.2"
+
 
 def has_local_tools() -> bool:
     """Check if Structurizr CLI and PlantUML are installed locally (i.e. inside Docker)."""
@@ -92,7 +100,7 @@ def _docker_structurizr(workspace_dir_str: str, *cmd_args: str) -> list[str]:
     return [
         "docker", "run", "--rm",
         "-v", f"{workspace_dir_str}:/usr/local/structurizr",
-        "structurizr/structurizr",
+        _STRUCTURIZR_IMAGE,
         *cmd_args,
     ]
 
@@ -164,7 +172,7 @@ def render_diagrams(puml_dir: Path, svg_dir: Path) -> None:
             "docker", "run", "--rm",
             "-v", f"{puml_dir_str}:/data",
             "-v", f"{svg_dir_str}:/output",
-            "plantuml/plantuml",
+            _PLANTUML_IMAGE,
             "-tsvg", "-o", "/output", "/data/*.puml",
         ], label)
 
