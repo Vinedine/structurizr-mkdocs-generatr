@@ -1,10 +1,25 @@
 # structurizr-mkdocs-generatr
 
-Generate MkDocs Material sites from Structurizr DSL workspaces.
+**A control center for architecture-as-code. C4 on the outside, Claude Code on the inside.**
 
-> Inspired by and based on [structurizr-site-generatr](https://github.com/avisi-cloud/structurizr-site-generatr) by Avisi Cloud. This project provides similar functionality using Python, MkDocs Material, and Structurizr vNext instead of the archived Java libraries. Thank you to the original authors for their excellent work!
+Generate a browsable MkDocs Material site from a Structurizr DSL workspace -- and pair it with a set of [Claude Code](https://claude.com/claude-code) skills that turn the same repo into an AI-assisted architecture workbench.
 
-**Live demo:** [belfoot.trotstar.tech](https://belfoot.trotstar.tech) -- generated from the included BelFoot FC example workspace.
+**Live demo:** [belfoot.trotstar.tech](https://belfoot.trotstar.tech) -- generated from the included BelFoot FC example workspace. Open the [Ticketing Platform page](https://belfoot.trotstar.tech/software-systems/ticketing-platform/#technical-architecture) and select the **Technical** tab for an example `0001-technical.md` of the kind the `c4-document-system` skill produces from a container's source repo. That file then becomes the reference downstream skills read.
+
+> Inspired by and based on [structurizr-site-generatr](https://github.com/avisi-cloud/structurizr-site-generatr) by Avisi Cloud. This project provides similar functionality using Python, MkDocs Material, and Structurizr vNext instead of the archived Java libraries. Thank you to the original authors for their excellent work.
+
+## The control center: six Claude Code skills
+
+| Skill | What you say | What it does | Read-only? |
+|---|---|---|---|
+| [`c4-add-system`](.claude/skills/c4-add-system/SKILL.md) | *"add a new system from this intake"* | Adds DSL block, docs folder, and system-context view | No |
+| [`c4-add-container`](.claude/skills/c4-add-container/SKILL.md) | *"add a container X to system Y"* | Inserts container + relationships into an existing system | No |
+| [`c4-document-system`](.claude/skills/c4-document-system/SKILL.md) | *"generate a technical page for system X"* | Analyzes a container's source repo -> `0001-technical.md` | No |
+| [`c4-audit-system`](.claude/skills/c4-audit-system/SKILL.md) | *"audit the entities for system X"* | Compares `0000-introduction.md` vs. the code | Report first, then offers fixes |
+| [`c4-review`](.claude/skills/c4-review/SKILL.md) | *"run a Well-Architected review on system X"* | Writes a Markdown report against the five Azure Well-Architected pillars | Yes |
+| [`c4-validate-changes`](.claude/skills/c4-validate-changes/SKILL.md) | *"validate this branch"* | Pre-PR DSL validation + peer-container comparison | Yes |
+
+See [`.claude/skills/README.md`](.claude/skills/README.md) for skill-by-skill details, prerequisites, and the discovery logic each skill uses to find your workspace.
 
 ## Quick Start
 
@@ -37,6 +52,32 @@ structurizr-mkdocs example/ --serve
 **Docker image:** No prerequisites -- Java, Structurizr CLI, PlantUML, and Python are all bundled.
 
 **Python install:** Docker (for Structurizr vNext and PlantUML) + Python >= 3.11
+
+## Install the skills
+
+Most people use this tool via the Docker image and never clone the repo -- but the skills are distributed as files, so you need them on disk for Claude Code to pick them up. Two paths:
+
+### Option A: Global install (recommended)
+
+Makes the skills available in every Claude Code session on your machine, across every Structurizr repo you touch.
+
+```bash
+git clone --depth 1 https://github.com/Vinedine/structurizr-mkdocs-generatr.git /tmp/smg
+mkdir -p ~/.claude/skills && cp -r /tmp/smg/.claude/skills/c4-* ~/.claude/skills/
+rm -rf /tmp/smg
+```
+
+### Option B: Project-scoped install
+
+Skills version-pinned alongside your architecture repo. Best for teams.
+
+```bash
+git clone --depth 1 https://github.com/Vinedine/structurizr-mkdocs-generatr.git /tmp/smg
+mkdir -p .claude/skills && cp -r /tmp/smg/.claude/skills/c4-* .claude/skills/
+rm -rf /tmp/smg
+```
+
+After either install, open the repo in Claude Code and type `/c4` -- the six skills appear in the picker. If you're working inside this repo's clone, you already have them.
 
 ## The Example: BelFoot FC IT Landscape
 

@@ -2,11 +2,13 @@
 
     You're looking at a showcase of the **Architecture as Code** framework -- not a real client. BelFoot FC is a fictional football club from [Jonas Van Riel](https://www.linkedin.com/in/jonasvanriel/)'s book [Leading with Capabilities](https://www.amazon.com/Leading-Capabilities-Capability-Based-Management-Implementation/dp/1998528227), used here as a reference case with a fully modeled capability map, bounded contexts, and entity relationships.
 
+**A control center for architecture-as-code -- C4 on the outside, Claude Code on the inside.**
+
 Architecture documentation shouldn't be a side project. It should be a side effect.
 
-This site -- every diagram, every system description, every deployment view -- is generated directly from code. Change the model, push to Git, and the documentation updates itself. What you're seeing is BelFoot FC's full digital architecture: 28 software systems, 13 bounded contexts, 4 environments, zero manual upkeep.
+This site -- every diagram, every system description, every deployment view -- is generated directly from code. Change the model, push to Git, and the documentation updates itself. The [Claude Code skills](documentation/05-ai-automation.md) bundled with this framework read and write the same model, so AI-assisted development uses *your* architecture as context instead of guessing.
 
-The diagram below shows one of five organizational groups. Go ahead -- click any box to start the journey.
+What you're looking at is BelFoot FC's full digital architecture: 28 software systems, 13 bounded contexts, 4 environments, zero manual upkeep. The diagram below shows one of five organizational groups -- click any box to start the journey.
 
 ![BelFoot FC — IT Systems](embed:SystemLandscapeIT)
 
@@ -97,8 +99,8 @@ The diagram below shows one of five organizational groups. Go ahead -- click any
 
     | | C4 / Structurizr | ArchiMate / TOGAF |
     |---|---|---|
-    | **Focus** | Software systems, containers, components | Enterprise-wide: strategy, business, application, technology |
-    | **Audience** | Development teams, tech leads, architects | Enterprise architects, governance boards |
+    | **Focus** | Software systems, containers, components | Enterprise & solution: strategy, capabilities, cross-system flows |
+    | **Audience** | Development teams, tech leads | Enterprise & solution architects, governance boards |
     | **Maintenance** | DSL-as-code in Git, auto-generated on every merge | Typically a separate modeling tool, manually maintained |
     | **Time to value** | Days | Months |
     | **Process modeling** | Not its job (use BPMN) | Built-in motivation, business process, and migration views |
@@ -109,6 +111,6 @@ The diagram below shows one of five organizational groups. Go ahead -- click any
 
     **Our approach:** Start with C4 to get immediate, maintainable value. If the organization later adopts ArchiMate or Lean IX, nothing is wasted -- the C4 models slot right into the application architecture viewpoint.
 
-!!! tip "Bring This to Your Organization"
+!!! tip "Bring this to your organization"
 
     This framework can be set up for any enterprise -- from startups to large organizations with hundreds of software systems. Interested in what this could look like for your landscape? [Get in touch](https://trotstar.tech).
