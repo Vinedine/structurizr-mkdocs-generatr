@@ -62,6 +62,20 @@ When the user provides template text:
 
 5. **Validate Description** — Must be present and not empty. If missing, STOP and ask.
 
+   **Description content rule (MANDATORY):** The description must NOT restate what the C4 diagrams will already show — i.e. no enumerating containers, no repeating relationships (auth targets, API calls), no listing which users reach which client. Those are visible on the system context / container / deployment views. Reserve the description for information that the diagrams cannot convey: business purpose, vendor/hosting nature, operational quirks (e.g. provisioning edge cases), compliance constraints, ownership, historical context, or orthogonal concepts such as permission axes that are not drawn.
+
+   Examples of text to REMOVE from a submitted description:
+   - "The product has two components: X (back-end) and Y (front-end)" — container diagram shows this
+   - "Authentication is delegated to EU Login" — the auth relationship shows this
+   - "Both staff and contractors use the Desktop and Web clients" — user arrows show this
+
+   Examples of text to KEEP:
+   - "Access requires the user to be provisioned in the back-end; authentication alone is insufficient"
+   - "Read/write vs read-only is controlled by Entra ID group membership, orthogonal to role"
+   - "Acquired by DL INFRA for managing As-Built technical documentation of buildings"
+
+   If the user's template description contains diagram-duplicating content, silently rewrite it before saving (strip those sentences, keep the insight-bearing ones). If that leaves the description empty, STOP and ask the user for business context.
+
 6. **Parse Actors carefully** — Business owners may misspell or use unknown names. For each actor:
    - Read the users file from Step 0
    - Verify the actor exists by searching for `user<ActorName>` variable
@@ -137,7 +151,7 @@ systemContext softwareSystem<Name> "SystemContext<Name>" {
 ### 3.4: Create Documentation Folder and File
 
 1. Create folder: `mkdir -p "<workspace-root>/software-system-docs/<department-path>/<folderName>"`
-2. Create `0000-introduction.md` with: Description, Business Capabilities, Business Data (Context/Manage/Consume), References
+2. Create `0000-introduction.md` with: Description, Business Capabilities, Business Data (Context/Manage/Consume), References. The Description must follow the "no diagram repetition" rule from Step 1.5 — never restate what containers, relationships, or user arrows will already show.
 
 ## Step 4: Validation and Summary
 

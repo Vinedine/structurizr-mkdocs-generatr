@@ -36,13 +36,20 @@ When the user provides a software system name (or you infer it from context):
    - Search for the software system by name using Grep
    - Note the `!docs` path to find its documentation folder
    - Note any `"Repository"` property on its containers — these are the code repos to audit
+   - **Capture each container's display name and variable name** — you will use these for the naming-compliance check below
 
-2. **Read the `0000-introduction.md`** file from the docs folder and extract:
+2. **Naming-compliance check (drift detection)** — for each container in this system, verify:
+   - The container's display name begins with the parent software system's display name followed by a space (e.g., system `"Primo"` must have containers named `"Primo Alma"`, `"Primo Discovery"`, NOT bare `"Alma"` / `"Primo"`).
+   - The variable name equals the display name with spaces removed and the first letter after `container` lowercased (e.g., `"Primo Discovery"` → `containerPrimoDiscovery`).
+
+   Record any violations as **Naming Drift** findings and include them in the Step 3 report. Do not auto-fix here — suggest the rename to the user in Step 4 instead, since renames require coordinated updates across views, deployments, and cross-system relationships.
+
+3. **Read the `0000-introduction.md`** file from the docs folder and extract:
    - **Context**: Which bounded contexts are listed
    - **Manage**: Which entities the system claims to manage (with links if present)
    - **Consume**: Which entities the system claims to consume (with links if present)
 
-3. **List all repositories** found via `"Repository"` properties on containers belonging to this software system.
+4. **List all repositories** found via `"Repository"` properties on containers belonging to this software system.
 
 If no `"Repository"` property is found on any container, STOP and inform the user that no repository URLs are configured for this software system's containers. Suggest they add `"Repository"` properties first.
 
@@ -121,6 +128,9 @@ Present a clear comparison:
 
 ### Bounded Context Gaps (only if boundedContext.mmd exists)
 - [Entity Name] — no entry in bounded context file
+
+### Naming Drift (container display names / variables)
+- [Container Variable] — display name `"[current]"` does not start with system name `"[System]"`; suggested rename: `"[System] [current]"` (variable → `container[System][Current]`)
 
 ### Summary
 - Documented entities: [count]

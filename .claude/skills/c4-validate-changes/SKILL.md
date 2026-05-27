@@ -75,7 +75,8 @@ Apply the rules from Step 2 to the changes from Step 1:
 
 ### DSL Definitions
 For each new/modified software system or container:
-- **Naming conventions** — variable follows `softwareSystem<Name>` or `container<Name>` in camelCase
+- **Naming conventions (variable)** — variable follows `softwareSystem<Name>` or `container<Name>` in camelCase
+- **Container display-name prefix (ERROR if violated)** — every container's display name MUST begin with the parent software system's display name followed by a space. Examples of valid: system `"Primo"` → `"Primo Alma"`, `"Primo Discovery"`; system `"M-Files"` → `"M-Files Server"`. Examples of invalid: a container inside system `"Primo"` named `"Alma"` or `"Primo"` alone — raise an error asking the user to re-prefix the name. The variable and the display name must match (spaces removed, first letter after `container` lowercased).
 - **Required properties** — check which properties existing peers have (ID fields, Repository, etc.)
 - **Container types** — type is valid per the canonical reference
 - **Relationship protocols** — all relationships include protocol
@@ -96,6 +97,12 @@ For each new/modified software system:
 - **`0000-introduction.md` exists** in the correct folder
 - **Required sections present** — per the canonical reference
 - **Entity links** — links point to valid URLs (not placeholders)
+- **Description does not duplicate diagram content (WARNING)** — scan the `# Description` section for phrases that merely restate what the C4 diagrams already show:
+  - Enumerations of containers ("The product has two components: X and Y", "consists of a back-end and a front-end")
+  - Authentication/integration relationships ("authenticates via EU Login", "calls the X API")
+  - User-to-client arrows ("both staff and contractors use the Desktop and Web clients")
+
+  These belong on diagrams, not in text. Flag such sentences as warnings and quote them with the suggested trimmed version. Keep prose that adds information diagrams cannot convey (business purpose, vendor/hosting, operational quirks, provisioning edge cases, compliance, ownership, orthogonal permission axes).
 
 ### Generated Files
 - **Flag any manual edits** to generated files discovered in Step 0

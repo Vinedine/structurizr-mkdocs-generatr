@@ -99,6 +99,16 @@ Try these access paths in order, use the first that works:
 
 For each repository, build a structured understanding:
 
+**Tech Stack (REQUIRED — extract this first):**
+- Runtime / framework version — read it from the project manifest, do NOT infer from code style:
+  - .NET: `<TargetFramework>` in `*.csproj` (e.g. `net8.0`, `net6.0`, `net48`)
+  - Node.js: `engines.node` and key framework versions in `package.json`
+  - Python: `python_requires` in `setup.py` / `pyproject.toml`, runtime in `requirements.txt` or `Pipfile`
+  - Java: `<java.version>` / `<maven.compiler.target>` in `pom.xml`, or `sourceCompatibility` in `build.gradle`
+  - Go: `go` directive in `go.mod`
+- Key libraries that shape the architecture (ORM, web framework, auth lib, message bus client) — also from the manifest
+- Never write a runtime version into the opening paragraph or any heading without having opened and read the manifest file. "ASP.NET Core" alone is fine when the major version isn't verified, but "ASP.NET Core 6" requires evidence.
+
 **API Endpoints:**
 - HTTP method (GET, POST, PUT, PATCH, DELETE)
 - Full route path (e.g., `/api/v1/business-partners/{id}`)
