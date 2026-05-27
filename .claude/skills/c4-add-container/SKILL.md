@@ -37,7 +37,7 @@ Then detect the includes-directory layout (`workspace-includes/` or `workspace/`
 From the user's description, extract:
 
 - **Target software system** (MANDATORY) — the name of the existing system to add the container to
-- **Container name** (MANDATORY) — the human-readable display name (e.g., `"Ticketing Platform API"`)
+- **Container name** (MANDATORY) — the human-readable display name. It **MUST begin with the parent software system's display name**, followed by a space and the component role. The variable is derived from this name. Examples: system `"Ticketing Platform"` → `"Ticketing Platform API"`, `"Ticketing Platform Database"`; system `"Primo"` → `"Primo Alma"`, `"Primo Discovery"`. A bare role name (e.g. `"API"`, `"Alma"`, `"Primo"`) is NOT valid — STOP and ask the user to prefix it with the system name.
 - **Description** (MANDATORY) — one line on what the container does
 - **Technology** (MANDATORY) — e.g., `".NET (Core)"`, `"Node.Js"`, `"PostgreSQL"`, `"React"`, `"Azure Function"`
 - **Container type tag** (MANDATORY) — e.g., `"SERVICE"`, `"DATASET"`, `"APPLICATION"`, `"UI"`, `"ETL"`. Valid tags per the canonical reference.
@@ -59,7 +59,9 @@ If any MANDATORY field is missing or ambiguous, STOP and ask.
 
 4. **Check for name collisions** — grep the group file to verify no existing `container<Name>` variable already has the same name inside this system.
 
-5. **Validate each referenced relationship target** — for every other-side variable the user mentioned, grep the workspace to confirm it exists (either as a `softwareSystem<X>` or `container<X>` variable). If ANY target can't be found, STOP and report the unresolved list.
+5. **Validate display-name prefix** — confirm the container's display name starts with the parent system's display name (case-sensitive, followed by a space). If not, STOP and ask the user to restate the name with the system prefix (e.g. `"Alma"` → `"Primo Alma"`). This is how every existing container in the corpus is named, and it is required so container diagrams remain legible when a system has peers with similar role names.
+
+6. **Validate each referenced relationship target** — for every other-side variable the user mentioned, grep the workspace to confirm it exists (either as a `softwareSystem<X>` or `container<X>` variable). If ANY target can't be found, STOP and report the unresolved list.
 
 ## Step 3: Present Summary and Ask for Confirmation
 
@@ -98,7 +100,7 @@ Present a clear summary:
 
 ### 4.1: Derive the variable name
 
-`container<ContainerNameInCamelCase>` — first letter lowercase after `container`, no spaces, strip punctuation.
+`container<ContainerNameInCamelCase>` — take the display name (which, per Step 1, already starts with the system's display name), remove spaces, lowercase the first letter after `container`, strip punctuation. Examples: `"Primo Discovery"` → `containerPrimoDiscovery`; `"M-Files Desktop"` → `containerMFilesDesktop`; `"Ticketing Platform API"` → `containerTicketingPlatformApi`.
 
 ### 4.2: Edit the group DSL file
 
