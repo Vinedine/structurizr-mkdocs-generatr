@@ -5,16 +5,47 @@ from __future__ import annotations
 
 
 from structurizr_mkdocs_generatr.markdown_writer import (
+    _abs_link_targets,
     _bump_headings,
     _element_tag_badges,
     _extract_description_paragraph,
     _extract_puml_blocks,
+    _promote_headings,
     _resolve_embeds,
+    _rewrite_absolute_links,
     _rewrite_asset_paths,
     _rewrite_decision_links,
     _strip_description_section,
 )
 from structurizr_mkdocs_generatr.mermaid_utils import add_mermaid_view_source as _add_mermaid_view_source
+from structurizr_mkdocs_generatr.workspace import (
+    Documentation,
+    Section,
+    SoftwareSystem,
+    Workspace,
+)
+
+
+def _make_system(id: str, name: str) -> SoftwareSystem:
+    return SoftwareSystem(
+        id=id, name=name, description="", group=None, tags=[], url=None,
+        containers=[], relationships=[], documentation=Documentation(), properties={},
+    )
+
+
+def _make_workspace_with_docs() -> Workspace:
+    sections = [
+        Section(content="## Home\n", filename="00-index.md", format="", order=0, title=""),
+        Section(content="## Database Schemas\n", filename="06-databases.md", format="", order=6, title=""),
+        Section(content="## Bounded Contexts\n", filename="02-bounded-contexts.md", format="", order=2, title=""),
+    ]
+    return Workspace(
+        name="Test", description="",
+        software_systems=[_make_system("1", "SCOREHUB"), _make_system("2", "Newsletter (Fanclub)")],
+        people=[],
+        documentation=Documentation(sections=sections),
+        views=[], properties={},
+    )
 
 
 class TestBumpHeadings:
@@ -33,9 +64,10 @@ class TestBumpHeadings:
     def test_clamps_h4_bump_5(self):
         assert _bump_headings("#### H4", 5) == "###### H4"
 
-    def test_does_not_touch_non_headings(self):
+    def test_does_not_touch_headings_in_code_fences(self):
+        # A `#` line inside a fenced code block is a comment, not a heading.
         text = "Some text\n```\n# comment in code\n```"
-        assert _bump_headings(text, 1) == "Some text\n```\n## comment in code\n```"
+        assert _bump_headings(text, 1) == text
 
     def test_preserves_heading_content(self):
         assert _bump_headings("## Hello World!", 1) == "### Hello World!"
@@ -217,3 +249,92 @@ class TestElementTagBadges:
     def test_preserves_non_mermaid_content(self):
         content = "# Title\n\nSome text.\n"
         assert _add_mermaid_view_source(content, enabled=True) == content
+
+
+class TestPromoteHeadings:
+    def test_promotes_h2_to_h1(self):
+        content = "## Title\n\n### Sub\n\nText."
+        assert _promote_headings(content) == "# Title\n\n## Sub\n\nText."
+
+    def test_leaves_h1_content_alone(self):
+        content = "# Title\n\n## Sub\n"
+        assert _promote_headings(content) == content
+
+    def test_no_headings_unchanged(self):
+        content = "Just text.\n"
+        assert _promote_headings(content) == content
+
+    def test_promotes_h3_start_by_two(self):
+        content = "### Deep\n\n#### Deeper\n"
+        assert _promote_headings(content) == "# Deep\n\n## Deeper\n"
+
+    def test_doc_opening_with_admonition_left_alone(self):
+        # Headings below prose/admonitions are section headings, not a title
+        content = '!!! note "Quick Summary"\n\n    text\n\n## Bounded Contexts\n\n## Personas\n'
+        assert _promote_headings(content) == content
+
+
+class TestRewriteAbsoluteLinks:
+    def test_system_link(self):
+        ws = _make_workspace_with_docs()
+        content = "[SCOREHUB](/scorehub/) runs on-prem."
+        result = _rewrite_absolute_links(content, _abs_link_targets(ws), "../../")
+        assert result == "[SCOREHUB](../../software-systems/scorehub/index.md) runs on-prem."
+
+    def test_system_link_with_parens_in_slug(self):
+        ws = _make_workspace_with_docs()
+        content = "See [Newsletter](/newsletter-(fanclub)/)."
+        result = _rewrite_absolute_links(content, _abs_link_targets(ws), "../")
+        assert result == "See [Newsletter](../software-systems/newsletter-fanclub/index.md)."
+
+    def test_doc_section_link_with_anchor(self):
+        ws = _make_workspace_with_docs()
+        content = "[Prod](/database-schemas/#production)"
+        result = _rewrite_absolute_links(content, _abs_link_targets(ws), "../")
+        assert result == "[Prod](../documentation/06-databases.md#production)"
+
+    def test_decision_link(self):
+        ws = _make_workspace_with_docs()
+        content = "See [ADR 11](/decisions/11/)."
+        result = _rewrite_absolute_links(content, _abs_link_targets(ws), "../")
+        assert result == "See [ADR 11](../adrs/11.md)."
+
+    def test_system_deep_link_maps_to_index(self):
+        ws = _make_workspace_with_docs()
+        content = "[Ref](/scorehub/sections/technical-architecture/)"
+        result = _rewrite_absolute_links(content, _abs_link_targets(ws), "../../")
+        assert result == "[Ref](../../software-systems/scorehub/index.md)"
+
+    def test_unknown_slug_left_alone(self):
+        ws = _make_workspace_with_docs()
+        content = "[Mystery](/does-not-exist/)"
+        assert _rewrite_absolute_links(content, _abs_link_targets(ws), "../") == content
+
+    def test_asset_path_left_alone(self):
+        ws = _make_workspace_with_docs()
+        content = "![logo](/pictures/logo.png)"
+        assert _rewrite_absolute_links(content, _abs_link_targets(ws), "../") == content
+
+    def test_home_section_maps_to_index(self):
+        ws = _make_workspace_with_docs()
+        content = "[Home](/home/)"
+        result = _rewrite_absolute_links(content, _abs_link_targets(ws), "../")
+        assert result == "[Home](../index.md)"
+
+    def test_link_inside_code_fence_left_alone(self):
+        ws = _make_workspace_with_docs()
+        content = "```\n[SCOREHUB](/scorehub/)\n```"
+        assert _rewrite_absolute_links(content, _abs_link_targets(ws), "../") == content
+
+
+class TestResolveEmbedsImageViews:
+    def test_raster_image_view_embeds_as_img(self):
+        content = "![State machine](embed:StateMachine)"
+        result = _resolve_embeds(content, {"StateMachine"}, "diagrams/", {"StateMachine": ".png"})
+        assert result == "![State machine](diagrams/structurizr-StateMachine.png)"
+
+    def test_svg_view_keeps_object_embed(self):
+        content = "![diagram](embed:Ctx)"
+        result = _resolve_embeds(content, {"Ctx"}, "diagrams/", {})
+        assert "structurizr-Ctx.svg" in result
+        assert "<object" in result

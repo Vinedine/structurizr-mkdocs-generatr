@@ -52,9 +52,12 @@ class SiteProperties:
         return result
 
 
-def _get(props: dict[str, str], key: str) -> str | None:
-    """Look up a property by key."""
-    return props.get(key)
+def _get(props: dict[str, str], key: str, fallback_key: str | None = None) -> str | None:
+    """Look up a property by key, optionally falling back to a legacy generatr.* key."""
+    value = props.get(key)
+    if value is None and fallback_key:
+        value = props.get(fallback_key)
+    return value
 
 
 def _parse_bool(value: str | None, default: bool = False) -> bool:
@@ -87,14 +90,20 @@ def _validate_svg_target(value: str | None) -> str:
 
 
 def resolve_properties(view_properties: dict[str, str]) -> SiteProperties:
-    """Resolve workspace view properties into a SiteProperties instance."""
+    """Resolve workspace view properties into a SiteProperties instance.
+
+    ``mkdocs.*`` keys win; legacy ``generatr.*`` keys (structurizr-site-generatr)
+    are accepted as fallbacks so an existing workspace keeps its branding.
+    """
     return SiteProperties(
         theme=_validate_theme(_get(view_properties, "mkdocs.theme")),
-        primary_color=_validate_color(_get(view_properties, "mkdocs.color.primary")),
+        primary_color=_validate_color(
+            _get(view_properties, "mkdocs.color.primary", "generatr.style.colors.primary")),
         accent_color=_validate_color(_get(view_properties, "mkdocs.color.accent")),
-        header_text_color=_validate_color(_get(view_properties, "mkdocs.color.headerText")),
-        favicon=_get(view_properties, "mkdocs.favicon"),
-        logo=_get(view_properties, "mkdocs.logo"),
+        header_text_color=_validate_color(
+            _get(view_properties, "mkdocs.color.headerText", "generatr.style.colors.secondary")),
+        favicon=_get(view_properties, "mkdocs.favicon", "generatr.style.faviconPath"),
+        logo=_get(view_properties, "mkdocs.logo", "generatr.style.logoPath"),
         custom_css=_get(view_properties, "mkdocs.customCss"),
         svg_link_target=_validate_svg_target(_get(view_properties, "mkdocs.svgLinkTarget")),
         navigation_instant=_parse_bool(_get(view_properties, "mkdocs.navigation.instant")),

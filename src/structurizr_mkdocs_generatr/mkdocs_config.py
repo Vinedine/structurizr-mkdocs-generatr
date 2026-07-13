@@ -66,7 +66,7 @@ def generate_mkdocs_config(
         "use_directory_urls": False,
         "nav": _build_nav(workspace, bc_model),
         "extra_css": _build_extra_css(props),
-        "extra_javascript": ["js/external-links.js", "js/diagram-zoom.js"],
+        "extra_javascript": ["js/external-links.js", "js/diagram-zoom.js", "js/tab-anchor.js"],
         "markdown_extensions": [
             "admonition",
             "tables",

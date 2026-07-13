@@ -33,6 +33,28 @@ class TestResolveProperties:
         props = resolve_properties({"mkdocs.theme": "neon"})
         assert props.theme == "auto"
 
+    def test_generatr_keys_accepted_as_fallbacks(self):
+        props = resolve_properties({
+            "generatr.style.colors.primary": "#2c4390",
+            "generatr.style.colors.secondary": "#ffffff",
+            "generatr.style.faviconPath": "site/favicon.ico",
+            "generatr.style.logoPath": "site/logo.png",
+        })
+        assert props.primary_color == "#2c4390"
+        assert props.header_text_color == "#ffffff"
+        assert props.favicon == "site/favicon.ico"
+        assert props.logo == "site/logo.png"
+
+    def test_mkdocs_keys_win_over_generatr(self):
+        props = resolve_properties({
+            "mkdocs.color.primary": "#111111",
+            "generatr.style.colors.primary": "#2c4390",
+            "mkdocs.logo": "new/logo.png",
+            "generatr.style.logoPath": "old/logo.png",
+        })
+        assert props.primary_color == "#111111"
+        assert props.logo == "new/logo.png"
+
     def test_hex_color_accepted(self):
         props = resolve_properties({"mkdocs.color.primary": "#ff5722"})
         assert props.primary_color == "#ff5722"

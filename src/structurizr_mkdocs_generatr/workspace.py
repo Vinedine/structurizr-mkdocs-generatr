@@ -505,12 +505,42 @@ def section_slug(section: Section) -> str:
     return normalize_name(name)
 
 
-def section_title(section: Section) -> str:
-    """Generate a human-readable title for a documentation section."""
-    if section.title:
-        return section.title
+def opening_heading(content: str) -> tuple[int, str] | None:
+    """Return (level, text) of the title heading, if the document opens with one.
+
+    Only a heading on the first non-blank line counts as the document title;
+    a heading further down is a section heading, not a title (so a doc that
+    opens with prose or an admonition keeps its filename-derived title).
+    """
+    for line in content.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        m = re.match(r"^(#{1,6})\s+(.+?)\s*#*\s*$", stripped)
+        return (len(m.group(1)), m.group(2)) if m else None
+    return None
+
+
+def section_filename_title(section: Section) -> str:
+    """Derive a short title from the section filename (e.g. ``0001-technical.md`` -> ``Technical``)."""
     name = section.filename.rsplit(".", 1)[0]
     parts = name.split("-", 1)
     if len(parts) > 1 and parts[0].isdigit():
         name = parts[1]
-    return name.replace("-", " ").capitalize()
+    return name.replace("-", " ").title()
+
+
+def section_title(section: Section) -> str:
+    """Generate a human-readable title for a documentation section.
+
+    Prefers the first heading in the content (what the reader sees on the
+    page), then the explicit section title, then a title-cased filename slug —
+    so ``dt.md`` starting with ``## Directorate for Translation`` is titled
+    "Directorate for Translation", not "Dt".
+    """
+    heading = opening_heading(section.content)
+    if heading:
+        return heading[1]
+    if section.title:
+        return section.title
+    return section_filename_title(section)

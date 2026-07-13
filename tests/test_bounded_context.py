@@ -8,6 +8,7 @@ import pytest
 
 from structurizr_mkdocs_generatr.bounded_context import (
     BoundedContextModel,
+    ContextMapping,
     map_contexts,
     parse_bounded_contexts,
     write_bounded_context_index,
@@ -33,8 +34,8 @@ flowchart TB
 
     A1 --> |uses| A2
 
-    click A1 'A1'
-    click A2 'A2'
+    click A1 'https://conf.example/a1'
+    click A2 'https://conf.example/a2'
 
     %% [END.CONTEXT] [Alpha]
 
@@ -47,8 +48,8 @@ flowchart TB
 
     B1 --> |feeds| B2
 
-    click B1 'B1'
-    click B2 'B2'
+    click B1 'https://conf.example/b1'
+    click B2 'https://conf.example/b2'
 
     %% [END.CONTEXT] [Beta]
 
@@ -178,10 +179,10 @@ class TestSystemMapping:
             name="Test", description="", software_systems=[ss],
             people=[], documentation=Documentation(), views=[], properties={},
         )
-        system_map, _ = map_contexts(model, ws)
-        assert len(system_map["Alpha"]) == 1
-        assert system_map["Alpha"][0].name == "Test System"
-        assert system_map["Beta"] == []
+        mapping = map_contexts(model, ws)
+        assert len(mapping.system_map["Alpha"]) == 1
+        assert mapping.system_map["Alpha"][0].name == "Test System"
+        assert mapping.system_map["Beta"] == []
 
     def test_maps_capabilities(self, model: BoundedContextModel) -> None:
         intro_content = "# Description\nTest\n\n# Capabilities\n\n- Cap one\n- Cap two\n\n# Business Data\n\n# Bounded Context\n- [Alpha](/bounded-contexts/)\n"
@@ -190,27 +191,113 @@ class TestSystemMapping:
             name="Test", description="", software_systems=[ss],
             people=[], documentation=Documentation(), views=[], properties={},
         )
-        _, cap_map = map_contexts(model, ws)
-        assert "Test System" in cap_map["Alpha"]
-        assert cap_map["Alpha"]["Test System"] == ["Cap one", "Cap two"]
-        assert cap_map["Beta"] == {}
+        mapping = map_contexts(model, ws)
+        assert "Test System" in mapping.cap_map["Alpha"]
+        assert mapping.cap_map["Alpha"]["Test System"] == ["Cap one", "Cap two"]
+        assert mapping.cap_map["Beta"] == {}
+
+    def test_entity_refs_by_url(self, model: BoundedContextModel) -> None:
+        # Legacy dialect: Business Data / Manage list linking to click URLs
+        intro_content = (
+            "# Business Data\n\n## Context\n\n- [Alpha](/bounded-contexts/)\n\n"
+            "## Manage\n\n- [Entity One](https://conf.example/a1)\n\n"
+            "## Consume\n\n- [Beta One](https://conf.example/b1)\n"
+        )
+        ss = self._make_system("Url System", intro_content)
+        ws = Workspace(
+            name="Test", description="", software_systems=[ss],
+            people=[], documentation=Documentation(), views=[], properties={},
+        )
+        mapping = map_contexts(model, ws)
+        assert mapping.entity_systems["A1"] == ["Url System"]
+        assert mapping.entity_systems["B1"] == ["Url System"]
+        assert mapping.unlinked_entities == []
+
+    def test_entity_refs_by_id_in_data_landscape(self, model: BoundedContextModel) -> None:
+        # BelFoot dialect: Data Landscape table linking by entity ID
+        intro_content = (
+            "# Data Landscape\n\n"
+            "| Entity | Role |\n|---|---|\n"
+            "| [Entity One](A1) | Owns |\n"
+            "| [Mystery](UNKNOWN_THING) | Uses |\n"
+        )
+        ss = self._make_system("Table System", intro_content)
+        ws = Workspace(
+            name="Test", description="", software_systems=[ss],
+            people=[], documentation=Documentation(), views=[], properties={},
+        )
+        mapping = map_contexts(model, ws)
+        assert mapping.entity_systems["A1"] == ["Table System"]
+        assert mapping.unlinked_entities == [("Mystery", "UNKNOWN_THING", ["Table System"])]
+
+    def test_entity_ref_falls_back_to_label_match(self, model: BoundedContextModel) -> None:
+        intro_content = (
+            "# Business Data\n\n## Manage\n\n- [Entity Two](https://other.example/unmatched-url)\n"
+        )
+        ss = self._make_system("Label System", intro_content)
+        ws = Workspace(
+            name="Test", description="", software_systems=[ss],
+            people=[], documentation=Documentation(), views=[], properties={},
+        )
+        mapping = map_contexts(model, ws)
+        assert mapping.entity_systems["A2"] == ["Label System"]
+
+    def test_click_urls_parsed(self, model: BoundedContextModel) -> None:
+        assert model.entity_urls["A1"] == "https://conf.example/a1"
+        assert model.entity_urls["B2"] == "https://conf.example/b2"
+
+
+def _empty_mapping() -> ContextMapping:
+    return ContextMapping(
+        system_map={"Alpha": [], "Beta": []},
+        cap_map={"Alpha": {}, "Beta": {}},
+    )
 
 
 class TestMarkdownGeneration:
     def test_writes_index(self, model: BoundedContextModel, tmp_path: Path) -> None:
         docs_dir = tmp_path / "docs"
-        cap_map: dict[str, dict[str, list[str]]] = {"Alpha": {}, "Beta": {}}
-        write_bounded_context_index(model, {"Alpha": [], "Beta": []}, cap_map, docs_dir)
+        write_bounded_context_index(model, _empty_mapping(), docs_dir)
         index = docs_dir / "capability-map" / "index.md"
         assert index.exists()
         content = index.read_text(encoding="utf-8")
         assert "# Capability Map" in content
         assert '??? question "What questions does this answer?"' in content
-        assert "| Bounded Context | Description | Software Systems | Business Capabilities |" in content
+        assert ("| Bounded Context | Description | Software Systems "
+                "| Business Capabilities | Unreferenced Entities |") in content
         assert "[Alpha](alpha.md)" in content
         assert "[Beta](beta.md)" in content
         assert "| 0 |" in content
         assert "```mermaid" in content
+
+    def test_index_counts_unreferenced_entities(self, model: BoundedContextModel, tmp_path: Path) -> None:
+        docs_dir = tmp_path / "docs"
+        mapping = _empty_mapping()
+        mapping.entity_systems = {"A1": ["Some System"]}  # A2 unreferenced
+        write_bounded_context_index(model, mapping, docs_dir)
+        content = (docs_dir / "capability-map" / "index.md").read_text(encoding="utf-8")
+        assert "| [Alpha](alpha.md) |  | 0 | 0 | 1 |" in content
+        assert "| [Beta](beta.md) |  | 0 | 0 | 2 |" in content
+
+    def test_index_lists_unlinked_entities(self, model: BoundedContextModel, tmp_path: Path) -> None:
+        docs_dir = tmp_path / "docs"
+        mapping = _empty_mapping()
+        mapping.unlinked_entities = [
+            ("Ghost Entity", "https://conf.example/ghost", ["My System"]),
+            ("Rogue", "ROGUE_ID", ["Other System"]),
+        ]
+        write_bounded_context_index(model, mapping, docs_dir)
+        content = (docs_dir / "capability-map" / "index.md").read_text(encoding="utf-8")
+        assert "## Unlinked Entities" in content
+        assert "[Ghost Entity](https://conf.example/ghost)" in content
+        assert "Rogue (`ROGUE_ID`)" in content
+        assert "[My System](../software-systems/my-system/index.md)" in content
+
+    def test_index_omits_unlinked_section_when_clean(self, model: BoundedContextModel, tmp_path: Path) -> None:
+        docs_dir = tmp_path / "docs"
+        write_bounded_context_index(model, _empty_mapping(), docs_dir)
+        content = (docs_dir / "capability-map" / "index.md").read_text(encoding="utf-8")
+        assert "## Unlinked Entities" not in content
 
     def test_writes_context_pages(self, model: BoundedContextModel, tmp_path: Path) -> None:
         docs_dir = tmp_path / "docs"
@@ -218,8 +305,7 @@ class TestMarkdownGeneration:
             name="Test", description="", software_systems=[],
             people=[], documentation=Documentation(), views=[], properties={},
         )
-        cap_map: dict[str, dict[str, list[str]]] = {"Alpha": {}, "Beta": {}}
-        write_bounded_context_pages(model, {"Alpha": [], "Beta": []}, cap_map, ws, docs_dir)
+        write_bounded_context_pages(model, _empty_mapping(), ws, docs_dir)
         alpha_page = docs_dir / "capability-map" / "alpha.md"
         beta_page = docs_dir / "capability-map" / "beta.md"
         assert alpha_page.exists()
@@ -229,6 +315,39 @@ class TestMarkdownGeneration:
         assert "# Alpha" in content
         assert "```mermaid" in content
         assert 'subgraph "Beta"' in content
+
+    def test_context_page_entity_table(self, model: BoundedContextModel, tmp_path: Path) -> None:
+        docs_dir = tmp_path / "docs"
+        ws = Workspace(
+            name="Test", description="", software_systems=[],
+            people=[], documentation=Documentation(), views=[], properties={},
+        )
+        mapping = _empty_mapping()
+        mapping.entity_systems = {"A1": ["My System"]}
+        write_bounded_context_pages(model, mapping, ws, docs_dir)
+        content = (docs_dir / "capability-map" / "alpha.md").read_text(encoding="utf-8")
+        assert "## Key Data Entities" in content
+        # Referenced entity: label links to click URL, system links to its page
+        assert ("| [Entity One](https://conf.example/a1) "
+                "| [My System](../software-systems/my-system/index.md) |") in content
+        # Unreferenced entity: the drift signal
+        assert "| [Entity Two](https://conf.example/a2) | *none* |" in content
+
+    def test_context_page_non_url_click_shown_as_literal(
+        self, model: BoundedContextModel, tmp_path: Path,
+    ) -> None:
+        # A self-referential click like `click A1 'A1'` is not a URL; rendering it
+        # as [label](A1) would 404, so it must appear as literal text instead.
+        docs_dir = tmp_path / "docs"
+        model.entity_urls["A1"] = "A1"
+        ws = Workspace(
+            name="Test", description="", software_systems=[],
+            people=[], documentation=Documentation(), views=[], properties={},
+        )
+        write_bounded_context_pages(model, _empty_mapping(), ws, docs_dir)
+        content = (docs_dir / "capability-map" / "alpha.md").read_text(encoding="utf-8")
+        assert "Entity One (`A1`)" in content
+        assert "[Entity One](A1)" not in content
 
     def test_context_page_includes_capabilities(self, model: BoundedContextModel, tmp_path: Path) -> None:
         docs_dir = tmp_path / "docs"
@@ -246,9 +365,11 @@ class TestMarkdownGeneration:
             name="Test", description="", software_systems=[ss],
             people=[], documentation=Documentation(), views=[], properties={},
         )
-        system_map = {"Alpha": [ss], "Beta": []}
-        cap_map = {"Alpha": {"My System": ["Do thing one", "Do thing two"]}, "Beta": {}}
-        write_bounded_context_pages(model, system_map, cap_map, ws, docs_dir)
+        mapping = ContextMapping(
+            system_map={"Alpha": [ss], "Beta": []},
+            cap_map={"Alpha": {"My System": ["Do thing one", "Do thing two"]}, "Beta": {}},
+        )
+        write_bounded_context_pages(model, mapping, ws, docs_dir)
         content = (docs_dir / "capability-map" / "alpha.md").read_text(encoding="utf-8")
         assert "## Business Capabilities" in content
         assert "### [My System](../software-systems/my-system/index.md)" in content

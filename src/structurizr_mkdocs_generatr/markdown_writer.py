@@ -33,6 +33,8 @@ from .workspace import (
     View,
     extract_zone_name,
     normalize_name,
+    opening_heading,
+    section_filename_title,
     section_slug,
     section_title,
     sort_zone_views,
@@ -59,6 +61,8 @@ class GenerateOptions:
     puml_dir: Path | None = None
     props: SiteProperties = field(default_factory=SiteProperties)
     view_keys: set[str] = field(default_factory=set)
+    view_exts: dict[str, str] = field(default_factory=dict)
+    link_targets: dict[str, str] = field(default_factory=dict)
     puml_counter: list[int] = field(default_factory=lambda: [0])
     bc_model: BoundedContextModel | None = None
 
@@ -71,14 +75,30 @@ def generate_markdown(
     if opts is None:
         opts = GenerateOptions()
     opts.view_keys = {v.key for v in workspace.views}
+    opts.view_exts = {
+        v.key: _IMAGE_EXTENSIONS.get(v.content_type or "", ".png")
+        for v in workspace.views if v.type == VIEW_IMAGE
+    }
+    opts.link_targets = _abs_link_targets(workspace)
     opts.puml_counter = [0]
+
+    # Fail soft on missing diagram files: warn instead of shipping silently.
+    if svg_dir.exists():
+        rendered = {p.name for p in svg_dir.iterdir()}
+        missing = sorted(
+            v.key for v in workspace.views
+            if v.type != VIEW_IMAGE and f"structurizr-{v.key}.svg" not in rendered
+        )
+        if missing:
+            print(f"Warning: no rendered SVG for {len(missing)} view(s): {', '.join(missing[:10])}"
+                  + (" ..." if len(missing) > 10 else ""))
 
     docs_dir.mkdir(parents=True, exist_ok=True)
 
     _copy_workspace_assets(opts.assets_dir, docs_dir)
     _write_home_page(workspace, docs_dir, opts)
-    _write_workspace_decisions(workspace.documentation, docs_dir, opts.view_keys)
-    _write_workspace_docs(workspace.documentation, docs_dir, opts)
+    _write_workspace_decisions(workspace, docs_dir, opts)
+    _write_workspace_docs(workspace, docs_dir, opts)
     _write_persons_index(workspace, docs_dir)
     _write_person_pages(workspace, docs_dir)
     _write_software_systems_index(workspace, docs_dir, opts.props)
@@ -93,13 +113,13 @@ def generate_markdown(
     _generate_external_links_js(opts.props, docs_dir)
 
     if opts.bc_model:
-        system_map, cap_map = map_contexts(opts.bc_model, workspace)
+        mapping = map_contexts(opts.bc_model, workspace)
         write_bounded_context_index(
-            opts.bc_model, system_map, cap_map, docs_dir,
+            opts.bc_model, mapping, docs_dir,
             mermaid_view_source=opts.props.mermaid_view_source,
         )
         write_bounded_context_pages(
-            opts.bc_model, system_map, cap_map, workspace, docs_dir,
+            opts.bc_model, mapping, workspace, docs_dir,
             mermaid_view_source=opts.props.mermaid_view_source,
         )
 
@@ -186,8 +206,10 @@ def _write_home_page(workspace: Workspace, docs_dir: Path, opts: GenerateOptions
     sections = workspace.documentation.sections
     if sections:
         first = sorted(sections, key=lambda s: s.order)[0]
-        content = _resolve_embeds(first.content, opts.view_keys, "diagrams/")
+        content = _promote_headings(first.content)
+        content = _resolve_embeds(content, opts.view_keys, "diagrams/", opts.view_exts)
         content = _rewrite_asset_paths(content, "")
+        content = _rewrite_absolute_links(content, opts.link_targets, "")
         if opts.inline_puml_dir:
             content = _extract_puml_blocks(content, opts.inline_puml_dir, "diagrams/", opts.puml_counter)
         content = add_mermaid_view_source(content, opts.props.mermaid_view_source)
@@ -196,7 +218,10 @@ def _write_home_page(workspace: Workspace, docs_dir: Path, opts: GenerateOptions
     _write_file(docs_dir / "index.md", content)
 
 
-def _write_workspace_decisions(documentation: Documentation, docs_dir: Path, view_keys: set[str] | None = None) -> None:
+def _write_workspace_decisions(
+    workspace: Workspace, docs_dir: Path, opts: GenerateOptions,
+) -> None:
+    documentation = workspace.documentation
     decisions = documentation.decisions
     if not decisions:
         return
@@ -221,8 +246,9 @@ def _write_workspace_decisions(documentation: Documentation, docs_dir: Path, vie
     decision_ids = {d.id for d in decisions}
     for d in decisions:
         content = _rewrite_decision_links(d.content, decision_ids)
-        if view_keys:
-            content = _resolve_embeds(content, view_keys, "../diagrams/")
+        content = _rewrite_absolute_links(content, opts.link_targets, "../")
+        if opts.view_keys:
+            content = _resolve_embeds(content, opts.view_keys, "../diagrams/", opts.view_exts)
         _write_file(decisions_dir / f"{d.id}.md", content)
 
 
@@ -249,13 +275,81 @@ def _rewrite_decision_links(content: str, decision_ids: set[str]) -> str:
     return re.sub(r"\]\(#(\d+)\)", _replace, content)
 
 
-def _rewrite_absolute_decision_links(content: str, prefix: str) -> str:
-    """Rewrite absolute /decisions/{id}/ links to relative paths."""
-    return re.sub(r"\]\(/decisions/(\d+)/?\)", lambda m: f"]({prefix}{m.group(1)}.md)", content)
+# Matches ](/...) link destinations, tolerating one level of balanced parens
+# (e.g. /newsletter-(fanclub)/).
+_ABS_LINK_RE = re.compile(r"\]\((/[^()\s]*(?:\([^()\s]*\)[^()\s]*)*)\)")
+
+# Opening/closing marker of a fenced code block (```/~~~, 3+ markers).
+_FENCE_RE = re.compile(r"^(`{3,}|~{3,})")
 
 
-def _write_workspace_docs(documentation: Documentation, docs_dir: Path, opts: GenerateOptions) -> None:
-    sections = documentation.sections
+def _outside_code_fences(content: str, transform) -> str:
+    """Apply *transform* to each line outside fenced code blocks, verbatim inside.
+
+    Heading shifts and absolute-link rewrites are line-based markdown edits that
+    must not touch ``#`` comments or example links inside ``` code samples ```.
+    """
+    out: list[str] = []
+    fence: str | None = None  # marker char of the currently open fence, or None
+    for line in content.split("\n"):
+        m = _FENCE_RE.match(line.lstrip())
+        if m:
+            marker = m.group(1)[0]
+            if fence is None:
+                fence = marker
+            elif marker == fence:
+                fence = None
+            out.append(line)
+        else:
+            out.append(line if fence is not None else transform(line))
+    return "\n".join(out)
+
+
+def _abs_link_targets(workspace: Workspace) -> dict[str, str]:
+    """Map old-site slugs to root-relative paths on the new layout.
+
+    Systems take priority over doc sections on slug collisions.
+    """
+    targets = {
+        normalize_name(ss.name): f"software-systems/{normalize_name(ss.name)}/index.md"
+        for ss in workspace.software_systems
+    }
+    sections = sorted(workspace.documentation.sections, key=lambda s: s.order)
+    for i, s in enumerate(sections):
+        target = "index.md" if i == 0 else f"documentation/{section_slug(s)}.md"
+        targets.setdefault(normalize_name(section_title(s)), target)
+    return targets
+
+
+def _rewrite_absolute_links(content: str, targets: dict[str, str], root: str) -> str:
+    """Rewrite old-site absolute links to the new site layout.
+
+    Source docs written for structurizr-site-generatr link with absolute
+    paths: ``/{system-slug}/``, ``/{doc-page-slug}/#anchor``, ``/decisions/N/``.
+    MkDocs leaves absolute links untouched, so they 404 on the new layout.
+    ``targets`` comes from :func:`_abs_link_targets`; ``root`` is the relative
+    path from the current file back to the docs root (e.g. ``"../../"`` from
+    ``software-systems/x/index.md``). Unknown slugs are left as-is so genuine
+    external/asset paths survive.
+    """
+    def _replace(m: re.Match) -> str:
+        path, hash_sep, fragment = m.group(1).partition("#")
+        segments = [seg for seg in path.split("/") if seg]
+        if not segments or "." in segments[-1]:  # empty or file/asset path
+            return m.group(0)
+        frag = f"#{fragment}" if hash_sep else ""
+        if segments[0] == "decisions" and len(segments) == 2 and segments[1].isdigit():
+            return f"]({root}adrs/{segments[1]}.md{frag})"
+        slug = normalize_name(segments[0])
+        if slug in targets:
+            return f"]({root}{targets[slug]}{frag})"
+        return m.group(0)
+
+    return _outside_code_fences(content, lambda line: _ABS_LINK_RE.sub(_replace, line))
+
+
+def _write_workspace_docs(workspace: Workspace, docs_dir: Path, opts: GenerateOptions) -> None:
+    sections = workspace.documentation.sections
     if len(sections) <= 1:
         return
 
@@ -264,8 +358,10 @@ def _write_workspace_docs(documentation: Documentation, docs_dir: Path, opts: Ge
 
     for section in sorted_sections[1:]:
         slug = section_slug(section)
-        content = _resolve_embeds(section.content, opts.view_keys, "../diagrams/")
+        content = _promote_headings(section.content)
+        content = _resolve_embeds(content, opts.view_keys, "../diagrams/", opts.view_exts)
         content = _rewrite_asset_paths(content, "../")
+        content = _rewrite_absolute_links(content, opts.link_targets, "../")
         if opts.inline_puml_dir:
             content = _extract_puml_blocks(content, opts.inline_puml_dir, "../diagrams/", opts.puml_counter)
         content = add_mermaid_view_source(content, opts.props.mermaid_view_source)
@@ -474,20 +570,21 @@ def _build_info_tab(
 
 
 def _build_section_tabs(
-    ss: SoftwareSystem, intro: Section | None, view_keys: set[str],
+    ss: SoftwareSystem, intro: Section | None, opts: GenerateOptions,
 ) -> list[tuple[str, str]]:
     """Build one tab per documentation section other than the introduction.
 
     Tab title is derived from the section's filename (e.g. ``0001-technical.md``
-    becomes ``Technical``) via ``section_title``.
+    becomes ``Technical``) via ``section_filename_title``.
     """
     other_sections = [s for s in ss.documentation.sections if s is not intro]
     tabs: list[tuple[str, str]] = []
     for section in sorted(other_sections, key=lambda s: s.order):
         content = section.content
-        if view_keys:
-            content = _resolve_embeds(content, view_keys, "../../diagrams/")
-        tabs.append((section_title(section), f"{_bump_headings(content, 1)}\n\n"))
+        if opts.view_keys:
+            content = _resolve_embeds(content, opts.view_keys, "../../diagrams/", opts.view_exts)
+        # Tab labels stay short and filename-derived; the content keeps its own headings.
+        tabs.append((section_filename_title(section), f"{_bump_headings(content, 1)}\n\n"))
     return tabs
 
 
@@ -588,18 +685,18 @@ def _write_software_system_pages(
     if deps_content:
         tabs.append(("Dependencies", deps_content))
 
-    tabs.extend(_build_section_tabs(ss, intro, opts.view_keys))
+    tabs.extend(_build_section_tabs(ss, intro, opts))
 
     _render_tabs(tabs, lines)
 
-    content = _resolve_embeds("".join(lines), opts.view_keys, "../../diagrams/")
+    content = _resolve_embeds("".join(lines), opts.view_keys, "../../diagrams/", opts.view_exts)
     content = _rewrite_asset_paths(content, "../../")
     if opts.inline_puml_dir:
         content = _extract_puml_blocks(content, opts.inline_puml_dir, "../../diagrams/", opts.puml_counter)
     content = add_mermaid_view_source(content, opts.props.mermaid_view_source)
     if opts.bc_model:
         content = _rewrite_bc_links(content, opts.bc_model)
-    content = _rewrite_absolute_decision_links(content, "../../adrs/")
+    content = _rewrite_absolute_links(content, opts.link_targets, "../../")
     _write_file(ss_dir / "index.md", content)
 
 
@@ -705,19 +802,51 @@ def _extract_description_paragraph(content: str) -> str | None:
 
 
 def _bump_headings(content: str, levels: int) -> str:
-    """Increase all markdown heading levels by *levels* (e.g. # → ### when levels=2), clamped to h6."""
+    """Shift markdown heading levels by *levels* (negative promotes), clamped to h1..h6.
+
+    Headings inside fenced code blocks are left untouched.
+    """
     def _clamp(m: re.Match) -> str:
-        new_level = min(len(m.group(1)) + levels, 6)
+        new_level = min(max(len(m.group(1)) + levels, 1), 6)
         return f"{'#' * new_level} "
 
-    return re.sub(r"^(#{1,6})\s", _clamp, content, flags=re.MULTILINE)
+    return _outside_code_fences(content, lambda line: re.sub(r"^(#{1,6})\s", _clamp, line))
 
 
-def _resolve_embeds(content: str, view_keys: set[str], diagrams_prefix: str) -> str:
-    """Replace ![alt](embed:ViewKey) with <object> tags for clickable SVG links."""
+def _promote_headings(content: str) -> str:
+    """Promote headings so a document that opens with a title heading gets an H1.
+
+    Workspace docs written for the old generator start with ``## Title``;
+    without an H1 MkDocs Material inserts the nav title above the content,
+    duplicating the heading. Only applies when the first non-blank line is a
+    heading (the doc-title pattern) — docs opening with prose or admonitions
+    are left alone. Anchor slugs derive from heading text only, so shifting
+    levels keeps anchors stable.
+    """
+    heading = opening_heading(content)
+    if not heading:
+        return content
+    shift = heading[0] - 1
+    if shift == 0:
+        return content
+    return _bump_headings(content, -shift)
+
+
+def _resolve_embeds(
+    content: str, view_keys: set[str], diagrams_prefix: str,
+    view_exts: dict[str, str] | None = None,
+) -> str:
+    """Replace ![alt](embed:ViewKey) with <object> tags for clickable SVG links.
+
+    ``view_exts`` maps view keys to file extensions; raster image views
+    (e.g. ``.png``) are embedded as plain images instead of SVG objects.
+    """
     def _replace(m: re.Match) -> str:
         alt, key = m.group(1), m.group(2)
         if key in view_keys:
+            ext = (view_exts or {}).get(key, ".svg")
+            if ext != ".svg":
+                return f"![{alt}]({diagrams_prefix}structurizr-{key}{ext})"
             path = f"{diagrams_prefix}structurizr-{key}.svg"
             return (
                 f'<div class="diagram-container">'
