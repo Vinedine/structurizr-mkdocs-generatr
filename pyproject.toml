@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "structurizr-mkdocs-generatr"
-version = "0.1.0"
+version = "0.1.2"
 description = "Generate MkDocs Material sites from Structurizr DSL workspaces"
 readme = "README.md"
 license = "MIT"

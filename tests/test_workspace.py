@@ -95,7 +95,40 @@ class TestSectionSlugAndTitle:
 
     def test_title_from_filename_strips_number_prefix(self):
         s = Section(content="", filename="01-getting-started.md", format="", order=1, title="")
-        assert section_title(s) == "Getting started"
+        assert section_title(s) == "Getting Started"
+
+    def test_title_prefers_content_heading(self):
+        s = Section(
+            content="## Directorate for Translation\n\nIntro text.",
+            filename="07-dt.md", format="", order=7, title="",
+        )
+        assert section_title(s) == "Directorate for Translation"
+
+    def test_content_heading_beats_title_field(self):
+        s = Section(
+            content="# Real Heading\n\nText.",
+            filename="foo.md", format="", order=1, title="Metadata Title",
+        )
+        assert section_title(s) == "Real Heading"
+
+    def test_heading_inside_code_fence_ignored(self):
+        s = Section(
+            content="```\n# not a heading\n```\n\nNo headings here.",
+            filename="02-notes.md", format="", order=2, title="",
+        )
+        assert section_title(s) == "Notes"
+
+    def test_doc_opening_with_prose_keeps_filename_title(self):
+        # A heading further down is a section heading, not the document title
+        s = Section(
+            content="Some intro text.\n\n### Deep Heading\n",
+            filename="02-systems-and-workflows.md", format="", order=2, title="",
+        )
+        assert section_title(s) == "Systems And Workflows"
+
+    def test_title_heading_may_be_any_level(self):
+        s = Section(content="### Deep Title\n\nText.", filename="x.md", format="", order=1, title="")
+        assert section_title(s) == "Deep Title"
 
 
 class TestDependenciesForSystem:

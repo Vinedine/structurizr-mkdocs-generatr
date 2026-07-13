@@ -15,11 +15,33 @@ from .workspace import SoftwareSystem, Workspace, normalize_name
 _ENTITY_ID_RE = re.compile(r"([A-Z_][A-Z_0-9]*)")
 # Matches node definitions like ENTITY_ID[Label]
 _NODE_DEF_RE = re.compile(r"([A-Z_][A-Z_0-9]*)\[([^\]]+)\]")
+# Matches click lines like: click ENTITY_ID 'https://...'
+_CLICK_RE = re.compile(r"click\s+([A-Z_][A-Z_0-9]*)\s+['\"]([^'\"]+)['\"]")
+# Matches a markdown link [Label](target)
+_MD_LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 
 
 def _extract_entity_ids(text: str, valid: dict[str, str]) -> list[str]:
     """Extract entity IDs from text, keeping only those present in *valid* mapping."""
     return [eid for eid in _ENTITY_ID_RE.findall(text) if eid in valid]
+
+
+def _system_link(name: str) -> str:
+    """Markdown link from a capability-map page to a software-system page."""
+    return f"[{name}](../software-systems/{normalize_name(name)}/index.md)"
+
+
+def _entity_cell(label: str, url: str | None) -> str:
+    """Render an entity table cell: a link only for http(s) URLs.
+
+    Non-URL click values (e.g. a self-referential ``click A1 'A1'``) would
+    produce broken relative links, so they're shown as literal text instead.
+    """
+    if url and url.startswith(("http://", "https://")):
+        return f"[{label}]({url})"
+    if url:
+        return f"{label} (`{url}`)"
+    return label
 
 
 @dataclass
@@ -36,6 +58,7 @@ class BoundedContextModel:
     contexts: list[BoundedContext] = field(default_factory=list)
     cross_links: list[str] = field(default_factory=list)
     entity_to_context: dict[str, str] = field(default_factory=dict)
+    entity_urls: dict[str, str] = field(default_factory=dict)  # entity ID -> click URL
 
     def related_contexts(self, ctx_name: str) -> dict[str, set[str]]:
         """For a context, find other contexts linked via cross-links.
@@ -116,6 +139,7 @@ def parse_bounded_contexts(mmd_path: Path) -> BoundedContextModel | None:
     # Extract context blocks
     contexts: list[BoundedContext] = []
     entity_to_context: dict[str, str] = {}
+    entity_urls: dict[str, str] = {}
 
     context_regex = re.compile(
         r"%% \[START\.CONTEXT\] \[(.*?)\]([\s\S]*?)%% \[END\.CONTEXT\] \[\1\]"
@@ -158,6 +182,10 @@ def parse_bounded_contexts(mmd_path: Path) -> BoundedContextModel | None:
         for eid in entities:
             entity_to_context[eid] = name
 
+        # Entity click-through URLs (e.g. Confluence pages)
+        for click_match in _CLICK_RE.finditer(section):
+            entity_urls.setdefault(click_match.group(1), click_match.group(2))
+
     if not contexts:
         return None
 
@@ -167,13 +195,21 @@ def parse_bounded_contexts(mmd_path: Path) -> BoundedContextModel | None:
         contexts=contexts,
         cross_links=cross_links,
         entity_to_context=entity_to_context,
+        entity_urls=entity_urls,
     )
 
 
-def _parse_intro(intro_content: str) -> tuple[list[str], list[str]]:
-    """Extract context names and capabilities from an introduction doc."""
+def _parse_intro(intro_content: str) -> tuple[list[str], list[str], list[tuple[str, str]]]:
+    """Extract context names, capabilities, and entity references from an introduction doc.
+
+    Entity references come in two dialects and are returned as (label, target)
+    tuples: ``- [Label](https://confluence/...)`` list items under Business
+    Data / Manage / Consume, and ``| [Label](ENTITY_ID) | ...`` rows in a
+    Data Landscape table.
+    """
     context_names: list[str] = []
     capabilities: list[str] = []
+    entity_refs: list[tuple[str, str]] = []
     current_section = ""
 
     for line in intro_content.split("\n"):
@@ -182,7 +218,7 @@ def _parse_intro(intro_content: str) -> tuple[list[str], list[str]]:
             current_section = stripped[2:].strip()
             continue
         if stripped.startswith("## "):
-            if current_section == "Business Data":
+            if current_section.startswith("Business Data"):
                 sub = stripped[3:].strip()
                 current_section = f"Business Data/{sub}"
             else:
@@ -204,20 +240,58 @@ def _parse_intro(intro_content: str) -> tuple[list[str], list[str]]:
             if stripped.startswith("- "):
                 cap = stripped[2:].strip()
                 # Strip markdown links from capability text
-                cap = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", cap)
+                cap = _MD_LINK_RE.sub(r"\1", cap)
                 if cap:
                     capabilities.append(cap)
+        elif (
+            (current_section in ("Business Data/Manage", "Business Data/Consume")
+             and stripped.startswith("- "))
+            or (current_section == "Data Landscape" and stripped.startswith("|"))
+        ):
+            m = _MD_LINK_RE.search(stripped)
+            if m:
+                entity_refs.append((m.group(1), m.group(2)))
 
-    return context_names, capabilities
+    return context_names, capabilities, entity_refs
 
 
-def map_contexts(
-    model: BoundedContextModel, workspace: Workspace,
-) -> tuple[dict[str, list[SoftwareSystem]], dict[str, dict[str, list[str]]]]:
-    """Single-pass mapping of contexts to systems and capabilities."""
+@dataclass
+class ContextMapping:
+    """Everything the capability-map pages need about system/entity usage."""
+    system_map: dict[str, list[SoftwareSystem]]
+    cap_map: dict[str, dict[str, list[str]]]
+    # entity ID -> sorted system names whose intro references it
+    entity_systems: dict[str, list[str]] = field(default_factory=dict)
+    # entity references that resolve to no modelled entity: (label, target, sorted system names)
+    unlinked_entities: list[tuple[str, str, list[str]]] = field(default_factory=list)
+
+
+def _resolve_entity_ref(
+    label: str, target: str, model: BoundedContextModel,
+    url_to_eid: dict[str, str], label_to_eid: dict[str, str],
+) -> str | None:
+    """Resolve an intro entity reference to a modelled entity ID, or None."""
+    if target in model.entity_to_context:  # [Label](ENTITY_ID) dialect
+        return target
+    if target in url_to_eid:  # [Label](click-url) dialect
+        return url_to_eid[target]
+    return label_to_eid.get(normalize_name(label))  # last resort: label match
+
+
+def map_contexts(model: BoundedContextModel, workspace: Workspace) -> ContextMapping:
+    """Single-pass mapping of contexts to systems, capabilities, and entity usage."""
     context_names = {c.name for c in model.contexts}
     system_map: dict[str, list[SoftwareSystem]] = {name: [] for name in context_names}
     cap_map: dict[str, dict[str, list[str]]] = {name: {} for name in context_names}
+
+    url_to_eid = {url: eid for eid, url in model.entity_urls.items()}
+    label_to_eid: dict[str, str] = {}
+    for ctx in model.contexts:
+        for eid, label in ctx.entity_labels.items():
+            label_to_eid.setdefault(normalize_name(label), eid)
+
+    entity_systems: dict[str, set[str]] = {}
+    unlinked: dict[tuple[str, str], set[str]] = {}
 
     for ss in workspace.software_systems:
         intro = next(
@@ -228,17 +302,32 @@ def map_contexts(
         if not intro:
             continue
 
-        ctx_names, capabilities = _parse_intro(intro.content)
+        ctx_names, capabilities, entity_refs = _parse_intro(intro.content)
         for ctx_name in ctx_names:
             if ctx_name in context_names:
                 system_map[ctx_name].append(ss)
                 if capabilities:
                     cap_map[ctx_name][ss.name] = capabilities
 
+        for label, target in entity_refs:
+            eid = _resolve_entity_ref(label, target, model, url_to_eid, label_to_eid)
+            if eid:
+                entity_systems.setdefault(eid, set()).add(ss.name)
+            else:
+                unlinked.setdefault((label, target), set()).add(ss.name)
+
     for ctx_name in system_map:
         system_map[ctx_name].sort(key=lambda s: s.name)
 
-    return system_map, cap_map
+    return ContextMapping(
+        system_map=system_map,
+        cap_map=cap_map,
+        entity_systems={eid: sorted(names) for eid, names in entity_systems.items()},
+        unlinked_entities=[
+            (label, target, sorted(names))
+            for (label, target), names in sorted(unlinked.items())
+        ],
+    )
 
 
 def _context_id(name: str) -> str:
@@ -282,13 +371,13 @@ def _mermaid_init(labels: list[str]) -> str:
 
 def write_bounded_context_index(
     model: BoundedContextModel,
-    system_map: dict[str, list[SoftwareSystem]],
-    cap_map: dict[str, dict[str, list[str]]],
+    mapping: ContextMapping,
     docs_dir: Path,
     *,
     mermaid_view_source: bool = False,
 ) -> None:
     """Write docs/capability-map/index.md with intro, table, and relations diagram."""
+    system_map, cap_map = mapping.system_map, mapping.cap_map
     bc_dir = docs_dir / "capability-map"
     bc_dir.mkdir(parents=True, exist_ok=True)
 
@@ -299,7 +388,7 @@ def write_bounded_context_index(
         "    - *Which systems support our revenue stream?*\n"
         "    - *Where do we have business capability gaps or redundant overlap?*\n"
         "    - *If we decommission a system, which business areas are affected?*\n"
-        "    - *How many business capabilities does each domain area actually have?*\n\n"
+        "    - *Which key data entities does no system claim, and which claims are unknown to the model?*\n\n"
     )
     lines.append("## Bounded Contexts\n\n")
 
@@ -323,15 +412,32 @@ def write_bounded_context_index(
         lines.append("```\n\n")
 
     # Table
-    lines.append("| Bounded Context | Description | Software Systems | Business Capabilities |\n")
-    lines.append("|---|---|---|---|\n")
+    lines.append(
+        "| Bounded Context | Description | Software Systems | Business Capabilities | Unreferenced Entities |\n")
+    lines.append("|---|---|---|---|---|\n")
     for ctx in model.contexts:
         slug = normalize_name(ctx.name)
         sys_count = len(system_map.get(ctx.name, []))
         cap_count = sum(len(caps) for caps in cap_map.get(ctx.name, {}).values())
+        unref_count = sum(1 for eid in ctx.entities if eid not in mapping.entity_systems)
         desc = ctx.description or ""
-        lines.append(f"| [{ctx.name}]({slug}.md) | {desc} | {sys_count} | {cap_count} |\n")
+        lines.append(f"| [{ctx.name}]({slug}.md) | {desc} | {sys_count} | {cap_count} | {unref_count} |\n")
     lines.append("\n")
+
+    # Entities claimed by product docs but unknown to the model
+    if mapping.unlinked_entities:
+        lines.append("## Unlinked Entities\n\n")
+        lines.append(
+            "Key data entities referenced on product pages but not mapped to any "
+            "bounded context. Add them to `boundedContext.mmd` or fix the product doc.\n\n"
+        )
+        lines.append("| Entity | Referenced by |\n")
+        lines.append("|---|---|\n")
+        for label, target, systems in mapping.unlinked_entities:
+            entity_cell = _entity_cell(label, target)
+            system_cells = ", ".join(_system_link(name) for name in systems)
+            lines.append(f"| {entity_cell} | {system_cells} |\n")
+        lines.append("\n")
 
     content = add_mermaid_view_source("".join(lines), mermaid_view_source)
     write_file(bc_dir / "index.md", content)
@@ -339,14 +445,14 @@ def write_bounded_context_index(
 
 def write_bounded_context_pages(
     model: BoundedContextModel,
-    system_map: dict[str, list[SoftwareSystem]],
-    cap_map: dict[str, dict[str, list[str]]],
+    mapping: ContextMapping,
     workspace: Workspace,
     docs_dir: Path,
     *,
     mermaid_view_source: bool = False,
 ) -> None:
     """Write individual bounded context pages to docs/capability-map/{slug}.md."""
+    system_map, cap_map = mapping.system_map, mapping.cap_map
     bc_dir = docs_dir / "capability-map"
     bc_dir.mkdir(parents=True, exist_ok=True)
 
@@ -401,13 +507,27 @@ def write_bounded_context_pages(
 
         lines.append("\n```\n\n")
 
+        # Key data entities: which systems actually reference each one.
+        # An empty "Referenced by" cell is the drift signal (modelled entity
+        # that no product doc claims).
+        if ctx.entities:
+            lines.append("## Key Data Entities\n\n")
+            lines.append("| Entity | Referenced by |\n")
+            lines.append("|---|---|\n")
+            for eid in sorted(ctx.entities, key=lambda e: ctx.entity_labels.get(e, e).lower()):
+                label = ctx.entity_labels.get(eid, eid)
+                entity_cell = _entity_cell(label, model.entity_urls.get(eid))
+                systems = mapping.entity_systems.get(eid, [])
+                system_cells = ", ".join(_system_link(name) for name in systems) or "*none*"
+                lines.append(f"| {entity_cell} | {system_cells} |\n")
+            lines.append("\n")
+
         # Capabilities by software system
         ctx_caps = cap_map.get(ctx.name, {})
         if ctx_caps:
             lines.append("## Business Capabilities\n\n")
             for system_name in sorted(ctx_caps):
-                ss_slug = normalize_name(system_name)
-                lines.append(f"### [{system_name}](../software-systems/{ss_slug}/index.md)\n\n")
+                lines.append(f"### {_system_link(system_name)}\n\n")
                 for cap in ctx_caps[system_name]:
                     lines.append(f"- {cap}\n")
                 lines.append("\n")
@@ -419,10 +539,7 @@ def write_bounded_context_pages(
             if not ctx_caps:
                 lines.append("## Software Systems\n\n")
             for ss in systems_without_caps:
-                ss_slug = normalize_name(ss.name)
-                lines.append(
-                    f"- [{ss.name}](../software-systems/{ss_slug}/index.md)\n"
-                )
+                lines.append(f"- {_system_link(ss.name)}\n")
             lines.append("\n")
 
         content = add_mermaid_view_source("".join(lines), mermaid_view_source)
