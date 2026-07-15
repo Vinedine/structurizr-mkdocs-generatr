@@ -151,9 +151,27 @@ class Workspace:
     def landscape_views(self) -> list[View]:
         return [v for v in self.views if v.type == VIEW_SYSTEM_LANDSCAPE]
 
+    def group_separator(self) -> str:
+        """Return the separator used for nested group names (never empty)."""
+        return self.properties.get("structurizr.groupSeparator") or "/"
+
     def groups(self) -> list[str]:
-        """Return sorted unique group names from software systems."""
-        return sorted({ss.group for ss in self.software_systems if ss.group})
+        """Return unique group names, ordered by ``mkdocs.groupOrder`` then alphabetically.
+
+        ``mkdocs.groupOrder`` is a comma-separated list of group names. Named
+        groups come first, in that order; the rest follow alphabetically. Names
+        are matched loosely (case and punctuation), so ``belfoot/digital`` and
+        ``BELFOOT/DIGITAL`` both resolve.
+        """
+        names = {ss.group for ss in self.software_systems if ss.group}
+        by_slug = {normalize_name(n): n for n in names}
+
+        ordered: list[str] = []
+        for entry in self.view_properties.get("mkdocs.groupOrder", "").split(","):
+            name = by_slug.get(normalize_name(entry))
+            if name and name not in ordered:
+                ordered.append(name)
+        return ordered + sorted(names - set(ordered))
 
     def group_description(self, group_name: str) -> str:
         """Return the description for a group from model properties (group.{name}.description)."""
@@ -167,10 +185,30 @@ class Workspace:
         )
 
     def group_landscape_view(self, group_name: str) -> View | None:
-        """Find the landscape view for a group (key: SystemLandscape{GroupNoSpaces})."""
-        key = f"SystemLandscape{group_name.replace(' ', '')}"
+        """Find the landscape view for a group (key: ``SystemLandscape{Group}``).
+
+        The key suffix is matched ignoring case and punctuation, so group
+        ``Big Bank`` matches ``SystemLandscapeBigBank``. A nested group
+        (``BELFOOT/DIGITAL``) additionally matches a view named after its last
+        segment (``SystemLandscapeDigital``), since a view key can't carry the
+        group separator. That short form is only honoured when no other group
+        shares the same last segment.
+        """
+        candidates = {_canon(group_name)}
+
+        separator = self.group_separator()
+        leaf = group_name.rsplit(separator, 1)[-1]
+        if leaf != group_name:
+            names = {ss.group for ss in self.software_systems if ss.group}
+            leaves = [g.rsplit(separator, 1)[-1] for g in names]
+            if leaves.count(leaf) == 1:
+                candidates.add(_canon(leaf))
+
+        prefix = "SystemLandscape"
         for v in self.views:
-            if v.type == VIEW_SYSTEM_LANDSCAPE and v.key == key:
+            if v.type != VIEW_SYSTEM_LANDSCAPE or not v.key.startswith(prefix):
+                continue
+            if _canon(v.key[len(prefix):]) in candidates:
                 return v
         return None
 
@@ -495,6 +533,11 @@ def parse_workspace(workspace_json: Path) -> Workspace:
 def normalize_name(name: str) -> str:
     """Convert a name to a URL-safe directory name."""
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def _canon(name: str) -> str:
+    """Reduce a name to a case- and punctuation-insensitive comparison token."""
+    return re.sub(r"[^a-z0-9]", "", name.lower())
 
 
 def section_slug(section: Section) -> str:

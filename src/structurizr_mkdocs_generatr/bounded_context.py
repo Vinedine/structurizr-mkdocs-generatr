@@ -17,6 +17,8 @@ _ENTITY_ID_RE = re.compile(r"([A-Z_][A-Z_0-9]*)")
 _NODE_DEF_RE = re.compile(r"([A-Z_][A-Z_0-9]*)\[([^\]]+)\]")
 # Matches click lines like: click ENTITY_ID 'https://...'
 _CLICK_RE = re.compile(r"click\s+([A-Z_][A-Z_0-9]*)\s+['\"]([^'\"]+)['\"]")
+# Matches a subgraph direction line like: direction TB
+_DIRECTION_RE = re.compile(r"^\s*direction\s+(?:TB|TD|BT|LR|RL)\s*$")
 # Matches a markdown link [Label](target)
 _MD_LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 
@@ -163,11 +165,16 @@ def parse_bounded_contexts(mmd_path: Path) -> BoundedContextModel | None:
                 entities.append(eid)
                 entity_labels[eid] = label
 
-        # Build mermaid section: strip comment markers, keep subgraph/edges/clicks
+        # Build mermaid section: strip comment markers, keep subgraph/edges/clicks.
+        # A subgraph `direction` is dropped: Mermaid ignores it as soon as a node in
+        # the subgraph links outside it, and the renderer then anchors every crossing
+        # edge to the cluster border instead of the node. Context pages exist to show
+        # cross-context links, so that is always the case here.
         mermaid_lines: list[str] = []
         for line in section.split("\n"):
-            if not line.strip().startswith("%%"):
-                mermaid_lines.append(line)
+            if line.strip().startswith("%%") or _DIRECTION_RE.match(line):
+                continue
+            mermaid_lines.append(line)
         mermaid_section = "\n".join(mermaid_lines).strip()
 
         ctx = BoundedContext(
@@ -385,7 +392,7 @@ def write_bounded_context_index(
     lines.append("# Capability Map\n\n")
     lines.append(
         '??? question "What questions does this answer?"\n\n'
-        "    - *Which systems support our revenue stream?*\n"
+        "    - *Which systems support a given business capability?*\n"
         "    - *Where do we have business capability gaps or redundant overlap?*\n"
         "    - *If we decommission a system, which business areas are affected?*\n"
         "    - *Which key data entities does no system claim, and which claims are unknown to the model?*\n\n"

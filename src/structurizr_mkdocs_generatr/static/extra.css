@@ -102,6 +102,12 @@ object.diagram {
   cursor: zoom-out;
 }
 
+/* Drag-to-pan: grabbing wins over the backdrop's zoom-out cursor mid-drag */
+.diagram-modal-viewport.is-panning,
+.diagram-modal-viewport.is-panning * {
+  cursor: grabbing !important;
+}
+
 .diagram-modal-viewport object.diagram {
   display: inline-block;
   max-width: 90vw;
@@ -117,7 +123,7 @@ object.diagram {
   border-radius: 4px;
   padding: 12px;
   max-width: 90vw;
-  cursor: default;
+  cursor: grab;
 }
 
 .diagram-modal-close {
