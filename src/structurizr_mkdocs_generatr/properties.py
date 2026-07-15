@@ -52,14 +52,6 @@ class SiteProperties:
         return result
 
 
-def _get(props: dict[str, str], key: str, fallback_key: str | None = None) -> str | None:
-    """Look up a property by key, optionally falling back to a legacy generatr.* key."""
-    value = props.get(key)
-    if value is None and fallback_key:
-        value = props.get(fallback_key)
-    return value
-
-
 def _parse_bool(value: str | None, default: bool = False) -> bool:
     if value is None:
         return default
@@ -90,28 +82,23 @@ def _validate_svg_target(value: str | None) -> str:
 
 
 def resolve_properties(view_properties: dict[str, str]) -> SiteProperties:
-    """Resolve workspace view properties into a SiteProperties instance.
-
-    ``mkdocs.*`` keys win; legacy ``generatr.*`` keys (structurizr-site-generatr)
-    are accepted as fallbacks so an existing workspace keeps its branding.
-    """
+    """Resolve workspace ``mkdocs.*`` view properties into a SiteProperties instance."""
+    get = view_properties.get
     return SiteProperties(
-        theme=_validate_theme(_get(view_properties, "mkdocs.theme")),
-        primary_color=_validate_color(
-            _get(view_properties, "mkdocs.color.primary", "generatr.style.colors.primary")),
-        accent_color=_validate_color(_get(view_properties, "mkdocs.color.accent")),
-        header_text_color=_validate_color(
-            _get(view_properties, "mkdocs.color.headerText", "generatr.style.colors.secondary")),
-        favicon=_get(view_properties, "mkdocs.favicon", "generatr.style.faviconPath"),
-        logo=_get(view_properties, "mkdocs.logo", "generatr.style.logoPath"),
-        custom_css=_get(view_properties, "mkdocs.customCss"),
-        svg_link_target=_validate_svg_target(_get(view_properties, "mkdocs.svgLinkTarget")),
-        navigation_instant=_parse_bool(_get(view_properties, "mkdocs.navigation.instant")),
-        navigation_tabs=_parse_bool(_get(view_properties, "mkdocs.navigation.tabs"), default=True),
-        full_width=_parse_bool(_get(view_properties, "mkdocs.fullWidth"), default=True),
-        show_legend=_parse_bool(_get(view_properties, "mkdocs.showLegend")),
-        mermaid_view_source=_parse_bool(_get(view_properties, "mkdocs.mermaid.viewSource")),
-        description=_get(view_properties, "mkdocs.description"),
-        copyright=_get(view_properties, "mkdocs.copyright"),
-        site_url=_get(view_properties, "mkdocs.siteUrl"),
+        theme=_validate_theme(get("mkdocs.theme")),
+        primary_color=_validate_color(get("mkdocs.color.primary")),
+        accent_color=_validate_color(get("mkdocs.color.accent")),
+        header_text_color=_validate_color(get("mkdocs.color.headerText")),
+        favicon=get("mkdocs.favicon"),
+        logo=get("mkdocs.logo"),
+        custom_css=get("mkdocs.customCss"),
+        svg_link_target=_validate_svg_target(get("mkdocs.svgLinkTarget")),
+        navigation_instant=_parse_bool(get("mkdocs.navigation.instant")),
+        navigation_tabs=_parse_bool(get("mkdocs.navigation.tabs"), default=True),
+        full_width=_parse_bool(get("mkdocs.fullWidth"), default=True),
+        show_legend=_parse_bool(get("mkdocs.showLegend")),
+        mermaid_view_source=_parse_bool(get("mkdocs.mermaid.viewSource")),
+        description=get("mkdocs.description"),
+        copyright=get("mkdocs.copyright"),
+        site_url=get("mkdocs.siteUrl"),
     )

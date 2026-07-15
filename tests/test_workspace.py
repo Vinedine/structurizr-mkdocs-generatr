@@ -10,6 +10,7 @@ from structurizr_mkdocs_generatr.workspace import (
     Relationship,
     Section,
     SoftwareSystem,
+    VIEW_SYSTEM_LANDSCAPE,
     View,
     Workspace,
     normalize_name,
@@ -22,6 +23,8 @@ def _make_workspace(
     systems: list[SoftwareSystem] | None = None,
     people: list[Person] | None = None,
     views: list[View] | None = None,
+    properties: dict[str, str] | None = None,
+    view_properties: dict[str, str] | None = None,
 ) -> Workspace:
     return Workspace(
         name="Test",
@@ -30,7 +33,8 @@ def _make_workspace(
         people=people or [],
         documentation=Documentation(),
         views=views or [],
-        properties={},
+        properties=properties or {},
+        view_properties=view_properties or {},
     )
 
 
@@ -38,9 +42,10 @@ def _make_system(
     id: str, name: str = "System",
     containers: list[Container] | None = None,
     relationships: list[Relationship] | None = None,
+    group: str | None = None,
 ) -> SoftwareSystem:
     return SoftwareSystem(
-        id=id, name=name, description="", group=None, tags=[], url=None,
+        id=id, name=name, description="", group=group, tags=[], url=None,
         containers=containers or [], relationships=relationships or [],
         documentation=Documentation(), properties={},
     )
@@ -199,3 +204,92 @@ class TestSystemForElementId:
     def test_returns_none_for_unknown(self):
         ws = _make_workspace()
         assert ws.system_for_element_id("unknown") is None
+
+
+def _landscape_view(key: str) -> View:
+    return View(
+        key=key, type=VIEW_SYSTEM_LANDSCAPE, software_system_id=None,
+        container_id=None, title="", description="",
+    )
+
+
+NESTED = {"structurizr.groupSeparator": "/"}
+
+
+class TestGroups:
+    def test_alphabetical_by_default(self):
+        ws = _make_workspace(systems=[
+            _make_system("1", group="BELFOOT/DIGITAL"),
+            _make_system("2", group="BELFOOT/ACADEMY"),
+            _make_system("3", group="External"),
+        ])
+        assert ws.groups() == ["BELFOOT/ACADEMY", "BELFOOT/DIGITAL", "External"]
+
+    def test_group_order_property_wins(self):
+        ws = _make_workspace(
+            systems=[
+                _make_system("1", group="BELFOOT/DIGITAL"),
+                _make_system("2", group="BELFOOT/ACADEMY"),
+                _make_system("3", group="External"),
+            ],
+            view_properties={"mkdocs.groupOrder": "BELFOOT/DIGITAL, BELFOOT/ACADEMY"},
+        )
+        assert ws.groups() == ["BELFOOT/DIGITAL", "BELFOOT/ACADEMY", "External"]
+
+    def test_group_order_matches_loosely(self):
+        ws = _make_workspace(
+            systems=[
+                _make_system("1", group="BELFOOT/DIGITAL"),
+                _make_system("2", group="BELFOOT/ACADEMY"),
+            ],
+            view_properties={"mkdocs.groupOrder": "belfoot/digital"},
+        )
+        assert ws.groups() == ["BELFOOT/DIGITAL", "BELFOOT/ACADEMY"]
+
+    def test_group_order_ignores_unknown_names(self):
+        ws = _make_workspace(
+            systems=[_make_system("1", group="External")],
+            view_properties={"mkdocs.groupOrder": "Nope, External"},
+        )
+        assert ws.groups() == ["External"]
+
+
+class TestGroupLandscapeView:
+    def test_matches_plain_group_name(self):
+        view = _landscape_view("SystemLandscapeBigBank")
+        ws = _make_workspace(systems=[_make_system("1", group="Big Bank")], views=[view])
+        assert ws.group_landscape_view("Big Bank") is view
+
+    def test_nested_group_matches_last_segment(self):
+        view = _landscape_view("SystemLandscapeDigital")
+        ws = _make_workspace(
+            systems=[_make_system("1", group="BELFOOT/DIGITAL")],
+            views=[view], properties=NESTED,
+        )
+        assert ws.group_landscape_view("BELFOOT/DIGITAL") is view
+
+    def test_nested_group_matches_full_name(self):
+        view = _landscape_view("SystemLandscapeBELFOOT-DIGITAL")
+        ws = _make_workspace(
+            systems=[_make_system("1", group="BELFOOT/DIGITAL")],
+            views=[view], properties=NESTED,
+        )
+        assert ws.group_landscape_view("BELFOOT/DIGITAL") is view
+
+    def test_ambiguous_last_segment_is_not_matched(self):
+        view = _landscape_view("SystemLandscapeAcademy")
+        ws = _make_workspace(
+            systems=[
+                _make_system("1", group="BELFOOT/ACADEMY"),
+                _make_system("2", group="OTHER/ACADEMY"),
+            ],
+            views=[view], properties=NESTED,
+        )
+        assert ws.group_landscape_view("BELFOOT/ACADEMY") is None
+
+    def test_returns_none_when_no_view_exists(self):
+        ws = _make_workspace(
+            systems=[_make_system("1", group="BELFOOT/ACADEMY")],
+            views=[_landscape_view("SystemLandscapeDigital")], properties=NESTED,
+        )
+        assert ws.group_landscape_view("BELFOOT/ACADEMY") is None

@@ -16,6 +16,7 @@ from structurizr_mkdocs_generatr.markdown_writer import (
     _rewrite_asset_paths,
     _rewrite_decision_links,
     _strip_description_section,
+    _write_software_systems_index,
 )
 from structurizr_mkdocs_generatr.mermaid_utils import add_mermaid_view_source as _add_mermaid_view_source
 from structurizr_mkdocs_generatr.workspace import (
@@ -26,9 +27,9 @@ from structurizr_mkdocs_generatr.workspace import (
 )
 
 
-def _make_system(id: str, name: str) -> SoftwareSystem:
+def _make_system(id: str, name: str, group: str | None = None) -> SoftwareSystem:
     return SoftwareSystem(
-        id=id, name=name, description="", group=None, tags=[], url=None,
+        id=id, name=name, description="", group=group, tags=[], url=None,
         containers=[], relationships=[], documentation=Documentation(), properties={},
     )
 
@@ -338,3 +339,45 @@ class TestResolveEmbedsImageViews:
         result = _resolve_embeds(content, {"Ctx"}, "diagrams/", {})
         assert "structurizr-Ctx.svg" in result
         assert "<object" in result
+
+
+class TestSoftwareSystemsIndex:
+    def _workspace(self) -> Workspace:
+        systems = [
+            _make_system("1", "Arena", group="BELFOOT/DIGITAL"),
+            _make_system("2", "Studio", group="BELFOOT/MEDIA"),
+            _make_system("3", "Axis", group="BELFOOT/DIGITAL"),
+        ]
+        return Workspace(
+            name="Test", description="", software_systems=systems, people=[],
+            documentation=Documentation(), views=[],
+            properties={
+                "structurizr.groupSeparator": "/",
+                "group.BELFOOT/DIGITAL.description": "The shared IT department.",
+                "group.BELFOOT/MEDIA.description": "Club media.",
+            },
+            view_properties={"mkdocs.groupOrder": "BELFOOT/DIGITAL, BELFOOT/MEDIA"},
+        )
+
+    def _index(self, tmp_path) -> str:
+        _write_software_systems_index(self._workspace(), tmp_path)
+        return (tmp_path / "software-systems" / "index.md").read_text(encoding="utf-8")
+
+    def test_lists_each_group_with_description_and_count(self, tmp_path):
+        content = self._index(tmp_path)
+        assert "| Group | Description | Systems |" in content
+        assert "| [BELFOOT/DIGITAL](belfoot-digital/index.md) | The shared IT department. | 2 |" in content
+        assert "| [BELFOOT/MEDIA](belfoot-media/index.md) | Club media. | 1 |" in content
+
+    def test_group_rows_follow_group_order(self, tmp_path):
+        content = self._index(tmp_path)
+        assert content.index("BELFOOT/DIGITAL") < content.index("BELFOOT/MEDIA")
+
+    def test_no_table_when_workspace_has_no_groups(self, tmp_path):
+        ws = Workspace(
+            name="Test", description="", software_systems=[_make_system("1", "Solo")],
+            people=[], documentation=Documentation(), views=[], properties={},
+        )
+        _write_software_systems_index(ws, tmp_path)
+        content = (tmp_path / "software-systems" / "index.md").read_text(encoding="utf-8")
+        assert "| Group |" not in content

@@ -63,7 +63,7 @@ Run `structurizr-mkdocs example/ --serve` to explore it locally, or see the [liv
 
 ## Configuration
 
-Properties go under `views { properties { } }` in your DSL with the `mkdocs.*` prefix. The full reference (theme, color, navigation, behavior, site URL, copyright) lives in [`src/structurizr_mkdocs_generatr/properties.py`](src/structurizr_mkdocs_generatr/properties.py). For backward compatibility with [structurizr-site-generatr](https://github.com/avisi-cloud/structurizr-site-generatr), `generatr.*` keys are also accepted as fallbacks.
+Properties go under `views { properties { } }` in your DSL with the `mkdocs.*` prefix. The full reference (theme, color, navigation, behavior, site URL, copyright) lives in [`src/structurizr_mkdocs_generatr/properties.py`](src/structurizr_mkdocs_generatr/properties.py). Only `mkdocs.*` keys are read; a workspace migrating from [structurizr-site-generatr](https://github.com/avisi-cloud/structurizr-site-generatr) must rename its `generatr.*` keys (`generatr.style.colors.primary` becomes `mkdocs.color.primary`, `generatr.style.colors.secondary` becomes `mkdocs.color.headerText`, `generatr.style.faviconPath` becomes `mkdocs.favicon`, `generatr.style.logoPath` becomes `mkdocs.logo`).
 
 ```dsl
 views {
@@ -72,9 +72,12 @@ views {
         "mkdocs.color.primary" "#485fc7"
         "mkdocs.color.accent" "indigo"
         "mkdocs.navigation.tabs" "true"
+        "mkdocs.groupOrder" "IT, Commercial, Corporate"
     }
 }
 ```
+
+`mkdocs.groupOrder` sets the order of the group sub-sections under Software Systems; groups it doesn't name follow alphabetically. Each group's index page embeds the landscape view keyed `SystemLandscape{Group}` (e.g. `SystemLandscapeCommercial`). For a nested group such as `BELFOOT/DIGITAL`, a view named after the last segment (`SystemLandscapeDigital`) also matches, since a view key can't contain the group separator.
 
 Two opt-in features worth knowing about:
 

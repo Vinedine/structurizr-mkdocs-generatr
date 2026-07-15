@@ -417,8 +417,19 @@ def _write_software_systems_index(workspace: Workspace, docs_dir: Path, props: S
         "    - *What systems exist in our landscape and what do they do?*\n"
         "    - *Which systems are internal and which are external?*\n"
         "    - *How do our systems relate to each other at a high level?*\n"
-        "    - *Who owns or is responsible for a given system?*\n\n"
+        "    - *Which group does a system belong to?*\n\n"
     ]
+
+    groups = workspace.groups()
+    if groups:
+        lines.append("| Group | Description | Systems |\n")
+        lines.append("|---|---|---|\n")
+        for group_name in groups:
+            slug = normalize_name(group_name)
+            description = workspace.group_description(group_name)
+            count = len(workspace.systems_in_group(group_name))
+            lines.append(f"| [{group_name}]({slug}/index.md) | {description} | {count} |\n")
+        lines.append("\n")
 
     sw_view = next(
         (v for v in workspace.landscape_views()
@@ -464,7 +475,7 @@ def _write_infrastructure_pages(workspace: Workspace, docs_dir: Path) -> None:
         "    - *Where are our systems deployed in each environment?*\n"
         "    - *Which cloud providers and on-premise zones do we use?*\n"
         "    - *How does the infrastructure differ between production and lower environments?*\n"
-        "    - *What is the multi-cloud strategy and how are workloads distributed?*\n\n"
+        "    - *Which systems run on-premise and which in the cloud?*\n\n"
     ]
     lines.append("| Environment | Description | Zones |\n")
     lines.append("|---|---|---|\n")

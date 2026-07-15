@@ -1,7 +1,7 @@
 // Diagram zoom modal — used by <object>-embedded SVG diagrams (PlantUML)
 // and client-side rendered Mermaid diagrams.
 // Toolbar: zoom out / percentage / zoom in / reset / close.
-// Zoom via buttons or Ctrl+wheel; pan via the viewport's scrollbars.
+// Zoom via buttons or Ctrl+wheel; pan by dragging, the scrollbars or arrow keys.
 // NOTE: runs at script evaluation, NOT on DOMContentLoaded — Material's
 // bundle detaches Mermaid blocks before DOMContentLoaded fires, so the
 // source must be stashed synchronously while the <pre> is still in the DOM.
@@ -9,6 +9,8 @@
   var ZOOM_STEP = 1.25;
   var MIN_SCALE = 0.1;
   var MAX_SCALE = 10;
+  // Movement (px) before a mousedown counts as a pan rather than a click
+  var DRAG_THRESHOLD = 4;
 
   var ZOOM_ICON =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"' +
@@ -95,9 +97,72 @@
       zoom(ev.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP);
     }, { passive: false });
 
+    // Drag to pan. This moves the viewport's scroll position rather than covering
+    // the diagram with a drag layer, so links inside the SVG keep working: a click
+    // only counts as a drag once it passes DRAG_THRESHOLD, and only then is the
+    // click that follows suppressed.
+    var pan = null;      // {x, y, left, top} captured at mousedown, null when idle
+    var dragged = false; // set once a drag passes the threshold
+
+    function panStart(ev) {
+      if (ev.button !== 0) return;
+      pan = { x: ev.screenX, y: ev.screenY, left: viewport.scrollLeft, top: viewport.scrollTop };
+      dragged = false;
+    }
+
+    function panMove(ev) {
+      if (!pan) return;
+      // screenX/Y, not clientX/Y: events from an <object> carry coordinates in the
+      // object's own document, whose origin shifts as we scroll it. Screen
+      // coordinates are the one frame of reference that survives that.
+      var dx = ev.screenX - pan.x;
+      var dy = ev.screenY - pan.y;
+      if (!dragged && Math.abs(dx) + Math.abs(dy) < DRAG_THRESHOLD) return;
+      dragged = true;
+      viewport.classList.add("is-panning");
+      viewport.scrollLeft = pan.left - dx;
+      viewport.scrollTop = pan.top - dy;
+      ev.preventDefault(); // no text or image selection mid-drag
+    }
+
+    function panEnd() {
+      pan = null;
+      viewport.classList.remove("is-panning");
+    }
+
+    function suppressClickAfterDrag(ev) {
+      if (!dragged) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      dragged = false;
+    }
+
+    function bindPan(target) {
+      target.addEventListener("mousedown", panStart);
+      target.addEventListener("mousemove", panMove);
+      target.addEventListener("mouseup", panEnd);
+      target.addEventListener("click", suppressClickAfterDrag, true);
+    }
+
+    bindPan(viewport);
+    document.addEventListener("mouseup", panEnd); // drag released outside the modal
+
+    // Mouse events inside an <object> never leave its own document, so bind there too.
+    if (content.tagName === "OBJECT") {
+      content.addEventListener("load", function () {
+        var doc = content.contentDocument;
+        if (!doc) return; // cross-origin: fall back to scrollbars
+        bindPan(doc);
+        var style = doc.createElement("style");
+        style.textContent = "svg { cursor: grab } svg a { cursor: pointer }";
+        (doc.head || doc.documentElement).appendChild(style);
+      });
+    }
+
     function close() {
       overlay.remove();
       document.removeEventListener("keydown", keyHandler);
+      document.removeEventListener("mouseup", panEnd);
     }
 
     function keyHandler(ev) {

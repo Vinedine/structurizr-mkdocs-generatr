@@ -406,3 +406,39 @@ class TestExampleFile:
         assert example_model is not None
         relations = example_model.context_relations()
         assert len(relations) > 5
+
+
+class TestSubgraphDirectionStripped:
+    """A subgraph `direction` breaks cross-subgraph edges, so it must not survive parsing.
+
+    Mermaid ignores the direction once a node links outside the subgraph, and its
+    renderer then anchors crossing edges to the cluster border instead of the node.
+    """
+
+    def _mmd(self, tmp_path):
+        content = (
+            "flowchart TB\n\n"
+            "    %% [START.CONTEXT] [Admin]\n"
+            "    %% [DESC] Who sits where.\n\n"
+            "    subgraph Admin\n"
+            "        direction TB\n"
+            "        INSTITUTION[Institution]\n"
+            "        JOB_HOLDER[Job holder]\n"
+            "    end\n\n"
+            "    INSTITUTION[Institution] --> |employs| JOB_HOLDER[Job holder]\n\n"
+            "    %% [END.CONTEXT] [Admin]\n"
+        )
+        p = tmp_path / "boundedContext.mmd"
+        p.write_text(content, encoding="utf-8")
+        return p
+
+    def test_direction_line_removed(self, tmp_path):
+        model = parse_bounded_contexts(self._mmd(tmp_path))
+        assert "direction" not in model.contexts[0].mermaid_section
+
+    def test_subgraph_and_edges_survive(self, tmp_path):
+        model = parse_bounded_contexts(self._mmd(tmp_path))
+        section = model.contexts[0].mermaid_section
+        assert "subgraph Admin" in section
+        assert "INSTITUTION[Institution] --> |employs| JOB_HOLDER[Job holder]" in section
+        assert model.contexts[0].entities == ["INSTITUTION", "JOB_HOLDER"]
