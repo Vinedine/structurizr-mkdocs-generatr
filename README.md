@@ -113,10 +113,6 @@ pytest
 - [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) -- the theme powering the generated sites
 - [Jonas Van Riel](https://www.linkedin.com/in/jonasvanriel/) -- creator of the BelFoot FC fictional case study from [Leading with Capabilities](https://www.amazon.com/Leading-Capabilities-Capability-Based-Management-Implementation/dp/1998528227)
 
-## Built by
-
-[TrotStar Technologies](https://trotstar.tech) -- Architecture as Code, automated.
-
 ## License
 
-MIT
+[MIT](LICENSE). Copy it, adapt it, build your own.
