@@ -13,6 +13,7 @@ from structurizr_mkdocs_generatr.workspace import (
     VIEW_SYSTEM_LANDSCAPE,
     View,
     Workspace,
+    name_sort_key,
     normalize_name,
     section_slug,
     section_title,
@@ -83,6 +84,19 @@ class TestNormalizeName:
 
     def test_strips_leading_trailing_hyphens(self):
         assert normalize_name("--hello--") == "hello"
+
+
+MIXED_CASE = ["Payroll", "eBilling", "Visitor Pass", "iRoster", "Archive Hub", "eForms"]
+MIXED_CASE_SORTED = ["Archive Hub", "eBilling", "eForms", "iRoster", "Payroll", "Visitor Pass"]
+
+
+class TestNameSortKey:
+    def test_ignores_case(self):
+        assert sorted(MIXED_CASE, key=name_sort_key) == MIXED_CASE_SORTED
+
+    def test_ties_are_deterministic(self):
+        assert sorted(["api", "API"], key=name_sort_key) == ["API", "api"]
+        assert sorted(["API", "api"], key=name_sort_key) == ["API", "api"]
 
 
 class TestSectionSlugAndTitle:
@@ -165,14 +179,34 @@ class TestDependenciesForSystem:
         # Both containers talk to System B, but should deduplicate to one entry
         assert len(outbound) == 1
 
-    def test_person_inbound(self):
+    def test_person_is_not_inbound(self):
         sys_a = _make_system("1", "System A")
         person = Person(id="p1", name="User", description="", tags=[],
                         relationships=[_rel("r1", "p1", "1", "Uses", "Web")])
         ws = _make_workspace(systems=[sys_a], people=[person])
         inbound, _ = ws.dependencies_for_system("1")
-        assert len(inbound) == 1
-        assert inbound[0][1] == "User"
+        assert inbound == []
+
+    def test_person_and_system_inbound_keeps_only_system(self):
+        claims = _make_system("1", "Expense Claims")
+        hr = _make_system("2", "HR Directory", relationships=[_rel("r1", "2", "1", "Provides employee data", "REST")])
+        manager = Person(id="p1", name="Approving Manager", description="", tags=[],
+                         relationships=[_rel("r2", "p1", "1", "Approves submitted claims")])
+        clerk = Person(id="p2", name="Finance Clerk", description="", tags=[],
+                       relationships=[_rel("r3", "p2", "1", "Processes reimbursements")])
+        ws = _make_workspace(systems=[claims, hr], people=[manager, clerk])
+        inbound, _ = ws.dependencies_for_system("1")
+        assert [name for _, name, _, _ in inbound] == ["HR Directory"]
+
+    def test_sorted_case_insensitively(self):
+        others = [_make_system(str(i), name) for i, name in enumerate(MIXED_CASE, start=2)]
+        hub = _make_system("1", "Hub", relationships=[_rel(f"out{ss.id}", "1", ss.id) for ss in others])
+        for ss in others:
+            ss.relationships.append(_rel(f"in{ss.id}", ss.id, "1"))
+        ws = _make_workspace(systems=[hub, *others])
+        inbound, outbound = ws.dependencies_for_system("1")
+        assert [name for _, name, _, _ in inbound] == MIXED_CASE_SORTED
+        assert [name for _, name, _, _ in outbound] == MIXED_CASE_SORTED
 
     def test_no_dependencies(self):
         sys_a = _make_system("1", "System A")
@@ -252,6 +286,21 @@ class TestGroups:
             view_properties={"mkdocs.groupOrder": "Nope, External"},
         )
         assert ws.groups() == ["External"]
+
+    def test_unnamed_groups_sort_case_insensitively(self):
+        ws = _make_workspace(systems=[
+            _make_system("1", group="Finance"),
+            _make_system("2", group="eServices"),
+            _make_system("3", group="Academy"),
+        ])
+        assert ws.groups() == ["Academy", "eServices", "Finance"]
+
+
+class TestSystemsInGroup:
+    def test_sorted_case_insensitively(self):
+        systems = [_make_system(str(i), name, group="Ops") for i, name in enumerate(MIXED_CASE)]
+        ws = _make_workspace(systems=[*systems, _make_system("x", "Elsewhere", group="Other")])
+        assert [ss.name for ss in ws.systems_in_group("Ops")] == MIXED_CASE_SORTED
 
 
 class TestGroupLandscapeView:

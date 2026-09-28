@@ -12,6 +12,7 @@ from .workspace import (
     Documentation,
     Workspace,
     extract_zone_name,
+    name_sort_key,
     normalize_name,
     section_slug,
     section_title,
@@ -235,7 +236,7 @@ def _persons_nav(workspace: Workspace) -> list:
     if not workspace.people:
         return []
     nav: list = [{"Persons": "persons/index.md"}]
-    for person in sorted(workspace.people, key=lambda p: p.name):
+    for person in sorted(workspace.people, key=lambda p: name_sort_key(p.name)):
         slug = normalize_name(person.name)
         nav.append({person.name: f"persons/{slug}/index.md"})
     return nav
@@ -258,14 +259,14 @@ def _systems_nav(workspace: Workspace) -> list:
         # Systems without a group (ungrouped) go at the end
         ungrouped = sorted(
             [ss for ss in workspace.software_systems if not ss.group],
-            key=lambda s: s.name,
+            key=lambda s: name_sort_key(s.name),
         )
         for ss in ungrouped:
             slug = normalize_name(ss.name)
             nav.append({ss.name: f"software-systems/{slug}/index.md"})
     else:
         # No groups — flat list like before
-        for ss in sorted(workspace.software_systems, key=lambda s: s.name):
+        for ss in sorted(workspace.software_systems, key=lambda s: name_sort_key(s.name)):
             slug = normalize_name(ss.name)
             nav.append({ss.name: f"software-systems/{slug}/index.md"})
 

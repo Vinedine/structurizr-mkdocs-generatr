@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .fileutils import write_file
 from .mermaid_utils import add_mermaid_view_source
-from .workspace import SoftwareSystem, Workspace, normalize_name
+from .workspace import SoftwareSystem, Workspace, name_sort_key, normalize_name
 
 # Entity IDs in boundedContext.mmd must be UPPER_CASE with underscores
 # (e.g. ACCOUNT, LOAN_APP). camelCase or PascalCase IDs are not matched.
@@ -196,7 +196,7 @@ def parse_bounded_contexts(mmd_path: Path) -> BoundedContextModel | None:
     if not contexts:
         return None
 
-    contexts.sort(key=lambda c: c.name)
+    contexts.sort(key=lambda c: name_sort_key(c.name))
 
     return BoundedContextModel(
         contexts=contexts,
@@ -324,14 +324,14 @@ def map_contexts(model: BoundedContextModel, workspace: Workspace) -> ContextMap
                 unlinked.setdefault((label, target), set()).add(ss.name)
 
     for ctx_name in system_map:
-        system_map[ctx_name].sort(key=lambda s: s.name)
+        system_map[ctx_name].sort(key=lambda s: name_sort_key(s.name))
 
     return ContextMapping(
         system_map=system_map,
         cap_map=cap_map,
-        entity_systems={eid: sorted(names) for eid, names in entity_systems.items()},
+        entity_systems={eid: sorted(names, key=name_sort_key) for eid, names in entity_systems.items()},
         unlinked_entities=[
-            (label, target, sorted(names))
+            (label, target, sorted(names, key=name_sort_key))
             for (label, target), names in sorted(unlinked.items())
         ],
     )
@@ -533,7 +533,7 @@ def write_bounded_context_pages(
         ctx_caps = cap_map.get(ctx.name, {})
         if ctx_caps:
             lines.append("## Business Capabilities\n\n")
-            for system_name in sorted(ctx_caps):
+            for system_name in sorted(ctx_caps, key=name_sort_key):
                 lines.append(f"### {_system_link(system_name)}\n\n")
                 for cap in ctx_caps[system_name]:
                     lines.append(f"- {cap}\n")

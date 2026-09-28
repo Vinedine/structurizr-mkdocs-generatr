@@ -171,7 +171,7 @@ class Workspace:
             name = by_slug.get(normalize_name(entry))
             if name and name not in ordered:
                 ordered.append(name)
-        return ordered + sorted(names - set(ordered))
+        return ordered + sorted(names - set(ordered), key=name_sort_key)
 
     def group_description(self, group_name: str) -> str:
         """Return the description for a group from model properties (group.{name}.description)."""
@@ -181,7 +181,7 @@ class Workspace:
         """Return software systems belonging to a group, sorted by name."""
         return sorted(
             [ss for ss in self.software_systems if ss.group == group_name],
-            key=lambda s: s.name,
+            key=lambda s: name_sort_key(s.name),
         )
 
     def group_landscape_view(self, group_name: str) -> View | None:
@@ -280,6 +280,7 @@ class Workspace:
         """Return (inbound, outbound) dependencies as (element_id, name, description, technology) tuples.
 
         Deduplicates by source/target — shows system-level dependencies, not per-container.
+        Both directions list software systems only; persons are users, not dependencies.
         """
         my_ids = self._all_element_ids_for_system(system_id)
         all_rels = self._all_relationships()
@@ -297,34 +298,13 @@ class Workspace:
                     outbound[target_ss.id] = (target_ss.id, target_ss.name, rel.description, rel.technology)
             elif dst_in and not src_in:
                 source_ss = self.system_for_element_id(rel.source_id)
-                if source_ss:
-                    if source_ss.id not in inbound:
-                        inbound[source_ss.id] = (source_ss.id, source_ss.name, rel.description, rel.technology)
-                else:
-                    # Could be a person
-                    name = self.find_element_name_by_id(rel.source_id)
-                    if name and rel.source_id not in inbound:
-                        inbound[rel.source_id] = (rel.source_id, name, rel.description, rel.technology)
+                if source_ss and source_ss.id not in inbound:
+                    inbound[source_ss.id] = (source_ss.id, source_ss.name, rel.description, rel.technology)
 
         return (
-            sorted(inbound.values(), key=lambda x: x[1]),
-            sorted(outbound.values(), key=lambda x: x[1]),
+            sorted(inbound.values(), key=lambda x: name_sort_key(x[1])),
+            sorted(outbound.values(), key=lambda x: name_sort_key(x[1])),
         )
-
-    def find_element_name_by_id(self, element_id: str) -> str | None:
-        for p in self.people:
-            if p.id == element_id:
-                return p.name
-        for ss in self.software_systems:
-            if ss.id == element_id:
-                return ss.name
-            for c in ss.containers:
-                if c.id == element_id:
-                    return c.name
-                for comp in c.components:
-                    if comp.id == element_id:
-                        return comp.name
-        return None
 
     def deployment_environments(self) -> list[str]:
         """Return unique environment names from deployment views, ordered by convention."""
@@ -533,6 +513,14 @@ def parse_workspace(workspace_json: Path) -> Workspace:
 def normalize_name(name: str) -> str:
     """Convert a name to a URL-safe directory name."""
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def name_sort_key(name: str) -> tuple[str, str]:
+    """Sort key for display names: case-insensitive, so ``eBilling`` sorts before ``Payroll``.
+
+    The name itself breaks ties, which keeps the order deterministic.
+    """
+    return (name.casefold(), name)
 
 
 def _canon(name: str) -> str:

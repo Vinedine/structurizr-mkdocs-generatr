@@ -89,6 +89,17 @@ class TestParsing:
         names = [c.name for c in model.contexts]
         assert names == ["Alpha", "Beta"]
 
+    def test_contexts_sorted_case_insensitively(self, tmp_path: Path) -> None:
+        blocks = [
+            f"%% [START.CONTEXT] [{name}]\nsubgraph {name}\n{eid}[Thing]\nend\n%% [END.CONTEXT] [{name}]\n"
+            for name, eid in [("Payments", "P1"), ("eCommerce", "E1"), ("Accounts", "A1")]
+        ]
+        p = tmp_path / "boundedContext.mmd"
+        p.write_text("flowchart TB\n" + "\n".join(blocks), encoding="utf-8")
+        m = parse_bounded_contexts(p)
+        assert m is not None
+        assert [c.name for c in m.contexts] == ["Accounts", "eCommerce", "Payments"]
+
     def test_extracts_entities(self, model: BoundedContextModel) -> None:
         alpha = model.contexts[0]
         assert alpha.entities == ["A1", "A2"]
@@ -241,6 +252,16 @@ class TestSystemMapping:
         )
         mapping = map_contexts(model, ws)
         assert mapping.entity_systems["A2"] == ["Label System"]
+
+    def test_systems_sorted_case_insensitively(self, model: BoundedContextModel) -> None:
+        intro_content = "# Bounded Context\n- [Alpha](/bounded-contexts/)\n"
+        systems =[self._make_system(name, intro_content) for name in ["Payroll", "eBilling", "Archive Hub"]]
+        ws = Workspace(
+            name="Test", description="", software_systems=systems,
+            people=[], documentation=Documentation(), views=[], properties={},
+        )
+        mapping = map_contexts(model, ws)
+        assert [ss.name for ss in mapping.system_map["Alpha"]] == ["Archive Hub", "eBilling", "Payroll"]
 
     def test_click_urls_parsed(self, model: BoundedContextModel) -> None:
         assert model.entity_urls["A1"] == "https://conf.example/a1"
