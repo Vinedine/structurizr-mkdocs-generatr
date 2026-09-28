@@ -76,7 +76,7 @@ Apply the rules from Step 2 to the changes from Step 1:
 ### DSL Definitions
 For each new/modified software system or container:
 - **Naming conventions (variable)** — variable follows `softwareSystem<Name>` or `container<Name>` in camelCase
-- **Container display-name prefix (ERROR if violated)** — every container's display name MUST begin with the parent software system's display name followed by a space. Examples of valid: system `"Primo"` → `"Primo Alma"`, `"Primo Discovery"`; system `"M-Files"` → `"M-Files Server"`. Examples of invalid: a container inside system `"Primo"` named `"Alma"` or `"Primo"` alone — raise an error asking the user to re-prefix the name. The variable and the display name must match (spaces removed, first letter after `container` lowercased).
+- **Container display-name prefix (ERROR if violated)** — every container's display name MUST begin with the parent software system's display name followed by a space. Examples of valid: system `"Salesforce CRM"` → `"Salesforce CRM Lightning"`, `"Salesforce CRM REST API"`; system `"Ticketing Platform"` → `"Ticketing Platform API"`. Examples of invalid: a container inside system `"Salesforce CRM"` named `"Lightning"` or `"Salesforce CRM"` alone — raise an error asking the user to re-prefix the name. The variable and the display name must match (spaces removed, first letter after `container` lowercased).
 - **Required properties** — check which properties existing peers have (ID fields, Repository, etc.)
 - **Container types** — type is valid per the canonical reference
 - **Relationship protocols** — all relationships include protocol
