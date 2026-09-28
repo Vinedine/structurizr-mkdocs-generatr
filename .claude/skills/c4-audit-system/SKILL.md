@@ -39,8 +39,8 @@ When the user provides a software system name (or you infer it from context):
    - **Capture each container's display name and variable name** — you will use these for the naming-compliance check below
 
 2. **Naming-compliance check (drift detection)** — for each container in this system, verify:
-   - The container's display name begins with the parent software system's display name followed by a space (e.g., system `"Primo"` must have containers named `"Primo Alma"`, `"Primo Discovery"`, NOT bare `"Alma"` / `"Primo"`).
-   - The variable name equals the display name with spaces removed and the first letter after `container` lowercased (e.g., `"Primo Discovery"` → `containerPrimoDiscovery`).
+   - The container's display name begins with the parent software system's display name followed by a space (e.g., system `"Salesforce CRM"` must have containers named `"Salesforce CRM Lightning"`, `"Salesforce CRM REST API"`, NOT bare `"Lightning"` / `"Salesforce"`).
+   - The variable name equals the display name with spaces removed and the first letter after `container` lowercased (e.g., `"Salesforce CRM Lightning"` → `containerSalesforceCrmLightning`).
 
    Record any violations as **Naming Drift** findings and include them in the Step 3 report. Do not auto-fix here — suggest the rename to the user in Step 4 instead, since renames require coordinated updates across views, deployments, and cross-system relationships.
 
