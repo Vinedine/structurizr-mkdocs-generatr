@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from structurizr_mkdocs_generatr.markdown_writer import (
     _abs_link_targets,
+    _build_dependencies_tab,
     _bump_headings,
     _element_tag_badges,
     _extract_description_paragraph,
@@ -16,22 +17,31 @@ from structurizr_mkdocs_generatr.markdown_writer import (
     _rewrite_asset_paths,
     _rewrite_decision_links,
     _strip_description_section,
+    _write_persons_index,
     _write_software_systems_index,
 )
 from structurizr_mkdocs_generatr.mermaid_utils import add_mermaid_view_source as _add_mermaid_view_source
 from structurizr_mkdocs_generatr.workspace import (
     Documentation,
+    Person,
+    Relationship,
     Section,
     SoftwareSystem,
     Workspace,
 )
 
 
-def _make_system(id: str, name: str, group: str | None = None) -> SoftwareSystem:
+def _make_system(
+    id: str, name: str, group: str | None = None, relationships: list[Relationship] | None = None,
+) -> SoftwareSystem:
     return SoftwareSystem(
         id=id, name=name, description="", group=group, tags=[], url=None,
-        containers=[], relationships=[], documentation=Documentation(), properties={},
+        containers=[], relationships=relationships or [], documentation=Documentation(), properties={},
     )
+
+
+def _rel(id: str, src: str, dst: str, desc: str = "") -> Relationship:
+    return Relationship(id=id, source_id=src, destination_id=dst, description=desc, technology="")
 
 
 def _make_workspace_with_docs() -> Workspace:
@@ -381,3 +391,41 @@ class TestSoftwareSystemsIndex:
         _write_software_systems_index(ws, tmp_path)
         content = (tmp_path / "software-systems" / "index.md").read_text(encoding="utf-8")
         assert "| Group |" not in content
+
+
+class TestPersonsIndex:
+    def test_rows_are_case_insensitive(self, tmp_path):
+        people = [
+            Person(id=f"p{i}", name=n, description="", tags=[], relationships=[])
+            for i, n in enumerate(["Visitor", "eLearning Admin", "Approver"])
+        ]
+        ws = Workspace(
+            name="Test", description="", software_systems=[], people=people,
+            documentation=Documentation(), views=[], properties={},
+        )
+        _write_persons_index(ws, tmp_path)
+        content = (tmp_path / "persons" / "index.md").read_text(encoding="utf-8")
+        assert content.index("[Approver]") < content.index("[eLearning Admin]") < content.index("[Visitor]")
+
+
+class TestDependenciesTab:
+    def _workspace(self, with_system_inbound: bool) -> Workspace:
+        systems = [_make_system("1", "Expense Claims")]
+        if with_system_inbound:
+            systems.append(_make_system("2", "HR Directory", relationships=[_rel("r1", "2", "1", "Provides data")]))
+        clerk = Person(id="p1", name="Finance Clerk", description="", tags=[],
+                       relationships=[_rel("r2", "p1", "1", "Processes reimbursements")])
+        return Workspace(
+            name="Test", description="", software_systems=systems, people=[clerk],
+            documentation=Documentation(), views=[], properties={},
+        )
+
+    def test_inbound_lists_systems_not_persons(self):
+        ws = self._workspace(with_system_inbound=True)
+        tab = _build_dependencies_tab(ws, ws.software_systems[0])
+        assert "[HR Directory](../hr-directory/index.md)" in tab
+        assert "Finance Clerk" not in tab
+
+    def test_no_tab_when_only_persons_use_the_system(self):
+        ws = self._workspace(with_system_inbound=False)
+        assert _build_dependencies_tab(ws, ws.software_systems[0]) is None

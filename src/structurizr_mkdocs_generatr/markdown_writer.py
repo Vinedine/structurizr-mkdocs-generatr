@@ -32,6 +32,7 @@ from .workspace import (
     Workspace,
     View,
     extract_zone_name,
+    name_sort_key,
     normalize_name,
     opening_heading,
     section_filename_title,
@@ -380,7 +381,7 @@ def _write_persons_index(workspace: Workspace, docs_dir: Path) -> None:
     ]
     lines.append("| Name | Description | Software Systems |\n")
     lines.append("|---|---|---|\n")
-    for person in sorted(workspace.people, key=lambda p: p.name):
+    for person in sorted(workspace.people, key=lambda p: name_sort_key(p.name)):
         slug = normalize_name(person.name)
         system_ids = {
             ss.id
@@ -394,7 +395,7 @@ def _write_persons_index(workspace: Workspace, docs_dir: Path) -> None:
 
 
 def _write_person_pages(workspace: Workspace, docs_dir: Path) -> None:
-    for person in sorted(workspace.people, key=lambda p: p.name):
+    for person in sorted(workspace.people, key=lambda p: name_sort_key(p.name)):
         slug = normalize_name(person.name)
         user_dir = docs_dir / "persons" / slug
 
@@ -645,8 +646,8 @@ def _build_dependencies_tab(
     if inbound:
         dep_lines.append("| System | Description | Technology |\n")
         dep_lines.append("|---|---|---|\n")
-        for element_id, name, desc, tech in inbound:
-            link = _dep_link(workspace, name, element_id)
+        for _, name, desc, tech in inbound:
+            link = _dep_link(name)
             dep_lines.append(f"| {link} | {desc} | {tech} |\n")
     else:
         dep_lines.append("No inbound dependencies.\n")
@@ -655,8 +656,8 @@ def _build_dependencies_tab(
     if outbound:
         dep_lines.append("| System | Description | Technology |\n")
         dep_lines.append("|---|---|---|\n")
-        for element_id, name, desc, tech in outbound:
-            link = _dep_link(workspace, name, element_id)
+        for _, name, desc, tech in outbound:
+            link = _dep_link(name)
             dep_lines.append(f"| {link} | {desc} | {tech} |\n")
     else:
         dep_lines.append("No outbound dependencies.\n")
@@ -750,13 +751,9 @@ def _rewrite_bc_links(content: str, bc_model: BoundedContextModel) -> str:
     return content
 
 
-def _dep_link(workspace: Workspace, name: str, element_id: str) -> str:
-    """Create a markdown link for a dependency target — system or person."""
-    slug = normalize_name(name)
-    for p in workspace.people:
-        if p.id == element_id:
-            return f"[{name}](../../persons/{slug}/index.md)"
-    return f"[{name}](../{slug}/index.md)"
+def _dep_link(name: str) -> str:
+    """Create a markdown link to a dependency's software system page."""
+    return f"[{name}](../{normalize_name(name)}/index.md)"
 
 
 def _append_decisions(decisions: list[Decision], lines: list[str]) -> None:
