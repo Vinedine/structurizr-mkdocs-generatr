@@ -32,14 +32,20 @@ Then detect the includes-directory layout (`workspace-includes/` or `workspace/`
 
 ## Step 1: Identify What Changed
 
-Run these git commands to understand the branch diff against `main` (or `master`):
+The change is everything on this branch that `main` (or `master`) does not have, **committed or not**. Validation usually runs before the commit, so uncommitted edits (staged or not) and new untracked files are part of it:
 
 ```bash
-git diff main..HEAD --stat 2>/dev/null || git diff master..HEAD --stat
-git diff main..HEAD 2>/dev/null || git diff master..HEAD
+base=$(git merge-base HEAD main 2>/dev/null || git merge-base HEAD master)
+git diff "$base" --stat                     # branch commits plus uncommitted edits, against the working tree
+git diff "$base"
+git ls-files --others --exclude-standard    # new files not yet added: read each one in full
 ```
 
-From the diff output:
+- **Diff from the merge base, never `main..HEAD`.** `git diff main..HEAD` misses every uncommitted edit, and once `main` has moved on it also shows main's newer commits as reversed changes on the branch.
+- **Untracked files are new files.** A new system's `0000-introduction.md` is often untracked until the first commit; treat each one as fully added.
+- **Record the baseline for the report:** the merge-base commit, and how many files are committed on the branch, uncommitted, and untracked.
+
+From the diff output, plus the untracked files:
 
 1. **Categorize changed files** into:
    - **DSL definitions** — files under `<includes-dir>/groups/`
@@ -142,6 +148,8 @@ For each **new or modified container** found in Step 1:
 
 ```markdown
 # Branch Validation Report: `<branch-name>`
+
+**Baseline:** `<merge-base sha>` (merge base with `main`) against the working tree: <N> files committed on the branch, <M> uncommitted, <K> untracked
 
 ## Errors (must fix)
 - **[E001]** <description> — `<file>:<line>` — Rule: <source document and section>

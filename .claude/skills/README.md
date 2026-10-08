@@ -58,7 +58,7 @@ If you're already inside this repo's clone, the skills are picked up automatical
 
 - **Claude Code.** The skills are invoked through the Claude Code CLI, desktop app, web app, or IDE extension.
 - **For the code-linked skills** (`c4-document-system`, `c4-audit-system`, `c4-review`): the containers in your DSL should have a `"Repository"` property with the Git URL. The skills prefer local clones under `~/Code/`, `~/source/`, or `~/repos/`; otherwise they fall back to a Git-host MCP if available (Azure DevOps or GitHub), and last resort ask you to clone locally.
-- **For `c4-validate-changes`**: a Git branch with diffs against `main` or `master`.
+- **For `c4-validate-changes`**: a Git branch that diverges from `main` or `master`. Uncommitted and untracked changes on it are validated too, so it can run before the commit.
 
 ## How they discover your repo
 
