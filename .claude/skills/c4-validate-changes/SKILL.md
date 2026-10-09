@@ -87,6 +87,7 @@ For each new/modified software system or container:
 - **Container types** — type is valid per the canonical reference
 - **Relationship protocols** — all relationships include protocol
 - **Authentication strings** — auth relationships use exact strings from the canonical reference
+- **One relationship per source and destination (WARNING)**: a changed `this -> X` line whose source already declares another relationship to the same destination. Several lines for one pair ("Launch special authorisations", "Launch meeting authorisations", ...) draw several arrows at container level, and at system level the implied relationship keeps only one of their descriptions, so the others vanish from the diagram. Propose one line with a combined description and the shared protocol. Check the whole source element, not only the `+` lines: the repeat is often an existing line next to a new one
 - **User interaction rules** — user relationships only on UI-facing container types
 - **`!docs` path** — path is correct relative to DSL file, target folder exists (check case sensitivity)
 - **Description** — system/container has a non-empty description
