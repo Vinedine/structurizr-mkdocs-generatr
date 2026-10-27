@@ -14,7 +14,7 @@ Node.js ticketing service backed by PostgreSQL with a React portal front-end. Tw
 - CORS: `https://tickets.belfoot.com` and `https://tickets-acc.belfoot.com` are the only allowed origins; credentials are disabled (token flows through `Authorization` header).
 - Stripe and Salesforce CRM outbound calls use service-principal client-credentials flow; secrets are pulled at startup from Azure Key Vault `kv-belfoot-ticketing`.
 
-## Ticketing Portal
+## Ticketing Platform Portal
 
 React single-page app (Vite, TypeScript). Deployed to Azure Static Web Apps with the API as its linked backend. Major routes:
 
@@ -24,7 +24,7 @@ React single-page app (Vite, TypeScript). Deployed to Azure Static Web Apps with
 - `/season-pass` — season-pass dashboard for subscribers
 - `/admin` — agent allocation console (role-gated)
 
-## Ticketing Database
+## Ticketing Platform Database
 
 Azure Database for PostgreSQL (v15). Key tables:
 
@@ -60,7 +60,7 @@ If Stripe fails, the pending row stays in `ticket` with `status=failed` for 24h 
 
 # API Reference
 
-## Ticketing API
+## Ticketing Platform API
 
 Node.js/Express service exposing ticket and season-pass operations. Runs on Azure App Service (S1 in acceptance, P1v3 in production) with horizontal scale-out enabled.
 

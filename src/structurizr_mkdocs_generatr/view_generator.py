@@ -13,12 +13,13 @@ from pathlib import Path
 
 import click
 
+from .workspace import fold_accents
+
 # ---------------------------------------------------------------------------
 # Shared regex patterns
 # ---------------------------------------------------------------------------
 
 _PERSON_RE = re.compile(r'(\w+)\s*=\s*person\s+"([^"]+)"')
-_GROUP_RE = re.compile(r'(\w+)\s*=\s*group\s+"([^"]+)"')
 _GROUP_OPT_VAR_RE = re.compile(r'(?:(\w+)\s*=\s*)?group\s+"([^"]+)"')
 _SYSTEM_RE = re.compile(r'(\w+)\s*=\s*softwareSystem\s+"([^"]+)"')
 _SYSTEM_CI_RE = re.compile(r'(\w+)\s*=\s*softwareSystem\s+"([^"]+)"', re.IGNORECASE)
@@ -140,9 +141,38 @@ def _extract_brace_body(text: str, search_start: int) -> str | None:
 
 def _display_to_var(display_name: str, prefix: str) -> str:
     """Convert display name to camelCase var: 'Big Bank plc' + 'group' → 'groupBigBankPlc'."""
-    words = re.split(r"[^a-zA-Z0-9]+", display_name)
+    words = re.split(r"[^a-zA-Z0-9]+", fold_accents(display_name))
     words = [w for w in words if w]
     return prefix + "".join(w.capitalize() for w in words)
+
+
+def _key_part(display_name: str) -> str:
+    """Reduce a display name to the characters a view key allows: ``HR (Payroll)`` -> ``HRPayroll``."""
+    return re.sub(r"[^A-Za-z0-9]", "", fold_accents(display_name))
+
+
+def _group_separator(dsl_text: str) -> str:
+    m = re.search(r'"structurizr\.groupSeparator"\s+"([^"]+)"', dsl_text)
+    return m.group(1) if m else "/"
+
+
+def _flatten_groups(var_name: str, name: str, body: str, separator: str) -> list[tuple[str, str, str]]:
+    """Return (var_name, full_name, own_body) for a group and every group nested in it.
+
+    own_body leaves out the nested groups' blocks, so each system lands in exactly
+    one group, the innermost, which is also the group Structurizr assigns it.
+    """
+    own_body = body
+    nested: list[tuple[str, str, str]] = []
+    for pre_brace, inner_body, full in _extract_top_level_blocks(body):
+        gm = _GROUP_OPT_VAR_RE.match(pre_brace)
+        if not gm:
+            continue
+        own_body = own_body.replace(full, "", 1)
+        inner_name = f"{name}{separator}{gm.group(2)}"
+        inner_var = gm.group(1) or _display_to_var(inner_name, "group")
+        nested.extend(_flatten_groups(inner_var, inner_name, inner_body, separator))
+    return [(var_name, name, own_body), *nested]
 
 
 def _find_includes_dir(workspace_dir: Path, workspace_file: str = "workspace.dsl") -> Path | None:
@@ -182,7 +212,7 @@ def _parse_users(workspace_dir: Path, includes_dir: Path | None = None) -> list[
     return [DslUser(var_name=m.group(1), display_name=m.group(2)) for m in _PERSON_RE.finditer(text)]
 
 
-def _parse_groups(workspace_dir: Path, includes_dir: Path | None = None) -> list[DslGroup]:
+def _parse_groups(workspace_dir: Path, includes_dir: Path | None = None, separator: str = "/") -> list[DslGroup]:
     """Parse group, software system, container, and user interaction data."""
     if includes_dir is None:
         includes_dir = _find_includes_dir(workspace_dir)
@@ -199,38 +229,40 @@ def _parse_groups(workspace_dir: Path, includes_dir: Path | None = None) -> list
         blocks = _extract_top_level_blocks(text)
 
         for pre_brace, body, _ in blocks:
-            gm = _GROUP_RE.search(pre_brace)
+            gm = _GROUP_OPT_VAR_RE.match(pre_brace)
             if not gm:
                 continue
 
-            group = DslGroup(var_name=gm.group(1), display_name=gm.group(2))
+            var_name = gm.group(1) or _display_to_var(gm.group(2), "group")
+            for group_var, group_name, own_body in _flatten_groups(var_name, gm.group(2), body, separator):
+                group = DslGroup(var_name=group_var, display_name=group_name)
 
-            # Parse software systems within group body
-            system_blocks = _extract_top_level_blocks(body)
-            for sys_pre, sys_body, _ in system_blocks:
-                sm = _SYSTEM_RE.search(sys_pre)
-                if not sm:
-                    continue
+                # Parse software systems within group body
+                system_blocks = _extract_top_level_blocks(own_body)
+                for sys_pre, sys_body, _ in system_blocks:
+                    sm = _SYSTEM_RE.search(sys_pre)
+                    if not sm:
+                        continue
 
-                has_containers = bool(_CONTAINER_KW_RE.search(sys_body))
+                    has_containers = bool(_CONTAINER_KW_RE.search(sys_body))
 
-                # Collect user interactions from entire system body
-                user_vars: set[str] = set()
-                for m in _USER_TO_THIS_RE.finditer(sys_body):
-                    user_vars.add(m.group(1))
-                for m in _THIS_TO_USER_RE.finditer(sys_body):
-                    user_vars.add(m.group(1))
+                    # Collect user interactions from entire system body
+                    user_vars: set[str] = set()
+                    for m in _USER_TO_THIS_RE.finditer(sys_body):
+                        user_vars.add(m.group(1))
+                    for m in _THIS_TO_USER_RE.finditer(sys_body):
+                        user_vars.add(m.group(1))
 
-                system = DslSoftwareSystem(
-                    var_name=sm.group(1),
-                    display_name=sm.group(2),
-                    group_name=group.display_name,
-                    has_containers=has_containers,
-                    user_var_names=sorted(user_vars),
-                )
-                group.systems.append(system)
+                    system = DslSoftwareSystem(
+                        var_name=sm.group(1),
+                        display_name=sm.group(2),
+                        group_name=group.display_name,
+                        has_containers=has_containers,
+                        user_var_names=sorted(user_vars),
+                    )
+                    group.systems.append(system)
 
-            groups.append(group)
+                groups.append(group)
 
     return groups
 
@@ -396,8 +428,12 @@ def _generate_landscape_views(
             group_user_vars.update(s.user_var_names)
 
         include_items = sys_vars + sorted(group_user_vars)
-        if include_items:
-            key = f"SystemLandscape{group.display_name.replace(' ', '')}"
+        key_part = _key_part(group.display_name)
+        if include_items and not key_part:
+            click.echo(f"  Warning: no landscape view for group '{group.display_name}', "
+                       "its name has no letters A-Z or digits for a view key", err=True)
+        if include_items and key_part:
+            key = f"SystemLandscape{key_part}"
             lines.append(f"# [auto-generated] {group.display_name} group landscape")
             title = f"System Landscape - {group.display_name}"
             lines.append(_view_block("systemlandscape", None, key, " ".join(include_items), title))
@@ -414,8 +450,8 @@ def _generate_landscape_views(
 
     for user in users:
         sys_vars = sorted(user_to_systems.get(user.var_name, set()))
+        short = _key_part(user.display_name) or _short_name(user.var_name, "user")
         if sys_vars:
-            short = user.display_name.replace(" ", "")
             key = f"SystemLandscapeUser{short}"
             lines.append(f"# [auto-generated] {user.display_name} landscape")
             includes = f"{user.var_name} {' '.join(sys_vars)}"
@@ -495,7 +531,7 @@ def _generate_deployment_views(
     for env in envs:
         env_short = _short_name(env.var_name, "deployment").capitalize()
         if env_short == env.var_name:
-            env_short = env.display_name.replace(" ", "")
+            env_short = _key_part(env.display_name)
 
         # Use quoted display name when no DSL variable was assigned
         env_ref = env.var_name if env.has_var_name else f'"{env.display_name}"'
@@ -504,9 +540,9 @@ def _generate_deployment_views(
         for zone in env.zones:
             zone_short = _short_name(zone.var_name, f"deploymentNode{env_short}")
             if not zone_short or zone_short == zone.var_name:
-                zone_short = zone.display_name.replace(" ", "")
+                zone_short = _key_part(zone.display_name)
             key = f"Deployment{env_short}{zone_short}"
-            lines.append(f"# [auto-generated] {env.display_name} — {zone.display_name}")
+            lines.append(f"# [auto-generated] {env.display_name} - {zone.display_name}")
             title = f"Deployment - {env.display_name} - {zone.display_name}"
             lines.append(_deployment_view_block(None, env_ref, key, zone.var_name, title))
             keys.append(key)
@@ -554,44 +590,45 @@ def _parse_monolithic_dsl(
     users = [DslUser(m.group(1), m.group(2)) for m in _PERSON_RE.finditer(model_body)]
 
     # --- Groups & Systems ---
+    separator = _group_separator(text)
     groups: list[DslGroup] = []
-    for gm in _GROUP_OPT_VAR_RE.finditer(model_body):
-        var_name = gm.group(1) or _display_to_var(gm.group(2), "group")
-        display_name = gm.group(2)
-        group_body = _extract_brace_body(model_body, gm.start())
-        if not group_body:
+    for pre_brace, top_body, _ in _extract_top_level_blocks(model_body):
+        gm = _GROUP_OPT_VAR_RE.match(pre_brace)
+        if not gm:
             continue
+        top_var = gm.group(1) or _display_to_var(gm.group(2), "group")
 
-        group = DslGroup(var_name=var_name, display_name=display_name)
+        for var_name, display_name, group_body in _flatten_groups(top_var, gm.group(2), top_body, separator):
+            group = DslGroup(var_name=var_name, display_name=display_name)
 
-        # Systems with brace blocks (have containers/components)
-        sys_blocks = _extract_top_level_blocks(group_body)
-        seen_vars: set[str] = set()
-        for sys_pre, sys_body, _ in sys_blocks:
-            sm = _SYSTEM_CI_RE.search(sys_pre)
-            if not sm:
-                continue
-            has_containers = bool(_CONTAINER_KW_ML_RE.search(sys_body))
-            system = DslSoftwareSystem(
-                var_name=sm.group(1),
-                display_name=sm.group(2),
-                group_name=display_name,
-                has_containers=has_containers,
-            )
-            group.systems.append(system)
-            seen_vars.add(sm.group(1))
-
-        # Systems without brace blocks (single-line definitions)
-        for sm in _SYSTEM_CI_RE.finditer(group_body):
-            if sm.group(1) not in seen_vars:
-                group.systems.append(DslSoftwareSystem(
+            # Systems with brace blocks (have containers/components)
+            sys_blocks = _extract_top_level_blocks(group_body)
+            seen_vars: set[str] = set()
+            for sys_pre, sys_body, _ in sys_blocks:
+                sm = _SYSTEM_CI_RE.search(sys_pre)
+                if not sm:
+                    continue
+                has_containers = bool(_CONTAINER_KW_ML_RE.search(sys_body))
+                system = DslSoftwareSystem(
                     var_name=sm.group(1),
                     display_name=sm.group(2),
                     group_name=display_name,
-                    has_containers=False,
-                ))
+                    has_containers=has_containers,
+                )
+                group.systems.append(system)
+                seen_vars.add(sm.group(1))
 
-        groups.append(group)
+            # Systems without brace blocks (single-line definitions)
+            for sm in _SYSTEM_CI_RE.finditer(group_body):
+                if sm.group(1) not in seen_vars:
+                    group.systems.append(DslSoftwareSystem(
+                        var_name=sm.group(1),
+                        display_name=sm.group(2),
+                        group_name=display_name,
+                        has_containers=False,
+                    ))
+
+            groups.append(group)
 
     # --- User ↔ System relationships ---
     user_vars = {u.var_name for u in users}
@@ -705,7 +742,7 @@ def _filter_views(section_text: str, view_keys: list[str], existing_keys: set[st
         result_lines.append(line)
 
     for key in conflicts:
-        click.echo(f"  Warning: skipping auto-generated view '{key}' — already defined in hand-written DSL", err=True)
+        click.echo(f"  Warning: skipping auto-generated view '{key}' - already defined in hand-written DSL", err=True)
 
     return "\n".join(result_lines)
 
@@ -721,8 +758,10 @@ def generate_views(workspace_dir: Path, workspace_file: str = "workspace.dsl") -
     Tries workspace-includes/ structure first, falls back to monolithic DSL.
     """
     includes_dir = _find_includes_dir(workspace_dir, workspace_file)
+    dsl_path = workspace_dir / workspace_file
+    separator = _group_separator(dsl_path.read_text(encoding="utf-8")) if dsl_path.exists() else "/"
     users = _parse_users(workspace_dir, includes_dir)
-    groups = _parse_groups(workspace_dir, includes_dir)
+    groups = _parse_groups(workspace_dir, includes_dir, separator)
     envs = _parse_deployments(workspace_dir, includes_dir)
     _resolve_deployed_systems(envs, groups)
 
@@ -731,7 +770,7 @@ def generate_views(workspace_dir: Path, workspace_file: str = "workspace.dsl") -
         users, groups, envs = _parse_monolithic_dsl(workspace_dir, workspace_file)
 
     if not users and not groups and not envs:
-        click.echo("  No DSL sources found — skipping view generation.", err=True)
+        click.echo("  No DSL sources found - skipping view generation.", err=True)
         return None
 
     views_dir = (includes_dir or workspace_dir / "workspace-includes") / "views"
@@ -744,7 +783,7 @@ def generate_views(workspace_dir: Path, workspace_file: str = "workspace.dsl") -
 
     header = (
         "# ============================================================\n"
-        "# AUTO-GENERATED VIEWS — DO NOT EDIT\n"
+        "# AUTO-GENERATED VIEWS - DO NOT EDIT\n"
         "# Generated by structurizr-mkdocs-generatr\n"
         "# Re-run the CLI to regenerate. Hand-written views in other\n"
         "# files take priority (matching keys are skipped).\n"

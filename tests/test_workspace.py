@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import json
+
 from structurizr_mkdocs_generatr.workspace import (
     Component,
     Container,
+    Decision,
     Documentation,
     Person,
     Relationship,
@@ -13,8 +16,11 @@ from structurizr_mkdocs_generatr.workspace import (
     VIEW_SYSTEM_LANDSCAPE,
     View,
     Workspace,
+    decision_sort_key,
     name_sort_key,
     normalize_name,
+    page_collisions,
+    parse_workspace,
     section_slug,
     section_title,
 )
@@ -342,3 +348,66 @@ class TestGroupLandscapeView:
             views=[_landscape_view("SystemLandscapeDigital")], properties=NESTED,
         )
         assert ws.group_landscape_view("BELFOOT/ACADEMY") is None
+
+
+class TestNormalizeNameUnicode:
+    def test_strips_accents(self):
+        assert normalize_name("Système de Paie") == "systeme-de-paie"
+
+    def test_keeps_non_latin_letters(self):
+        assert normalize_name("Платежи") == "платежи"
+
+    def test_dotted_capital_i(self):
+        assert normalize_name("İstanbul") == "istanbul"
+
+
+def test_group_landscape_view_matches_accented_group():
+    ws = _make_workspace(
+        systems=[_make_system("1", group="Contrôle")],
+        views=[_landscape_view("SystemLandscapeControle")],
+    )
+    assert ws.group_landscape_view("Contrôle").key == "SystemLandscapeControle"
+
+
+def test_decision_sort_key_orders_numbers_then_names():
+    ids = ["10", "2", "20240101-use-x", "1", "0003-adopt-y"]
+    decisions = [Decision(id=i, date="", status="", title="", content="", format="") for i in ids]
+    assert [d.id for d in sorted(decisions, key=decision_sort_key)] == [
+        "1", "2", "10", "0003-adopt-y", "20240101-use-x",
+    ]
+
+
+class TestPageCollisions:
+    def test_none_for_distinct_names(self):
+        ws = _make_workspace(systems=[_make_system("1", "Billing", group="Finance")])
+        assert page_collisions(ws) == []
+
+    def test_group_and_system_with_one_name(self):
+        ws = _make_workspace(systems=[_make_system("1", "Payments", group="Payments")])
+        problems = page_collisions(ws)
+        assert len(problems) == 1
+        assert "software-systems/payments/" in problems[0]
+        assert "group 'Payments'" in problems[0] and "software system 'Payments'" in problems[0]
+
+    def test_names_that_differ_only_in_punctuation(self):
+        ws = _make_workspace(systems=[_make_system("1", "Order API"), _make_system("2", "Order-API")])
+        assert len(page_collisions(ws)) == 1
+
+    def test_name_without_letters_or_digits(self):
+        ws = _make_workspace(people=[Person(id="p", name="???", description="", tags=[])])
+        assert page_collisions(ws) == ["person '???' has no letters or digits to build a page URL from"]
+
+    def test_context_named_index(self):
+        ws = _make_workspace()
+        problems = page_collisions(ws, ["Index"])
+        assert len(problems) == 1
+        assert "capability-map/index.md" in problems[0]
+
+
+def test_component_views_belong_to_the_system_of_their_container(tmp_path):
+    model = {"softwareSystems": [{"id": "1", "name": "Cash", "containers": [{"id": "2", "name": "Cash API"}]}]}
+    views = {"componentViews": [{"key": "ComponentCash", "containerId": "2"}]}
+    path = tmp_path / "workspace.json"
+    path.write_text(json.dumps({"name": "T", "model": model, "views": views}), encoding="utf-8")
+    ws = parse_workspace(path)
+    assert [v.key for v in ws.views_for_system("1")] == ["ComponentCash"]

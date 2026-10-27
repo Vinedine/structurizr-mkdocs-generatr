@@ -25,7 +25,7 @@ flowchart LR
     ```dsl
     softwareSystemPlayerPerformance = softwareSystem "Player Performance" "Training analytics, GPS tracking, and match statistics" {
 
-        containerPlayerPerformanceDatabase = container "Performance Database" "Training sessions, GPS data, match statistics, and fitness scores" "PostgreSQL" "DATASET" {
+        containerPlayerPerformanceDatabase = container "Player Performance Database" "Training sessions, GPS data, match statistics, and fitness scores" "PostgreSQL" "DATASET" {
         }
 
         containerPlayerPerformanceApi = container "Player Performance API" "Training data ingestion, analytics, and performance reporting" "Python" "SERVICE" {
@@ -35,7 +35,7 @@ flowchart LR
             this -> containerPlayerPerformanceDatabase "Manage data" "SQL/TCP"
         }
 
-        containerPlayerPerformanceDashboard = container "Performance Dashboard" "Visual analytics for player fitness, load management, and match performance" "Power BI" "DASHBOARD" {
+        containerPlayerPerformanceDashboard = container "Player Performance Dashboard" "Visual analytics for player fitness, load management, and match performance" "Power BI" "DASHBOARD" {
             userHeadCoach -> this "Review player performance and set training plans"
             this -> containerPlayerPerformanceApi "Get performance data" "JSON/HTTPS"
         }

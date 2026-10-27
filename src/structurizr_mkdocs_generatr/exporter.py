@@ -5,8 +5,9 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
-import sys
 from pathlib import Path
+
+import click
 
 from .workspace import (
     VIEW_COMPONENT,
@@ -22,11 +23,11 @@ from .workspace import (
 _LOCAL_STRUCTURIZR_CLI = Path("/opt/structurizr-cli/structurizr.sh")
 _LOCAL_PLANTUML_JAR = Path("/opt/plantuml.jar")
 
-# Pinned Docker image tags — bump deliberately after testing.
+# Pinned Docker image tags - bump deliberately after testing.
 # `:latest` has regressed validation behaviour (e.g. `structurizr/structurizr:2026.04.19`
 # tightened dynamic-view relationship checks and broke previously-valid DSL).
 # Structurizr image tags are date-based (YYYY.MM.DD) and independent of the CLI
-# version in the Dockerfile ARG — they cannot be kept in sync automatically.
+# version in the Dockerfile ARG - they cannot be kept in sync automatically.
 _STRUCTURIZR_IMAGE = "structurizr/structurizr:2026.03.06"
 _PLANTUML_IMAGE = "plantuml/plantuml:1.2026.2"
 
@@ -37,12 +38,16 @@ def has_local_tools() -> bool:
 
 
 def _run(args: list[str], label: str) -> None:
-    print(f"  {label}...")
-    result = subprocess.run(args, capture_output=True, text=True)
+    click.echo(f"  {label}...")
+    try:
+        result = subprocess.run(args, capture_output=True, text=True)
+    except FileNotFoundError:
+        hint = " Install Docker and make sure it is running." if args[0] == "docker" else ""
+        raise click.ClickException(f"{label} failed: '{args[0]}' was not found.{hint}") from None
     if result.returncode != 0:
-        print(f"  ERROR: {label} failed", file=sys.stderr)
-        print(result.stderr, file=sys.stderr)
-        raise RuntimeError(f"{label} failed with exit code {result.returncode}")
+        # Structurizr reports DSL errors on stdout, Docker reports its own on stderr.
+        output = "\n".join(s.strip() for s in (result.stdout, result.stderr) if s and s.strip())
+        raise click.ClickException(f"{label} failed with exit code {result.returncode}.\n{output}".rstrip())
 
 
 def export_workspace(
@@ -121,7 +126,7 @@ def _export_docker(
         "Exporting workspace JSON",
     )
 
-    # Copy JSON output to our build dir (copy, not move — Docker creates
+    # Copy JSON output to our build dir (copy, not move - Docker creates
     # root-owned files that cannot be unlinked by the runner user in CI)
     src_json_dir = workspace_dir / "output-json"
     shutil.copy2(src_json_dir / "workspace.json", json_dir / "workspace.json")
@@ -153,7 +158,7 @@ def render_diagrams(puml_dir: Path, svg_dir: Path) -> None:
 
     puml_files = list(puml_dir.glob("*.puml"))
     if not puml_files:
-        print("  No PlantUML files to render.")
+        click.echo("  No PlantUML files to render.")
         return
 
     label = f"Rendering {len(puml_files)} diagrams to SVG"
@@ -240,10 +245,10 @@ def _build_element_url_map(
     urls: dict[str, str] = {}
     for person in workspace.people:
         slug = normalize_name(person.name)
-        urls[person.name] = f"../persons/{slug}/"
+        urls[person.name] = f"../persons/{slug}/index.html"
     for ss in workspace.software_systems:
         ss_slug = normalize_name(ss.name)
-        base = f"../software-systems/{ss_slug}/"
+        base = f"../software-systems/{ss_slug}/index.html"
         anchor = _drill_down_anchor(ss.id, view_type, subject_system_id, available)
         urls[ss.name] = f"{base}{anchor}"
         for c in ss.containers:
@@ -260,7 +265,8 @@ def _build_element_url_map(
     return urls
 
 
-_ELEMENT_NAME_RE = re.compile(r'\(\w+,\s*"([^"]+)"')
+# Containers and components carry dotted ids in the export: Container(System.Api, "Api", ...)
+_ELEMENT_NAME_RE = re.compile(r'\([\w.]+,\s*"([^"]+)"')
 _LINK_RE = re.compile(r'\$link="[^"]*"')
 
 

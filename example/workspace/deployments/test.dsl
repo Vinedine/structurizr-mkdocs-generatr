@@ -9,7 +9,7 @@ deploymentTest = deploymentEnvironment "Test" {
                 deploymentNode "app-services-tst" "" "Azure App Service (B2)" {
                     containerInstance containerTicketingPlatformApi
                     containerInstance containerWebStoreApi
-                    containerInstance containerFanEngagementApi
+                    containerInstance containerFanEngagementPlatformApi
                     containerInstance containerSponsorshipPortalApi
                     containerInstance containerCashlessPaymentApi
                     containerInstance containerLogisticsPlannerApi
@@ -25,25 +25,25 @@ deploymentTest = deploymentEnvironment "Test" {
                     containerInstance containerMarketingPlatformApi
                     containerInstance containerClubWebsiteCms
                     containerInstance containerStrategyPortalApi
-                    containerInstance containerExternalRelationsApi
+                    containerInstance containerExternalRelationsPortalApi
                 }
 
                 deploymentNode "swa-tst" "" "Azure Static Web Apps (Free)" {
-                    containerInstance containerTicketingPlatformUi
-                    containerInstance containerWebStoreUi
-                    containerInstance containerSponsorshipPortalUi
-                    containerInstance containerFanEngagementApp
+                    containerInstance containerTicketingPlatformPortal
+                    containerInstance containerWebStoreStorefront
+                    containerInstance containerSponsorshipPortalWebApp
+                    containerInstance containerFanEngagementPlatformMobileApp
                     containerInstance containerCashlessPaymentApp
-                    containerInstance containerLogisticsPlannerUi
-                    containerInstance containerStadiumManagementUi
-                    containerInstance containerHrPortalUi
-                    containerInstance containerComplianceManagerUi
+                    containerInstance containerLogisticsPlannerPortal
+                    containerInstance containerStadiumManagementOperationsDashboard
+                    containerInstance containerHrPortalWebApp
+                    containerInstance containerComplianceManagerPortal
                     containerInstance containerMatchdayOperationsUi
                     containerInstance containerProductDevelopmentUi
-                    containerInstance containerMarketingPlatformUi
-                    containerInstance containerClubWebsiteUi
-                    containerInstance containerStrategyPortalUi
-                    containerInstance containerExternalRelationsUi
+                    containerInstance containerMarketingPlatformPortal
+                    containerInstance containerClubWebsiteFrontend
+                    containerInstance containerStrategyPortalWebApp
+                    containerInstance containerExternalRelationsPortalWebApp
                     containerInstance containerMedicalRecordsUi
                     containerInstance containerYouthAcademyUi
                     containerInstance containerPlayerPerformanceDashboard
@@ -65,11 +65,11 @@ deploymentTest = deploymentEnvironment "Test" {
                     containerInstance containerMarketingPlatformDatabase
                     containerInstance containerClubWebsiteDatabase
                     containerInstance containerStrategyPortalDatabase
-                    containerInstance containerExternalRelationsDatabase
+                    containerInstance containerExternalRelationsPortalDatabase
                 }
 
                 deploymentNode "cosmos-tst" "" "Azure Cosmos DB (Serverless)" {
-                    containerInstance containerFanEngagementDatabase
+                    containerInstance containerFanEngagementPlatformDatabase
                 }
 
                 deploymentNode "sb-tst" "" "Azure Service Bus (Standard)" {
@@ -85,16 +85,16 @@ deploymentTest = deploymentEnvironment "Test" {
                 }
 
                 deploymentNode "pbi-tst" "" "Power BI Service (Pro)" {
-                    containerInstance containerDataPlatformDashboard
+                    containerInstance containerDataPlatformBiDashboard
                 }
 
                 deploymentNode "ai-foundry-tst" "" "Azure AI Foundry (Basic)" {
                     containerInstance containerAzureAiFoundryStudio
-                    containerInstance containerAzureAiFoundryApi
+                    containerInstance containerAzureAiFoundryInferenceApi
                 }
 
                 deploymentNode "entra-id-tst" "" "Microsoft Entra ID" {
-                    containerInstance containerEntraIdApi
+                    containerInstance containerMicrosoftEntraIdApi
                 }
             }
         }

@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
 
 from structurizr_mkdocs_generatr.view_generator import (
+    DslDeploymentEnvironment,
+    DslDeploymentZone,
+    DslGroup,
+    DslSoftwareSystem,
+    DslUser,
     _generate_container_views,
     _generate_deployment_views,
     _generate_landscape_views,
@@ -393,3 +399,104 @@ workspace "Test" {
 
         # Clean up
         result.unlink()
+
+
+# ---------------------------------------------------------------------------
+# Nested groups and view keys
+# ---------------------------------------------------------------------------
+
+NESTED_MONOLITHIC = (
+    "workspace {\n"
+    "    model {\n"
+    "        properties {\n"
+    '            "structurizr.groupSeparator" "/"\n'
+    "        }\n"
+    '        group "Outer" {\n'
+    '            api = softwareSystem "API"\n'
+    '            group "Inner" {\n'
+    '                web = softwareSystem "Web" {\n'
+    '                    webApp = container "Web App"\n'
+    "                }\n"
+    "            }\n"
+    "        }\n"
+    "    }\n"
+    "}\n"
+)
+
+
+def _systems_by_group(groups: list[DslGroup]) -> dict[str, list[str]]:
+    return {g.display_name: [s.var_name for s in g.systems] for g in groups}
+
+
+class TestNestedGroups:
+    def test_monolithic_system_belongs_to_innermost_group(self, tmp_path: Path) -> None:
+        (tmp_path / "workspace.dsl").write_text(NESTED_MONOLITHIC, encoding="utf-8")
+        _, groups, _ = _parse_monolithic_dsl(tmp_path)
+        assert _systems_by_group(groups) == {"Outer": ["api"], "Outer/Inner": ["web"]}
+
+    def test_monolithic_view_keys_are_unique(self, tmp_path: Path) -> None:
+        (tmp_path / "workspace.dsl").write_text(NESTED_MONOLITHIC, encoding="utf-8")
+        text = generate_views(tmp_path).read_text(encoding="utf-8")
+        keys = re.findall(r'"(\w+)" \{', text)
+        assert len(keys) == len(set(keys))
+        assert {"SystemContextWeb", "ContainerWeb", "SystemLandscapeOuterInner"} <= set(keys)
+
+    def test_custom_separator(self, tmp_path: Path) -> None:
+        dsl = NESTED_MONOLITHIC.replace('"structurizr.groupSeparator" "/"', '"structurizr.groupSeparator" "|"')
+        (tmp_path / "workspace.dsl").write_text(dsl, encoding="utf-8")
+        _, groups, _ = _parse_monolithic_dsl(tmp_path)
+        assert "Outer|Inner" in _systems_by_group(groups)
+
+    def test_container_groups_are_not_system_groups(self, tmp_path: Path) -> None:
+        dsl = NESTED_MONOLITHIC.replace(
+            'webApp = container "Web App"',
+            'group "Frontend" {\n                        webApp = container "Web App"\n                    }',
+        )
+        (tmp_path / "workspace.dsl").write_text(dsl, encoding="utf-8")
+        _, groups, _ = _parse_monolithic_dsl(tmp_path)
+        assert _systems_by_group(groups) == {"Outer": ["api"], "Outer/Inner": ["web"]}
+
+    def test_modular_nested_group_systems_are_parsed(self, tmp_path: Path) -> None:
+        groups_dir = tmp_path / "workspace-includes" / "groups"
+        groups_dir.mkdir(parents=True)
+        (groups_dir / "outer.dsl").write_text(
+            'groupOuter = group "Outer" {\n'
+            '    softwareSystemApi = softwareSystem "API" {\n'
+            "    }\n"
+            '    groupInner = group "Inner" {\n'
+            '        softwareSystemWeb = softwareSystem "Web" {\n'
+            '            containerWebApp = container "Web App" {\n'
+            "            }\n"
+            "        }\n"
+            "    }\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        groups = _parse_groups(tmp_path)
+        assert _systems_by_group(groups) == {"Outer": ["softwareSystemApi"], "Outer/Inner": ["softwareSystemWeb"]}
+        assert groups[1].systems[0].has_containers
+
+
+class TestViewKeys:
+    def test_keys_drop_punctuation_and_accents(self) -> None:
+        system = DslSoftwareSystem("softwareSystemPay", "Pay", "Finance & Contrôle", False, ["userHr"])
+        users = [DslUser("userHr", "HR (Payroll)")]
+        groups = [DslGroup("groupFinance", "Finance & Contrôle", systems=[system])]
+        _, keys = _generate_landscape_views(users, groups)
+        assert "SystemLandscapeFinanceControle" in keys
+        assert "SystemLandscapeUserHRPayroll" in keys
+
+    def test_name_without_latin_letters_gets_no_view(self) -> None:
+        system = DslSoftwareSystem("softwareSystemPay", "Pay", "Платежи", False)
+        groups = [DslGroup("groupPay", "Платежи", systems=[system])]
+        _, keys = _generate_landscape_views([], groups)
+        assert keys.count("SystemLandscape") == 1
+        assert all(re.fullmatch(r"[A-Za-z0-9]+", k) for k in keys), keys
+
+    def test_deployment_keys_drop_punctuation(self) -> None:
+        env = DslDeploymentEnvironment(
+            var_name="Prod", display_name="Production (EU)",
+            zones=[DslDeploymentZone("Zone", "Azure / West")],
+        )
+        _, keys = _generate_deployment_views([env])
+        assert keys == ["DeploymentProductionEUAzureWest"]

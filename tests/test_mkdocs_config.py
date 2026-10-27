@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from structurizr_mkdocs_generatr.mkdocs_config import _persons_nav, _systems_nav
+from structurizr_mkdocs_generatr.mkdocs_config import _decisions_nav, _persons_nav, _systems_nav
 from structurizr_mkdocs_generatr.workspace import (
+    Decision,
     Documentation,
     Person,
     SoftwareSystem,
@@ -63,3 +64,12 @@ class TestPersonsNav:
             for i, n in enumerate(["Visitor", "eLearning Admin", "Approver"])
         ]
         assert _titles(_persons_nav(_make_workspace(people=people))) == ["Approver", "eLearning Admin", "Visitor"]
+
+
+def test_decisions_nav_accepts_non_numeric_ids():
+    decisions = [
+        Decision(id=i, date="", status="", title=f"T{i}", content="", format="")
+        for i in ["10", "use-x", "2"]
+    ]
+    nav = _decisions_nav(Documentation(decisions=decisions), "adrs")
+    assert [next(iter(entry.values())) for entry in nav[1:]] == ["adrs/2.md", "adrs/10.md", "adrs/use-x.md"]

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from structurizr_mkdocs_generatr.markdown_writer import (
     _abs_link_targets,
+    _append_decisions,
     _build_dependencies_tab,
     _bump_headings,
     _element_tag_badges,
@@ -22,6 +23,7 @@ from structurizr_mkdocs_generatr.markdown_writer import (
 )
 from structurizr_mkdocs_generatr.mermaid_utils import add_mermaid_view_source as _add_mermaid_view_source
 from structurizr_mkdocs_generatr.workspace import (
+    Decision,
     Documentation,
     Person,
     Relationship,
@@ -429,3 +431,30 @@ class TestDependenciesTab:
     def test_no_tab_when_only_persons_use_the_system(self):
         ws = self._workspace(with_system_inbound=False)
         assert _build_dependencies_tab(ws, ws.software_systems[0]) is None
+
+
+class TestInlineBlocksInTabs:
+    def test_puml_image_keeps_the_tab_indent(self, tmp_path):
+        content = '=== "Technical"\n\n    ```puml\n    @startuml\n    A -> B\n    @enduml\n    ```\n\n    After\n'
+        out = _extract_puml_blocks(content, tmp_path, "../diagrams/")
+        assert "    ![Diagram](../diagrams/inline-1.svg)" in out.split("\n")
+        assert (tmp_path / "inline-1.puml").read_text(encoding="utf-8") == "@startuml\nA -> B\n@enduml"
+
+    def test_mermaid_source_keeps_the_tab_indent(self):
+        content = '=== "Flow"\n\n    ```mermaid\n    graph TD\n      A --> B\n    ```\n\n    After\n'
+        lines = _add_mermaid_view_source(content, True).split("\n")
+        assert '    ??? info "View Source"' in lines
+        assert "        ```text" in lines
+        assert "          A --> B" in lines
+        assert "    After" in lines
+
+
+def test_decisions_with_non_numeric_ids():
+    decisions = [
+        Decision(id=i, date="", status="Accepted", title=f"T{i}", content="", format="Markdown")
+        for i in ["10", "use-x", "2"]
+    ]
+    lines: list[str] = []
+    _append_decisions(decisions, lines)
+    rows = [line for line in lines if line.startswith("| ") and not line.startswith("| ID")]
+    assert [row.split(" | ")[0].removeprefix("| ") for row in rows] == ["2", "10", "use-x"]

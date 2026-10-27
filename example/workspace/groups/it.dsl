@@ -4,7 +4,7 @@ groupIt = group "IT" {
 
         !docs ../../software-system-docs/it/microsoftEntraId
 
-        containerEntraIdApi = container "Entra ID API" "OAuth 2.0 / OpenID Connect authentication and authorization endpoints" "Microsoft Entra ID" "CLOUD_RESOURCE" {
+        containerMicrosoftEntraIdApi = container "Microsoft Entra ID API" "OAuth 2.0 / OpenID Connect authentication and authorization endpoints" "Microsoft Entra ID" "CLOUD_RESOURCE" {
         }
     }
 
@@ -16,7 +16,7 @@ groupIt = group "IT" {
             userDataAnalyst -> this "Run notebooks and queries"
         }
 
-        containerDatabricksUnityCatalog = container "Unity Catalog" "Centralized data governance and lakehouse storage" "Delta Lake" "DATASET" {
+        containerDatabricksUnityCatalog = container "Databricks Unity Catalog" "Centralized data governance and lakehouse storage" "Delta Lake" "DATASET" {
         }
 
         containerDatabricksWorkspace -> containerDatabricksUnityCatalog "Read and write data" "SQL/TCP"
@@ -26,14 +26,14 @@ groupIt = group "IT" {
 
         !docs ../../software-system-docs/it/azureAiFoundry
 
-        containerAzureAiFoundryStudio = container "AI Foundry Studio" "Model management and experimentation UI" "Azure AI" "CLOUD_RESOURCE" {
+        containerAzureAiFoundryStudio = container "Azure AI Foundry Studio" "Model management and experimentation UI" "Azure AI" "CLOUD_RESOURCE" {
             userDataAnalyst -> this "Train and evaluate models"
         }
 
-        containerAzureAiFoundryApi = container "AI Foundry Inference API" "Real-time model inference endpoints" "Azure AI" "CLOUD_RESOURCE" {
+        containerAzureAiFoundryInferenceApi = container "Azure AI Foundry Inference API" "Real-time model inference endpoints" "Azure AI" "CLOUD_RESOURCE" {
         }
 
-        containerAzureAiFoundryStudio -> containerAzureAiFoundryApi "Deploy and test models" "JSON/HTTPS"
+        containerAzureAiFoundryStudio -> containerAzureAiFoundryInferenceApi "Deploy and test models" "JSON/HTTPS"
     }
 
     softwareSystemIntegrationPlatform = softwareSystem "Integration Platform" "Event-driven integration backbone for cross-system messaging" "Shared" {
@@ -46,7 +46,7 @@ groupIt = group "IT" {
             }
         }
 
-        containerIntegrationPlatformServiceBus = container "Azure Service Bus" "Topics and subscriptions for event-driven messaging" "Azure Service Bus" "CLOUD_RESOURCE" {
+        containerIntegrationPlatformServiceBus = container "Integration Platform Service Bus" "Topics and subscriptions for event-driven messaging" "Azure Service Bus" "CLOUD_RESOURCE" {
             userItArchitect -> this "Monitor message queues and dead-letter queues"
         }
 
@@ -60,15 +60,15 @@ groupIt = group "IT" {
         containerDataPlatformEtl = container "Data Platform ETL" "Extract, transform, and load pipelines for all operational data" "Azure Data Factory" "DATA_PIPELINE" {
         }
 
-        containerDataPlatformLakehouse = container "Data Lakehouse" "Curated data products for business intelligence and analytics" "Databricks" "DATA_PRODUCT" {
+        containerDataPlatformLakehouse = container "Data Platform Lakehouse" "Curated data products for business intelligence and analytics" "Databricks" "DATA_PRODUCT" {
         }
 
-        containerDataPlatformDashboard = container "Business Intelligence Dashboard" "KPI reporting and executive analytics" "Power BI" "DASHBOARD" {
+        containerDataPlatformBiDashboard = container "Data Platform BI Dashboard" "KPI reporting and executive analytics" "Power BI" "DASHBOARD" {
             userFinanceController -> this "View financial and operational KPIs"
             userDataAnalyst -> this "Create and manage reports"
         }
 
         containerDataPlatformEtl -> containerDataPlatformLakehouse "Load transformed data" "SQL/TCP"
-        containerDataPlatformLakehouse -> containerDataPlatformDashboard "Provide curated data" "SQL/TCP"
+        containerDataPlatformLakehouse -> containerDataPlatformBiDashboard "Provide curated data" "SQL/TCP"
     }
 }

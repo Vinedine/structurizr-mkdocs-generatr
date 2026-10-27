@@ -69,7 +69,7 @@ class TestBoundedContexts:
 
 
 # ---------------------------------------------------------------------------
-# View generator — modular DSL parsing
+# View generator - modular DSL parsing
 # ---------------------------------------------------------------------------
 
 
@@ -109,7 +109,7 @@ class TestModularDslParsing:
 
 
 # ---------------------------------------------------------------------------
-# Properties — BelFoot workspace properties
+# Properties - BelFoot workspace properties
 # ---------------------------------------------------------------------------
 
 

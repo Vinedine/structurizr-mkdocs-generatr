@@ -1,6 +1,6 @@
 # structurizr-mkdocs-generatr
 
-> Early POC. Breaking changes likely. Pin a Docker image tag if you depend on it.
+[![CI](https://github.com/Vinedine/structurizr-mkdocs-generatr/actions/workflows/ci.yml/badge.svg)](https://github.com/Vinedine/structurizr-mkdocs-generatr/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/Vinedine/structurizr-mkdocs-generatr)](https://github.com/Vinedine/structurizr-mkdocs-generatr/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 **Architecture documentation shouldn't be a side project. It should be a side effect.**
 
@@ -42,7 +42,7 @@ For development or running without Docker: clone the repo and `pip install -e .`
 
 ## Install the skills
 
-The Docker image runs the generator. The skills are separate files Claude Code reads from disk, so you need them on your machine too -- own it openly:
+The Docker image runs the generator. The skills are separate files Claude Code reads from disk, so you need them on your machine too:
 
 ```bash
 # Global install (recommended): available in every Claude Code session
@@ -95,6 +95,12 @@ workspace.dsl
   -> [mkdocs build]             Static site
 ```
 
+## Versioning
+
+Stable since 1.0.0. Releases follow [semantic versioning](https://semver.org/): the CLI options, the `mkdocs.*` properties and the URL layout of the generated site change incompatibly only in a new major version. The bundled skills are versioned with the repo.
+
+Docker images are tagged `X.Y.Z`, `X.Y`, `X`, and `latest`. Pin `X` in CI to get fixes and new features without breaking changes, or `X.Y` for fixes only. See the [releases](https://github.com/Vinedine/structurizr-mkdocs-generatr/releases) for what changed.
+
 ## Contributing
 
 Contributions welcome. Open an issue first to discuss.
@@ -102,7 +108,8 @@ Contributions welcome. Open an issue first to discuss.
 ```bash
 git clone https://github.com/Vinedine/structurizr-mkdocs-generatr.git
 cd structurizr-mkdocs-generatr
-pip install -e .
+pip install -e ".[dev]"
+ruff check .
 pytest
 ```
 

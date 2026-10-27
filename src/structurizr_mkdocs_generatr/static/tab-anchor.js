@@ -1,6 +1,6 @@
 // Make anchor navigation work for headings inside pymdownx tabbed content.
 // The right-hand TOC lists headings from every tab, but a heading in an
-// inactive tab is display:none — clicking its TOC link did nothing. This
+// inactive tab is display:none - clicking its TOC link did nothing. This
 // activates the tab containing the target before the browser scrolls to it.
 document.addEventListener("DOMContentLoaded", function () {
   function activateTabsFor(el) {

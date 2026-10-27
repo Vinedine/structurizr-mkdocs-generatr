@@ -9,7 +9,7 @@ deploymentAcceptance = deploymentEnvironment "Acceptance" {
                 deploymentNode "app-services-acc" "" "Azure App Service (S1)" {
                     containerInstance containerTicketingPlatformApi
                     containerInstance containerWebStoreApi
-                    containerInstance containerFanEngagementApi
+                    containerInstance containerFanEngagementPlatformApi
                     containerInstance containerSponsorshipPortalApi
                     containerInstance containerCashlessPaymentApi
                     containerInstance containerLogisticsPlannerApi
@@ -25,25 +25,25 @@ deploymentAcceptance = deploymentEnvironment "Acceptance" {
                     containerInstance containerMarketingPlatformApi
                     containerInstance containerClubWebsiteCms
                     containerInstance containerStrategyPortalApi
-                    containerInstance containerExternalRelationsApi
+                    containerInstance containerExternalRelationsPortalApi
                 }
 
                 deploymentNode "swa-acc" "" "Azure Static Web Apps (Standard)" {
-                    containerInstance containerTicketingPlatformUi
-                    containerInstance containerWebStoreUi
-                    containerInstance containerSponsorshipPortalUi
-                    containerInstance containerFanEngagementApp
+                    containerInstance containerTicketingPlatformPortal
+                    containerInstance containerWebStoreStorefront
+                    containerInstance containerSponsorshipPortalWebApp
+                    containerInstance containerFanEngagementPlatformMobileApp
                     containerInstance containerCashlessPaymentApp
-                    containerInstance containerLogisticsPlannerUi
-                    containerInstance containerStadiumManagementUi
-                    containerInstance containerHrPortalUi
-                    containerInstance containerComplianceManagerUi
+                    containerInstance containerLogisticsPlannerPortal
+                    containerInstance containerStadiumManagementOperationsDashboard
+                    containerInstance containerHrPortalWebApp
+                    containerInstance containerComplianceManagerPortal
                     containerInstance containerMatchdayOperationsUi
                     containerInstance containerProductDevelopmentUi
-                    containerInstance containerMarketingPlatformUi
-                    containerInstance containerClubWebsiteUi
-                    containerInstance containerStrategyPortalUi
-                    containerInstance containerExternalRelationsUi
+                    containerInstance containerMarketingPlatformPortal
+                    containerInstance containerClubWebsiteFrontend
+                    containerInstance containerStrategyPortalWebApp
+                    containerInstance containerExternalRelationsPortalWebApp
                     containerInstance containerMedicalRecordsUi
                     containerInstance containerYouthAcademyUi
                     containerInstance containerPlayerPerformanceDashboard
@@ -65,11 +65,11 @@ deploymentAcceptance = deploymentEnvironment "Acceptance" {
                     containerInstance containerMarketingPlatformDatabase
                     containerInstance containerClubWebsiteDatabase
                     containerInstance containerStrategyPortalDatabase
-                    containerInstance containerExternalRelationsDatabase
+                    containerInstance containerExternalRelationsPortalDatabase
                 }
 
                 deploymentNode "cosmos-acc" "" "Azure Cosmos DB (Provisioned)" {
-                    containerInstance containerFanEngagementDatabase
+                    containerInstance containerFanEngagementPlatformDatabase
                 }
 
                 deploymentNode "sb-acc" "" "Azure Service Bus (Standard)" {
@@ -85,16 +85,16 @@ deploymentAcceptance = deploymentEnvironment "Acceptance" {
                 }
 
                 deploymentNode "pbi-acc" "" "Power BI Service (Premium Per User)" {
-                    containerInstance containerDataPlatformDashboard
+                    containerInstance containerDataPlatformBiDashboard
                 }
 
                 deploymentNode "ai-foundry-acc" "" "Azure AI Foundry (Standard)" {
                     containerInstance containerAzureAiFoundryStudio
-                    containerInstance containerAzureAiFoundryApi
+                    containerInstance containerAzureAiFoundryInferenceApi
                 }
 
                 deploymentNode "entra-id-acc" "" "Microsoft Entra ID" {
-                    containerInstance containerEntraIdApi
+                    containerInstance containerMicrosoftEntraIdApi
                 }
             }
         }

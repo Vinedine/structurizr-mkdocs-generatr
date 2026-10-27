@@ -26,11 +26,11 @@ from .workspace import (
     VIEW_IMAGE,
     VIEW_SYSTEM_CONTEXT,
     Decision,
-    Documentation,
     Section,
     SoftwareSystem,
     Workspace,
     View,
+    decision_sort_key,
     extract_zone_name,
     name_sort_key,
     normalize_name,
@@ -238,7 +238,7 @@ def _write_workspace_decisions(
     ]
     lines.append("| ID | Date | Status | Title | Context |\n")
     lines.append("|---|---|---|---|---|\n")
-    for d in sorted(decisions, key=lambda d: int(d.id)):
+    for d in sorted(decisions, key=decision_sort_key):
         date = d.date[:10] if d.date else ""
         context = _extract_decision_context(d.content)
         lines.append(f"| {d.id} | {date} | {d.status} | [{d.title}]({d.id}.md) | {context} |\n")
@@ -521,11 +521,11 @@ def _write_infrastructure_pages(workspace: Workspace, docs_dir: Path) -> None:
                 zone_lines.append(f"{_diagram_embed(v, '../../diagrams/')}\n\n")
                 _write_file(env_dir / f"{zone_slug}.md", "".join(zone_lines))
         else:
-            # No zone-level views — description only
+            # No zone-level views - description only
             _write_file(env_dir / "index.md", "".join(env_lines))
 
 
-# Tags that are structural / implicit — not shown as badges
+# Tags that are structural / implicit - not shown as badges
 _HIDDEN_TAGS = {"Element", "Software System", "Person", "Container", "Component"}
 
 
@@ -760,7 +760,7 @@ def _append_decisions(decisions: list[Decision], lines: list[str]) -> None:
     lines.append("## Architecture Decision Records\n\n")
     lines.append("| ID | Date | Status | Title | Context |\n")
     lines.append("|---|---|---|---|---|\n")
-    sorted_decisions = sorted(decisions, key=lambda d: int(d.id))
+    sorted_decisions = sorted(decisions, key=decision_sort_key)
     for d in sorted_decisions:
         date = d.date[:10] if d.date else ""
         context = _extract_decision_context(d.content)
@@ -827,7 +827,7 @@ def _promote_headings(content: str) -> str:
     Workspace docs written for the old generator start with ``## Title``;
     without an H1 MkDocs Material inserts the nav title above the content,
     duplicating the heading. Only applies when the first non-blank line is a
-    heading (the doc-title pattern) — docs opening with prose or admonitions
+    heading (the doc-title pattern) - docs opening with prose or admonitions
     are left alone. Anchor slugs derive from heading text only, so shifting
     levels keeps anchors stable.
     """
@@ -896,6 +896,8 @@ def _extract_puml_blocks(content: str, puml_dir: Path, diagrams_prefix: str, cou
         stripped = line.strip()
         if not in_puml and stripped == "```puml":
             in_puml = True
+            # Inside a tab the block is indented; the image must keep that indent to stay in the tab.
+            indent = line[: len(line) - len(line.lstrip())]
             puml_lines = []
             continue
         if in_puml:
@@ -904,10 +906,10 @@ def _extract_puml_blocks(content: str, puml_dir: Path, diagrams_prefix: str, cou
                 name = f"inline-{counter[0]}"
                 puml_file = puml_dir / f"{name}.puml"
                 puml_file.write_text("\n".join(puml_lines), encoding="utf-8")
-                result.append(f"![Diagram]({diagrams_prefix}{name}.svg)")
+                result.append(f"{indent}![Diagram]({diagrams_prefix}{name}.svg)")
                 in_puml = False
             else:
-                puml_lines.append(line)
+                puml_lines.append(line.removeprefix(indent))
             continue
 
         result.append(line)

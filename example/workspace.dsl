@@ -38,7 +38,7 @@ workspace "BelFoot FC Digital Architecture" "BelFoot FC Digital Architecture —
         // Cross-group relationships: Commercial
         // ============================================================
 
-        containerTicketingPlatformApi -> containerSalesforceCrmApi "Sync customer data on ticket purchase" "JSON/HTTPS"
+        containerTicketingPlatformApi -> containerSalesforceCrmRestApi "Sync customer data on ticket purchase" "JSON/HTTPS"
         containerTicketingPlatformApi -> containerStripeApi "Process ticket payments" "JSON/HTTPS"
         containerTicketingPlatformApi -> containerIntegrationPlatformServiceBus "Publish ticket purchase events" "AMQP/TCP"
 
@@ -46,14 +46,14 @@ workspace "BelFoot FC Digital Architecture" "BelFoot FC Digital Architecture —
         containerWebStoreApi -> containerSapS4HanaApi "Sync inventory and orders" "JSON/HTTPS"
         containerWebStoreApi -> containerIntegrationPlatformServiceBus "Publish order events" "AMQP/TCP"
 
-        containerSponsorshipPortalApi -> containerSalesforceCrmApi "Sync sponsor contacts" "JSON/HTTPS"
+        containerSponsorshipPortalApi -> containerSalesforceCrmRestApi "Sync sponsor contacts" "JSON/HTTPS"
 
-        containerFanEngagementApi -> containerSalesforceCrmApi "Get fan profile data" "JSON/HTTPS"
-        containerFanEngagementApi -> containerTicketingPlatformApi "Get ticket purchase history" "JSON/HTTPS"
+        containerFanEngagementPlatformApi -> containerSalesforceCrmRestApi "Get fan profile data" "JSON/HTTPS"
+        containerFanEngagementPlatformApi -> containerTicketingPlatformApi "Get ticket purchase history" "JSON/HTTPS"
 
-        containerMarketingPlatformApi -> containerSalesforceCrmApi "Get customer and account data" "JSON/HTTPS"
+        containerMarketingPlatformApi -> containerSalesforceCrmRestApi "Get customer and account data" "JSON/HTTPS"
         containerMarketingPlatformApi -> containerSponsorshipPortalApi "Get sponsor and campaign data" "JSON/HTTPS"
-        containerMarketingPlatformApi -> containerFanEngagementApi "Target fan segments for campaigns" "JSON/HTTPS"
+        containerMarketingPlatformApi -> containerFanEngagementPlatformApi "Target fan segments for campaigns" "JSON/HTTPS"
 
         containerProductDevelopmentApi -> containerWebStoreApi "Publish new products" "JSON/HTTPS"
         containerProductDevelopmentApi -> containerTicketingPlatformApi "Publish ticket products" "JSON/HTTPS"
@@ -65,19 +65,19 @@ workspace "BelFoot FC Digital Architecture" "BelFoot FC Digital Architecture —
         containerCashlessPaymentApi -> containerStripeApi "Process in-stadium payments" "JSON/HTTPS"
         containerCashlessPaymentApi -> containerIntegrationPlatformServiceBus "Publish transaction events" "AMQP/TCP"
 
-        containerStadiumManagementApi -> containerAzureAiFoundryApi "Predict crowd density from sensor data" "JSON/HTTPS"
+        containerStadiumManagementApi -> containerAzureAiFoundryInferenceApi "Predict crowd density from sensor data" "JSON/HTTPS"
 
         containerLogisticsPlannerApi -> containerSapS4HanaApi "Manage purchase orders and supplier data" "JSON/HTTPS"
 
         containerMatchdayOperationsApi -> containerStadiumManagementApi "Get venue and zone data" "JSON/HTTPS"
         containerMatchdayOperationsApi -> containerTicketingPlatformApi "Get event and ticket data" "JSON/HTTPS"
-        containerMatchdayOperationsApi -> containerAzureAiFoundryApi "Predict crowd density for safety planning" "JSON/HTTPS"
+        containerMatchdayOperationsApi -> containerAzureAiFoundryInferenceApi "Predict crowd density for safety planning" "JSON/HTTPS"
 
         // ============================================================
         // Cross-group relationships: Sporting
         // ============================================================
 
-        containerPlayerPerformanceApi -> containerAzureAiFoundryApi "Run injury risk prediction models" "JSON/HTTPS"
+        containerPlayerPerformanceApi -> containerAzureAiFoundryInferenceApi "Run injury risk prediction models" "JSON/HTTPS"
         containerPlayerPerformanceApi -> containerDatabricksWorkspace "Store and query training data" "JSON/HTTPS"
 
         containerMedicalRecordsApi -> containerPlayerPerformanceApi "Get player fitness data" "JSON/HTTPS"
@@ -90,9 +90,9 @@ workspace "BelFoot FC Digital Architecture" "BelFoot FC Digital Architecture —
 
         containerComplianceManagerApi -> containerSapS4HanaApi "Query financial audit records" "JSON/HTTPS"
 
-        containerStrategyPortalApi -> containerDataPlatformDashboard "Access strategic KPI dashboards" "JSON/HTTPS"
+        containerStrategyPortalApi -> containerDataPlatformBiDashboard "Access strategic KPI dashboards" "JSON/HTTPS"
 
-        containerExternalRelationsApi -> containerSalesforceCrmApi "Get stakeholder contact data" "JSON/HTTPS"
+        containerExternalRelationsPortalApi -> containerSalesforceCrmRestApi "Get stakeholder contact data" "JSON/HTTPS"
 
         // ============================================================
         // Cross-group relationships: IT

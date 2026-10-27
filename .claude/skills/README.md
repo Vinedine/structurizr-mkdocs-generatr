@@ -19,14 +19,14 @@ The read/write skills all ask for confirmation before touching the DSL or docs.
 
 The skills are designed to feed each other. A common loop:
 
-1. **Intake** — `c4-add-system` creates the software system from a template.
-2. **Detail** — `c4-add-container` adds each container with its technology and `"Repository"` URL.
-3. **Ground truth** — `c4-document-system` pulls the latest source via the Repository URL and writes `0001-technical.md`.
-4. **Drift check** — `c4-audit-system` compares the documented entities against what the code actually manages/consumes.
-5. **Assess** — `c4-review` produces a Well-Architected report against the five Azure pillars.
-6. **Ship** — `c4-validate-changes` checks your branch against conventions and peers before the PR.
+1. **Intake**: `c4-add-system` creates the software system from a template.
+2. **Detail**: `c4-add-container` adds each container with its technology and `"Repository"` URL.
+3. **Ground truth**: `c4-document-system` pulls the latest source via the Repository URL and writes `0001-technical.md`.
+4. **Drift check**: `c4-audit-system` compares the documented entities against what the code actually manages/consumes.
+5. **Assess**: `c4-review` produces a Well-Architected report against the five Azure pillars.
+6. **Ship**: `c4-validate-changes` checks your branch against conventions and peers before the PR.
 
-The technical page produced in step 3 becomes the reference that downstream skills read — the output of one skill is the input for the next.
+The technical page produced in step 3 becomes the reference that downstream skills read: the output of one skill is the input for the next.
 
 ## Install
 
@@ -50,15 +50,15 @@ mkdir -p .claude/skills && cp -r /tmp/smg/.claude/skills/c4-* .claude/skills/
 rm -rf /tmp/smg
 ```
 
-After either install, open the repo in Claude Code and type `/c4` — the six skills appear in the picker.
+After either install, open the repo in Claude Code and type `/c4`: the six skills appear in the picker.
 
 If you're already inside this repo's clone, the skills are picked up automatically.
 
 ## Prerequisites
 
 - **Claude Code.** The skills are invoked through the Claude Code CLI, desktop app, web app, or IDE extension.
-- **For the code-linked skills** (`c4-document-system`, `c4-audit-system`, `c4-review`): the containers in your DSL should have a `"Repository"` property with the Git URL. The skills prefer local clones under `~/Code/`, `~/source/`, or `~/repos/`; otherwise they fall back to a Git-host MCP if available (Azure DevOps or GitHub), and last resort ask you to clone locally.
-- **For `c4-validate-changes`**: a Git branch with diffs against `main` or `master`.
+- **For the code-linked skills** (`c4-document-system`, `c4-audit-system`, `c4-review`): the containers in your DSL should have a `"Repository"` property with the Git URL. The skills prefer a local clone, looking next to your architecture repo and then under `~/Code/`, `~/source/`, or `~/repos/`. Otherwise they use a Git-host MCP if one is available (Azure DevOps or GitHub), and as a last resort ask you where the code is.
+- **For `c4-validate-changes`**: a Git branch that diverges from `main` or `master`. Uncommitted and untracked changes on it are validated too, so it can run before the commit.
 
 ## How they discover your repo
 
@@ -71,7 +71,9 @@ Every skill first runs a **Step 0: Discover Repo Structure** pass that probes fo
 
 They also auto-detect whether your includes directory is `workspace-includes/` or `workspace/`. No configuration needed.
 
-## Not here yet
+The Step 0 block is duplicated in every skill on purpose, so each skill folder works on its own when copied. `tests/test_skills.py` fails if the copies drift apart.
+
+## Roadmap
 
 - An orchestrating skill that runs the whole pipeline (create → detail → technical → audit → review → validate) unattended.
 - Scoring/weighting for `c4-review`, cross-system comparison, trend tracking.

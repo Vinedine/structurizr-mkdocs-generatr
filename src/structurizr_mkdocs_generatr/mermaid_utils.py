@@ -45,6 +45,8 @@ def add_mermaid_view_source(content: str, enabled: bool = False) -> str:
         stripped = line.strip()
         if not in_mermaid and stripped == "```mermaid":
             in_mermaid = True
+            # Inside a tab the block is indented; the admonition must keep that indent to stay in the tab.
+            indent = line[: len(line) - len(line.lstrip())]
             mermaid_lines = [line]
             continue
         if in_mermaid:
@@ -52,12 +54,12 @@ def add_mermaid_view_source(content: str, enabled: bool = False) -> str:
             if stripped == "```":
                 result.extend(mermaid_lines)
                 result.append("")
-                result.append('??? info "View Source"')
+                result.append(f'{indent}??? info "View Source"')
                 result.append("")
-                result.append("    ```text")
+                result.append(f"{indent}    ```text")
                 for ml in mermaid_lines[1:-1]:
-                    result.append(f"    {ml}")
-                result.append("    ```")
+                    result.append(f"{indent}    {ml.removeprefix(indent)}")
+                result.append(f"{indent}    ```")
                 in_mermaid = False
             continue
 

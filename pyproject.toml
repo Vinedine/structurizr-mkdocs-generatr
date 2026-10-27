@@ -4,29 +4,35 @@ build-backend = "hatchling.build"
 
 [project]
 name = "structurizr-mkdocs-generatr"
-version = "0.1.4"
+version = "1.0.0"
 description = "Generate MkDocs Material sites from Structurizr DSL workspaces"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 authors = []
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Documentation",
     "Topic :: Software Development :: Documentation",
 ]
 dependencies = [
     "click>=8.0",
-    "mkdocs>=1.6",
-    "mkdocs-material>=9.0",
+    "mkdocs>=1.6,<2",
+    "mkdocs-material>=9.0,<10",
     "pyyaml>=6.0",
-    "mkdocs-glightbox>=0.4",
+    "mkdocs-glightbox>=0.4,<1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Vinedine/structurizr-mkdocs-generatr"
+Demo = "https://belfoot.trotstar.tech"
+Issues = "https://github.com/Vinedine/structurizr-mkdocs-generatr/issues"
 
 [project.scripts]
 structurizr-mkdocs = "structurizr_mkdocs_generatr.cli:main"
@@ -47,3 +53,7 @@ exclude = ["build/", "example/"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# Inline DSL, Markdown, and Mermaid fixtures read better unwrapped.
+"tests/*" = ["E501"]

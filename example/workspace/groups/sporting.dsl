@@ -4,7 +4,7 @@ groupSporting = group "Sporting" {
 
         !docs ../../software-system-docs/sporting/playerPerformance
 
-        containerPlayerPerformanceDatabase = container "Performance Database" "Training sessions, GPS data, match statistics, and fitness scores" "PostgreSQL" "DATASET" {
+        containerPlayerPerformanceDatabase = container "Player Performance Database" "Training sessions, GPS data, match statistics, and fitness scores" "PostgreSQL" "DATASET" {
         }
 
         containerPlayerPerformanceApi = container "Player Performance API" "Training data ingestion, analytics, and performance reporting" "Python" "SERVICE" {
@@ -14,7 +14,7 @@ groupSporting = group "Sporting" {
             this -> containerPlayerPerformanceDatabase "Manage data" "SQL/TCP"
         }
 
-        containerPlayerPerformanceDashboard = container "Performance Dashboard" "Visual analytics for player fitness, load management, and match performance" "Power BI" "DASHBOARD" {
+        containerPlayerPerformanceDashboard = container "Player Performance Dashboard" "Visual analytics for player fitness, load management, and match performance" "Power BI" "DASHBOARD" {
             userHeadCoach -> this "Review player performance and set training plans"
             this -> containerPlayerPerformanceApi "Get performance data" "JSON/HTTPS"
         }
@@ -24,7 +24,7 @@ groupSporting = group "Sporting" {
 
         !docs ../../software-system-docs/sporting/medicalRecords
 
-        containerMedicalRecordsDatabase = container "Medical Database" "Player medical history, injuries, and rehabilitation plans" "PostgreSQL" "DATASET" {
+        containerMedicalRecordsDatabase = container "Medical Records Database" "Player medical history, injuries, and rehabilitation plans" "PostgreSQL" "DATASET" {
         }
 
         containerMedicalRecordsApi = container "Medical Records API" "Injury logging, rehabilitation tracking, and medical clearance" "Python" "SERVICE" {
@@ -40,7 +40,7 @@ groupSporting = group "Sporting" {
             userMedicalStaff -> this "Manage player medical records and rehabilitation"
             userHeadCoach -> this "View player availability status"
             this -> containerMedicalRecordsApi "Manage medical data" "JSON/HTTPS"
-            this -> containerEntraIdApi "Authenticate" "JSON/HTTPS"
+            this -> containerMicrosoftEntraIdApi "Authenticate" "JSON/HTTPS"
         }
     }
 
@@ -62,7 +62,7 @@ groupSporting = group "Sporting" {
             userYouthScout -> this "Submit scout reports and track youth talent"
             userHeadCoach -> this "Review youth player development"
             this -> containerYouthAcademyApi "Manage scouting data" "JSON/HTTPS"
-            this -> containerEntraIdApi "Authenticate" "JSON/HTTPS"
+            this -> containerMicrosoftEntraIdApi "Authenticate" "JSON/HTTPS"
         }
     }
 }
