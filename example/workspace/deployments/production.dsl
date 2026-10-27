@@ -20,8 +20,8 @@ deploymentProduction = deploymentEnvironment "Production" {
             }
 
             deploymentNode "app-prod-02" "" "Windows Server / IIS" {
-                containerInstance containerTicketingPlatformUi
-                containerInstance containerStadiumManagementUi
+                containerInstance containerTicketingPlatformPortal
+                containerInstance containerStadiumManagementOperationsDashboard
                 containerInstance containerMatchdayOperationsUi
             }
 
@@ -46,15 +46,15 @@ deploymentProduction = deploymentEnvironment "Production" {
             deploymentNode "rg-fan-digital-prd" "" "Resource Group" {
 
                 deploymentNode "app-fan-engagement" "" "Azure App Service" {
-                    containerInstance containerFanEngagementApi
+                    containerInstance containerFanEngagementPlatformApi
                 }
 
                 deploymentNode "app-fan-engagement-app" "" "Azure Static Web Apps" {
-                    containerInstance containerFanEngagementApp
+                    containerInstance containerFanEngagementPlatformMobileApp
                 }
 
                 deploymentNode "cosmos-fan-engagement" "" "Azure Cosmos DB" {
-                    containerInstance containerFanEngagementDatabase
+                    containerInstance containerFanEngagementPlatformDatabase
                 }
 
                 deploymentNode "app-webstore" "" "Azure App Service" {
@@ -62,7 +62,7 @@ deploymentProduction = deploymentEnvironment "Production" {
                 }
 
                 deploymentNode "swa-webstore" "" "Azure Static Web Apps" {
-                    containerInstance containerWebStoreUi
+                    containerInstance containerWebStoreStorefront
                 }
 
                 deploymentNode "psql-webstore" "" "Azure Database for PostgreSQL" {
@@ -82,7 +82,7 @@ deploymentProduction = deploymentEnvironment "Production" {
                 }
 
                 deploymentNode "swa-club-website" "" "Azure Static Web Apps" {
-                    containerInstance containerClubWebsiteUi
+                    containerInstance containerClubWebsiteFrontend
                 }
 
                 deploymentNode "psql-club-website" "" "Azure Database for PostgreSQL" {
@@ -97,7 +97,7 @@ deploymentProduction = deploymentEnvironment "Production" {
                 }
 
                 deploymentNode "swa-sponsorship" "" "Azure Static Web Apps" {
-                    containerInstance containerSponsorshipPortalUi
+                    containerInstance containerSponsorshipPortalWebApp
                 }
 
                 deploymentNode "psql-sponsorship" "" "Azure Database for PostgreSQL" {
@@ -109,7 +109,7 @@ deploymentProduction = deploymentEnvironment "Production" {
                 }
 
                 deploymentNode "swa-logistics" "" "Azure Static Web Apps" {
-                    containerInstance containerLogisticsPlannerUi
+                    containerInstance containerLogisticsPlannerPortal
                 }
 
                 deploymentNode "psql-logistics" "" "Azure Database for PostgreSQL" {
@@ -133,7 +133,7 @@ deploymentProduction = deploymentEnvironment "Production" {
                 }
 
                 deploymentNode "swa-marketing" "" "Azure Static Web Apps" {
-                    containerInstance containerMarketingPlatformUi
+                    containerInstance containerMarketingPlatformPortal
                 }
 
                 deploymentNode "psql-marketing" "" "Azure Database for PostgreSQL" {
@@ -148,7 +148,7 @@ deploymentProduction = deploymentEnvironment "Production" {
                 }
 
                 deploymentNode "swa-hr" "" "Azure Static Web Apps" {
-                    containerInstance containerHrPortalUi
+                    containerInstance containerHrPortalWebApp
                 }
 
                 deploymentNode "psql-hr" "" "Azure Database for PostgreSQL" {
@@ -160,7 +160,7 @@ deploymentProduction = deploymentEnvironment "Production" {
                 }
 
                 deploymentNode "swa-compliance" "" "Azure Static Web Apps" {
-                    containerInstance containerComplianceManagerUi
+                    containerInstance containerComplianceManagerPortal
                 }
 
                 deploymentNode "psql-compliance" "" "Azure Database for PostgreSQL" {
@@ -172,7 +172,7 @@ deploymentProduction = deploymentEnvironment "Production" {
                 }
 
                 deploymentNode "swa-strategy" "" "Azure Static Web Apps" {
-                    containerInstance containerStrategyPortalUi
+                    containerInstance containerStrategyPortalWebApp
                 }
 
                 deploymentNode "psql-strategy" "" "Azure Database for PostgreSQL" {
@@ -180,15 +180,15 @@ deploymentProduction = deploymentEnvironment "Production" {
                 }
 
                 deploymentNode "app-external-relations" "" "Azure App Service" {
-                    containerInstance containerExternalRelationsApi
+                    containerInstance containerExternalRelationsPortalApi
                 }
 
                 deploymentNode "swa-external-relations" "" "Azure Static Web Apps" {
-                    containerInstance containerExternalRelationsUi
+                    containerInstance containerExternalRelationsPortalWebApp
                 }
 
                 deploymentNode "psql-external-relations" "" "Azure Database for PostgreSQL" {
-                    containerInstance containerExternalRelationsDatabase
+                    containerInstance containerExternalRelationsPortalDatabase
                 }
             }
 
@@ -203,7 +203,7 @@ deploymentProduction = deploymentEnvironment "Production" {
                 }
 
                 deploymentNode "pbi-data-platform" "" "Power BI Service" {
-                    containerInstance containerDataPlatformDashboard
+                    containerInstance containerDataPlatformBiDashboard
                 }
 
                 deploymentNode "sb-integration" "" "Azure Service Bus" {
@@ -219,14 +219,14 @@ deploymentProduction = deploymentEnvironment "Production" {
 
                 deploymentNode "ai-foundry" "" "Azure AI Foundry" {
                     containerInstance containerAzureAiFoundryStudio
-                    containerInstance containerAzureAiFoundryApi
+                    containerInstance containerAzureAiFoundryInferenceApi
                 }
             }
 
             deploymentNode "rg-identity-prd" "" "Resource Group" {
 
                 deploymentNode "entra-id" "" "Microsoft Entra ID" {
-                    containerInstance containerEntraIdApi
+                    containerInstance containerMicrosoftEntraIdApi
                 }
             }
         }
@@ -270,8 +270,8 @@ deploymentProduction = deploymentEnvironment "Production" {
     deploymentNode "Salesforce Cloud" {
 
         deploymentNode "Salesforce EU" "" "Salesforce Platform" {
-            containerInstance containerSalesforceCrmUi
-            containerInstance containerSalesforceCrmApi
+            containerInstance containerSalesforceCrmLightning
+            containerInstance containerSalesforceCrmRestApi
         }
     }
 
@@ -285,7 +285,7 @@ deploymentProduction = deploymentEnvironment "Production" {
     deploymentNode "SAP Cloud" {
 
         deploymentNode "SAP EU" "" "SAP S/4HANA Cloud" {
-            containerInstance containerSapS4HanaUi
+            containerInstance containerSapS4HanaFioriLaunchpad
             containerInstance containerSapS4HanaApi
             containerInstance containerSapS4HanaDatabase
         }
