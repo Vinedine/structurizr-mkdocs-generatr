@@ -5,8 +5,9 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
-import sys
 from pathlib import Path
+
+import click
 
 from .workspace import (
     VIEW_COMPONENT,
@@ -38,11 +39,15 @@ def has_local_tools() -> bool:
 
 def _run(args: list[str], label: str) -> None:
     print(f"  {label}...")
-    result = subprocess.run(args, capture_output=True, text=True)
+    try:
+        result = subprocess.run(args, capture_output=True, text=True)
+    except FileNotFoundError:
+        hint = " Install Docker and make sure it is running." if args[0] == "docker" else ""
+        raise click.ClickException(f"{label} failed: '{args[0]}' was not found.{hint}") from None
     if result.returncode != 0:
-        print(f"  ERROR: {label} failed", file=sys.stderr)
-        print(result.stderr, file=sys.stderr)
-        raise RuntimeError(f"{label} failed with exit code {result.returncode}")
+        # Structurizr reports DSL errors on stdout, Docker reports its own on stderr.
+        output = "\n".join(s.strip() for s in (result.stdout, result.stderr) if s and s.strip())
+        raise click.ClickException(f"{label} failed with exit code {result.returncode}.\n{output}".rstrip())
 
 
 def export_workspace(
@@ -240,10 +245,10 @@ def _build_element_url_map(
     urls: dict[str, str] = {}
     for person in workspace.people:
         slug = normalize_name(person.name)
-        urls[person.name] = f"../persons/{slug}/"
+        urls[person.name] = f"../persons/{slug}/index.html"
     for ss in workspace.software_systems:
         ss_slug = normalize_name(ss.name)
-        base = f"../software-systems/{ss_slug}/"
+        base = f"../software-systems/{ss_slug}/index.html"
         anchor = _drill_down_anchor(ss.id, view_type, subject_system_id, available)
         urls[ss.name] = f"{base}{anchor}"
         for c in ss.containers:
@@ -260,7 +265,8 @@ def _build_element_url_map(
     return urls
 
 
-_ELEMENT_NAME_RE = re.compile(r'\(\w+,\s*"([^"]+)"')
+# Containers and components carry dotted ids in the export: Container(System.Api, "Api", ...)
+_ELEMENT_NAME_RE = re.compile(r'\([\w.]+,\s*"([^"]+)"')
 _LINK_RE = re.compile(r'\$link="[^"]*"')
 
 

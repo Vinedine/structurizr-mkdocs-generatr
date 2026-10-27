@@ -11,6 +11,7 @@ from .properties import MATERIAL_NAMED_COLORS, SiteProperties
 from .workspace import (
     Documentation,
     Workspace,
+    decision_sort_key,
     extract_zone_name,
     name_sort_key,
     normalize_name,
@@ -227,7 +228,7 @@ def _decisions_nav(documentation: Documentation, prefix: str) -> list:
         return []
 
     nav: list = [{"Architecture Decision Records": f"{prefix}/index.md"}]
-    for d in sorted(decisions, key=lambda d: int(d.id)):
+    for d in sorted(decisions, key=decision_sort_key):
         nav.append({f"{d.id}. {d.title}": f"{prefix}/{d.id}.md"})
     return nav
 

@@ -16,7 +16,7 @@ from .markdown_writer import GenerateOptions, generate_markdown
 from .mkdocs_config import generate_mkdocs_config
 from .properties import resolve_properties
 from .view_generator import OUTPUT_FILENAME, generate_views
-from .workspace import parse_workspace
+from .workspace import page_collisions, parse_workspace
 
 
 def _resolve_output_dir(output: Path) -> tuple[Path, Path, bool]:
@@ -64,15 +64,16 @@ def _step_build_site(
     site_dir = output / "site"
     if serve:
         click.echo("Serving site at http://localhost:8000")
-        subprocess.run(
-            [*mkdocs, "serve", "-f", str(site_src / "mkdocs.yml")],
-            check=True,
-        )
+        try:
+            result = subprocess.run([*mkdocs, "serve", "-f", str(site_src / "mkdocs.yml")])
+        except KeyboardInterrupt:
+            return
+        if result.returncode != 0:
+            raise click.ClickException("mkdocs serve failed; see its output above.")
     else:
-        subprocess.run(
-            [*mkdocs, "build", "-f", str(site_src / "mkdocs.yml"), "-d", str(site_dir)],
-            check=True,
-        )
+        result = subprocess.run([*mkdocs, "build", "-f", str(site_src / "mkdocs.yml"), "-d", str(site_dir)])
+        if result.returncode != 0:
+            raise click.ClickException("mkdocs build failed; see its output above.")
         if in_docker:
             final_site = final_output / "site"
             if final_site.exists():
@@ -113,6 +114,11 @@ def main(
     workspace_dir = workspace_dir.resolve()
     output = output.resolve()
 
+    if not skip_export and not (workspace_dir / workspace_file).is_file():
+        raise click.BadParameter(
+            f"{workspace_file} not found in {workspace_dir}.", param_hint="'--workspace-file' / '-w'",
+        )
+
     output, final_output, in_docker = _resolve_output_dir(output)
 
     json_dir = output / "json"
@@ -132,12 +138,18 @@ def main(
 
     workspace_json = json_dir / "workspace.json"
     if not workspace_json.exists():
-        click.echo(f"Error: {workspace_json} not found. Run without --skip-export first.", err=True)
-        sys.exit(1)
+        raise click.ClickException(f"{workspace_json} not found. Run without --skip-export first.")
 
     workspace = parse_workspace(workspace_json)
     props = resolve_properties(workspace.view_properties)
     bc_model = parse_bounded_contexts(workspace_dir / "boundedContext.mmd")
+
+    problems = page_collisions(workspace, [c.name for c in bc_model.contexts] if bc_model else [])
+    if problems:
+        raise click.ClickException(
+            "These names would overwrite or lose pages in the site. Rename them and run again:\n  "
+            + "\n  ".join(problems)
+        )
 
     # Post-process and render PlantUML
     if not skip_export:

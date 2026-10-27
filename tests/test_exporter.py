@@ -2,13 +2,21 @@
 
 from __future__ import annotations
 
+import subprocess
+
+import click
+import pytest
+
+from structurizr_mkdocs_generatr import exporter
 from structurizr_mkdocs_generatr.exporter import (
     ANCHOR_COMPONENT_VIEWS,
     ANCHOR_CONTAINER_VIEW,
     ANCHOR_CONTEXT_VIEW,
     _build_element_url_map,
     _drill_down_anchor,
+    _run,
     _system_view_types,
+    process_puml_files,
 )
 from structurizr_mkdocs_generatr.workspace import (
     VIEW_COMPONENT,
@@ -153,8 +161,8 @@ def test_url_map_without_view_context():
         people=[_make_person("p1", "Bob")],
     )
     urls = _build_element_url_map(ws)
-    assert urls["Alpha"] == "../software-systems/alpha/"
-    assert urls["Bob"] == "../persons/bob/"
+    assert urls["Alpha"] == "../software-systems/alpha/index.html"
+    assert urls["Bob"] == "../persons/bob/index.html"
 
 
 def test_url_map_landscape_adds_context_anchor():
@@ -166,8 +174,8 @@ def test_url_map_landscape_adds_context_anchor():
         ],
     )
     urls = _build_element_url_map(ws, VIEW_SYSTEM_LANDSCAPE)
-    assert urls["Alpha"] == f"../software-systems/alpha/{ANCHOR_CONTEXT_VIEW}"
-    assert urls["Beta"] == f"../software-systems/beta/{ANCHOR_CONTEXT_VIEW}"
+    assert urls["Alpha"] == f"../software-systems/alpha/index.html{ANCHOR_CONTEXT_VIEW}"
+    assert urls["Beta"] == f"../software-systems/beta/index.html{ANCHOR_CONTEXT_VIEW}"
 
 
 def test_url_map_context_subject_drills_to_container():
@@ -181,9 +189,9 @@ def test_url_map_context_subject_drills_to_container():
     )
     urls = _build_element_url_map(ws, VIEW_SYSTEM_CONTEXT, subject_system_id="1")
     # Subject system drills to container view
-    assert urls["Alpha"] == f"../software-systems/alpha/{ANCHOR_CONTAINER_VIEW}"
+    assert urls["Alpha"] == f"../software-systems/alpha/index.html{ANCHOR_CONTAINER_VIEW}"
     # Other system drills to its context view
-    assert urls["Beta"] == f"../software-systems/beta/{ANCHOR_CONTEXT_VIEW}"
+    assert urls["Beta"] == f"../software-systems/beta/index.html{ANCHOR_CONTEXT_VIEW}"
 
 
 def test_url_map_container_view_drills_to_components():
@@ -197,8 +205,8 @@ def test_url_map_container_view_drills_to_components():
         ],
     )
     urls = _build_element_url_map(ws, VIEW_CONTAINER, subject_system_id="1")
-    assert urls["WebApp"] == f"../software-systems/alpha/{ANCHOR_COMPONENT_VIEWS}"
-    assert urls["MyComp"] == "../software-systems/alpha/"
+    assert urls["WebApp"] == f"../software-systems/alpha/index.html{ANCHOR_COMPONENT_VIEWS}"
+    assert urls["MyComp"] == "../software-systems/alpha/index.html"
 
 
 def test_url_map_container_view_no_component_views():
@@ -209,7 +217,7 @@ def test_url_map_container_view_no_component_views():
     )
     urls = _build_element_url_map(ws, VIEW_CONTAINER, subject_system_id="1")
     # No component views → no anchor
-    assert urls["WebApp"] == "../software-systems/alpha/"
+    assert urls["WebApp"] == "../software-systems/alpha/index.html"
 
 
 def test_url_map_container_same_name_as_system():
@@ -223,7 +231,7 @@ def test_url_map_container_same_name_as_system():
     )
     urls = _build_element_url_map(ws, VIEW_SYSTEM_LANDSCAPE)
     # System-level anchor must win over container entry
-    assert urls["Alpha"] == f"../software-systems/alpha/{ANCHOR_CONTEXT_VIEW}"
+    assert urls["Alpha"] == f"../software-systems/alpha/index.html{ANCHOR_CONTEXT_VIEW}"
 
 
 def test_url_map_persons_never_get_anchors():
@@ -233,4 +241,44 @@ def test_url_map_persons_never_get_anchors():
         views=[_make_view("ctx1", VIEW_SYSTEM_CONTEXT, software_system_id="1")],
     )
     urls = _build_element_url_map(ws, VIEW_SYSTEM_LANDSCAPE)
-    assert urls["Bob"] == "../persons/bob/"
+    assert urls["Bob"] == "../persons/bob/index.html"
+
+
+# --- process_puml_files ---
+
+def test_process_puml_links_containers_with_dotted_ids(tmp_path):
+    container = _make_container("ct1", "Web App", components=[_make_component("c1")])
+    ws = _make_workspace(
+        systems=[_make_system("1", "Alpha", containers=[container])],
+        views=[
+            _make_view("ContainerAlpha", VIEW_CONTAINER, software_system_id="1"),
+            _make_view("ComponentAlpha", VIEW_COMPONENT, software_system_id="1"),
+        ],
+    )
+    puml = tmp_path / "structurizr-ContainerAlpha.puml"
+    puml.write_text(
+        'Container(Alpha.WebApp, "Web App", $techn="React", $descr="", $tags="", $link="")\n',
+        encoding="utf-8",
+    )
+    process_puml_files(tmp_path, ws)
+    assert f'$link="../software-systems/alpha/index.html{ANCHOR_COMPONENT_VIEWS}"' in puml.read_text(encoding="utf-8")
+
+
+# --- _run ---
+
+def test_run_explains_a_missing_command(monkeypatch):
+    def missing(*args, **kwargs):
+        raise FileNotFoundError(2, "No such file")
+
+    monkeypatch.setattr(exporter.subprocess, "run", missing)
+    with pytest.raises(click.ClickException, match="Docker"):
+        _run(["docker", "run", "image"], "Validating workspace")
+
+
+def test_run_shows_the_tool_output_on_failure(monkeypatch):
+    def failing(args, **kwargs):
+        return subprocess.CompletedProcess(args, 1, stdout="Error: workspace.dsl line 3: unexpected token", stderr="")
+
+    monkeypatch.setattr(exporter.subprocess, "run", failing)
+    with pytest.raises(click.ClickException, match="line 3: unexpected token"):
+        _run(["docker", "run", "image"], "Validating workspace")

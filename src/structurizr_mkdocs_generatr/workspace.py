@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -510,9 +511,55 @@ def parse_workspace(workspace_json: Path) -> Workspace:
     )
 
 
+def fold_accents(name: str) -> str:
+    """Drop diacritics (``Système`` -> ``Systeme``) and keep every other character."""
+    return "".join(c for c in unicodedata.normalize("NFKD", name) if not unicodedata.combining(c))
+
+
 def normalize_name(name: str) -> str:
-    """Convert a name to a URL-safe directory name."""
-    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    """Convert a name to a URL-safe directory name: ``Système de Paie`` -> ``systeme-de-paie``."""
+    return re.sub(r"[\W_]+", "-", fold_accents(name.lower())).strip("-")
+
+
+def decision_sort_key(decision: Decision) -> tuple[int, int, str]:
+    """Numeric ids sort as numbers (2 before 10); other ids follow alphabetically."""
+    if decision.id.isdigit():
+        return (0, int(decision.id), "")
+    return (1, 0, decision.id)
+
+
+def page_collisions(workspace: Workspace, context_names: list[str] | None = None) -> list[str]:
+    """Describe each page URL two names would share, and each name that cannot form a URL."""
+    pages: dict[str, list[str]] = {"capability-map/index.md": ["the capability map index"]}
+    problems: list[str] = []
+
+    def claim(kind: str, name: str, path: str) -> str:
+        slug = normalize_name(name)
+        if slug:
+            pages.setdefault(path.format(slug), []).append(f"{kind} '{name}'")
+        else:
+            problems.append(f"{kind} '{name}' has no letters or digits to build a page URL from")
+        return slug
+
+    for ss in workspace.software_systems:
+        claim("software system", ss.name, "software-systems/{}/")
+    for group in workspace.groups():
+        claim("group", group, "software-systems/{}/")
+    for person in workspace.people:
+        claim("person", person.name, "persons/{}/")
+    for name in context_names or []:
+        claim("bounded context", name, "capability-map/{}.md")
+    for env in workspace.deployment_environments():
+        env_slug = claim("environment", env, "infrastructure/{}/")
+        pages.setdefault(f"infrastructure/{env_slug}/index.md", [f"the '{env}' environment page"])
+        for view in workspace.zone_level_views(env):
+            claim("zone", extract_zone_name(view), f"infrastructure/{env_slug}/{{}}.md")
+    for section in sorted(workspace.documentation.sections, key=lambda s: s.order)[1:]:
+        name = section.title or section.filename.rsplit(".", 1)[0]
+        claim("documentation section", name, "documentation/{}.md")
+
+    problems += [f"{path}: {' and '.join(labels)}" for path, labels in pages.items() if len(labels) > 1]
+    return problems
 
 
 def name_sort_key(name: str) -> tuple[str, str]:
@@ -524,8 +571,8 @@ def name_sort_key(name: str) -> tuple[str, str]:
 
 
 def _canon(name: str) -> str:
-    """Reduce a name to a case- and punctuation-insensitive comparison token."""
-    return re.sub(r"[^a-z0-9]", "", name.lower())
+    """Reduce a name to a case-, accent- and punctuation-insensitive comparison token."""
+    return re.sub(r"[\W_]", "", fold_accents(name.lower()))
 
 
 def section_slug(section: Section) -> str:
