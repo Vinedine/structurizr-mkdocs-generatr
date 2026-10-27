@@ -1,12 +1,12 @@
 ---
 name: c4-review
-description: Run a Well-Architected-style review against a software system (or the whole landscape), using Microsoft Azure Well-Architected Framework pillars. Read-only — writes a Markdown review report without modifying the model.
+description: Read-only Azure Well-Architected review of one software system or the whole landscape, written as a dated Markdown report with a status and evidence per pillar (reliability, security, cost, operations, performance). Use when the user asks for an architecture review, Well-Architected assessment, or health check.
 allowed-tools: Read, Grep, Glob, Bash(ls:*), Bash(git:*), Bash(mkdir:*), Write, Agent, mcp__ado__repo_list_directory, mcp__ado__repo_get_repo_by_name_or_id, mcp__ado__repo_list_repos_by_project, mcp__ado__search_code
 ---
 
-# Architecture Review (Azure Well-Architected, minimal)
+# Architecture Review (Azure Well-Architected)
 
-You are a specialized read-only skill that evaluates a software system (or the whole landscape) against the **Microsoft Azure Well-Architected Framework**. You produce a Markdown review report with findings per pillar — you never modify the model.
+Evaluate a software system (or the whole landscape) against the **Microsoft Azure Well-Architected Framework** and write a Markdown review report with findings per pillar. This skill is read-only toward the model: the report is the only file it writes.
 
 The five pillars evaluated:
 
@@ -16,7 +16,7 @@ The five pillars evaluated:
 4. **Operational Excellence** — observability, automation, IaC, release practices
 5. **Performance Efficiency** — scaling, bottlenecks, data path efficiency
 
-**Scope caveats (v1):** report-only, no scoring/weighting, no cross-system comparison, no trend tracking. The skill writes a single Markdown file summarising observations and suggested follow-ups per pillar.
+**Scope:** the skill writes one Markdown file with observations, a status, and suggested follow-ups per pillar. It does not score or weight pillars and does not compare systems; history comes from the dated report files accumulating in `reviews/`.
 
 ## Step 0: Discover Repo Structure
 
@@ -29,7 +29,7 @@ Try these workspace-root candidates in order, first match wins:
 3. `./workspace.dsl` → workspace root is `./`
 4. `example/workspace.dsl` → workspace root is `example/`
 
-If none match, STOP and ask the user for the workspace root path.
+If none match, stop and ask the user for the workspace root path.
 
 Then detect the includes-directory layout (`workspace-includes/` or `workspace/`) — whichever exists under the workspace root.
 
@@ -52,7 +52,7 @@ For the target system(s):
 2. **Read the system docs** — `0000-introduction.md`, `0001-technical.md` if present, any ADRs referenced.
 3. **Read deployment views** — look for deployment nodes/environments and infrastructure zoning for this system (under `<includes-dir>/deployments/`).
 4. **Access container source (optional but high-value)** — for containers with a `"Repository"` property, try in order:
-   - Local clone: extract the repo name from the URL — the segment after `/_git/` for Azure DevOps, or the last path segment for GitHub/GitLab — and strip any trailing `.git`. Search under `~/Code/<repo-name>`, `~/source/<repo-name>`, `~/repos/<repo-name>`. Use an **Agent (Explore)** subagent to gather pillar-relevant signals (see Step 3).
+   - Local clone: extract the repo name from the URL — the segment after `/_git/` for Azure DevOps, or the last path segment for GitHub/GitLab — and strip any trailing `.git`. Look next to the architecture repo (`../<repo-name>`), then under `~/Code/<repo-name>`, `~/source/<repo-name>`, `~/repos/<repo-name>`. Use an **Agent (Explore)** subagent per repository, started in the same turn, to gather pillar-relevant signals (see Step 3).
    - Git-host MCP if available (`mcp__ado__*` for ADO; GitHub MCP for GitHub) → list directories and search code for the same signals.
    - If neither works, note the container as "no code evidence available" and continue.
 
@@ -168,14 +168,14 @@ Write to:
 ## Step 6: Post-Generation
 
 1. Tell the user where the report was written.
-2. Recommend running `structurizr-mkdocs . --serve` to see it rendered in the site at `http://localhost:8000`.
-3. Remind the user this is v1 scope: report-only, no scoring, no tracking. Running the skill again later writes a new dated file alongside the old one — history accumulates in the `reviews/` folder.
+2. Recommend running `structurizr-mkdocs <workspace-root> --serve` to see it rendered in the site at `http://localhost:8000`.
+3. Mention that running the skill again later writes a new dated file alongside this one, so the `reviews/` folder doubles as a history.
 
 ## Important Notes
 
 - **This skill is read-only.** Never edit the DSL, `0000-introduction.md`, or `0001-technical.md`. Only write the new review file.
 - **Cite evidence.** Every observation should reference a file, a DSL relationship, or an explicit "not found" — avoid unsupported claims.
 - **Be conservative on ratings.** If evidence is missing, that's amber, not green.
-- **No auto-remediation in v1.** Suggest follow-ups, don't act on them.
+- **No auto-remediation.** Suggest follow-ups, don't act on them.
 - **Stay within the framework.** The skill evaluates the five Azure Well-Architected pillars — not general opinions on the architecture. If the user wants a different framework, they should say so, and this skill should note the mismatch rather than silently apply a different rubric.
 - **Landscape scope is broader and shallower.** For landscape reviews, summarise per pillar across all systems rather than drilling into any single system. Mention the 2–3 systems that most move the needle per pillar.

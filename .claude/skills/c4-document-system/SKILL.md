@@ -1,12 +1,12 @@
 ---
 name: c4-document-system
-description: Generate a 0001-technical.md technical architecture page for a software system by analyzing its code repositories. Use when user wants to document a product's API endpoints, data model, and technical details.
+description: Write or refresh a software system's 0001-technical.md (authentication, storage, background jobs, API reference) by analyzing the code repositories linked from its containers in the Structurizr DSL. Use when the user asks for a technical page, API documentation, or technical architecture for a system.
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash(ls:*), Bash(git:*), Agent, mcp__ado__repo_list_directory, mcp__ado__repo_get_repo_by_name_or_id, mcp__ado__repo_list_repos_by_project, mcp__ado__search_code
 ---
 
 # Create Technical Architecture Page
 
-You are a specialized skill for generating `0001-technical.md` technical architecture documentation for a software system by analyzing its actual code repositories and DSL definitions.
+Generate a software system's `0001-technical.md` technical architecture page from its DSL definition and the code in its repositories.
 
 **This skill is project-agnostic.** It discovers groups, containers, and repository URLs at runtime from the current repo's DSL structure.
 
@@ -30,7 +30,7 @@ Try these workspace-root candidates in order, first match wins:
 3. `./workspace.dsl` → workspace root is `./`
 4. `example/workspace.dsl` → workspace root is `example/`
 
-If none match, STOP and ask the user for the workspace root path.
+If none match, stop and ask the user for the workspace root path.
 
 Then detect the includes-directory layout (`workspace-includes/` or `workspace/`) — whichever exists under the workspace root.
 
@@ -74,9 +74,9 @@ Try these access paths in order, use the first that works:
      - Azure DevOps: the segment after `/_git/` (e.g., `https://dev.azure.com/Org/Project/_git/my-repo` → `my-repo`)
      - GitHub / GitLab / generic: the last path segment (e.g., `https://github.com/org/my-repo` → `my-repo`)
      - Strip any trailing `.git` suffix (e.g., `my-repo.git` → `my-repo`)
-   - Search common local paths: `~/Code/<repo-name>`, `~/source/<repo-name>`, `~/repos/<repo-name>`
-   - Run `ls` to verify the directory exists
-   - If found, use an **Agent (Explore)** subagent to analyze the codebase. Send the agent a detailed prompt asking for:
+   - Look for it next to the architecture repo (`../<repo-name>`), then under `~/Code/<repo-name>`, `~/source/<repo-name>`, `~/repos/<repo-name>`; run `ls` to verify the directory exists
+   - Record the branch and last commit date (`git -C <path> log -1 --format='%h %cd'`) so the output can say which version of the code it reflects
+   - If found, use an **Agent (Explore)** subagent to analyze the codebase. When the system has several repositories, start one subagent per repository in the same turn so they run in parallel. Send the agent a detailed prompt asking for:
      - All API endpoints (HTTP method, route, purpose, auth requirements)
      - Database schema (tables, columns, relationships, indexes)
      - Authentication/authorization setup
@@ -93,7 +93,7 @@ Try these access paths in order, use the first that works:
    - If the URL is a GitHub repo and a GitHub MCP is available, use its equivalent tools.
    - If neither MCP is available for the repo's host, fall through to step 3.
 
-3. **Ask the user to clone locally** and re-run the skill.
+3. **Ask the user** for the path of a local clone, or to clone the repository, then continue.
 
 ### 2b: What to Extract
 
@@ -146,7 +146,7 @@ For each repository, build a structured understanding:
 
 ## Step 3: Present Summary and Confirm
 
-**CRITICAL: NEVER write the file without user confirmation!**
+Do not write the file until the user confirms the proposed structure. Code analysis can miss a repo or misjudge which container is the API, and the user usually knows.
 
 Present a summary showing:
 
@@ -278,7 +278,7 @@ Some containers (databases, key vaults, dashboards, storage accounts) don't have
 After writing the file:
 
 1. Inform the user the file has been created
-2. Recommend running `structurizr-mkdocs . --serve` to validate DSL and preview the page (or the repo's own serve command if different)
+2. Recommend running `structurizr-mkdocs <workspace-root> --serve` to validate DSL and preview the page (or the repo's own serve command if different)
 3. Suggest navigating to the product's documentation section at `http://localhost:8000` to verify rendering
 4. Note that the `<!-- Last updated -->` comment should be updated when the page is revised in the future
 

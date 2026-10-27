@@ -1,16 +1,16 @@
 ---
 name: c4-add-system
-description: Create new software system in Structurizr architecture documentation from product submission template. Use when user wants to add a new software system to the enterprise architecture.
+description: Add a new software system to a Structurizr DSL workspace from a product intake or submission template: DSL block in the right group file, docs folder with 0000-introduction.md, and relationships. Use when the user pastes an intake or asks to add or register a new system. Not for adding containers to an existing system (use c4-add-container).
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash(mkdir:*)
 ---
 
 # Create Software System from Template
 
-You are a specialized skill for creating new software systems in the Structurizr DSL architecture documentation based on completed product submission templates.
+Create a new software system in the Structurizr DSL from a completed product submission template.
 
 **This skill is project-agnostic.** It discovers groups, properties, and paths at runtime from the current repo's DSL structure.
 
-**IMPORTANT: This skill works with text input (not files). Users will paste the template content directly.**
+The input is text the user pastes into the conversation, not a file. Business owners fill in these templates, so expect loose formatting, misspelled names, and missing fields.
 
 ## Step 0: Discover Repo Structure
 
@@ -23,7 +23,7 @@ Before doing anything, detect the current repo's layout. Try these workspace-roo
 3. `./workspace.dsl` → workspace root is `./`
 4. `example/workspace.dsl` → workspace root is `example/`
 
-If none match, STOP and ask the user for the workspace root path.
+If none match, stop and ask the user for the workspace root path.
 
 Once the workspace root is known, also detect the subdirectory layout — architecture repos use either `workspace-includes/` or `workspace/` as the container for groups/views/deployments/users. Probe both; use the first that exists:
 
@@ -33,7 +33,7 @@ Once the workspace root is known, also detect the subdirectory layout — archit
 Then:
 
 1. **Available groups:** List directories/files under `<workspace-root>/<includes-dir>/groups/` — these are the valid departments/groups for this repo.
-2. **Existing properties:** Read one existing software system from a group DSL file. Note which properties are used (e.g., `"IT Portfolio Id"`, `"Unite Apps"`) — new systems should follow the same pattern.
+2. **Existing properties:** Read one existing software system from a group DSL file. Note which properties are used (for example a portfolio ID or `"Repository"`) — new systems should follow the same pattern.
 3. **Users file:** Locate `<workspace-root>/<includes-dir>/users.dsl` for actor validation.
 4. **Canonical reference:** Check for `CLAUDE.md` at repo root (and `main.md` if it exists) — read whichever is present for detailed conventions.
 
@@ -42,44 +42,44 @@ Then:
 When the user provides template text:
 
 1. **Parse the template text** to extract:
-   - Product Name (MANDATORY)
-   - Description (MANDATORY)
-   - Owning Department/Group (MANDATORY)
-   - Product Owner (OPTIONAL)
-   - Actors (OPTIONAL)
-   - Authentication/Authorization (OPTIONAL)
-   - Integrations (OPTIONAL)
-   - Business Capabilities (OPTIONAL)
-   - Business Data Context/Manage/Consume (OPTIONAL)
-   - References (OPTIONAL)
-   - Additional Notes (OPTIONAL)
+   - Product Name (required)
+   - Description (required)
+   - Owning Department/Group (required)
+   - Product Owner (optional)
+   - Actors (optional)
+   - Authentication/Authorization (optional)
+   - Integrations (optional)
+   - Business Capabilities (optional)
+   - Business Data Context/Manage/Consume (optional)
+   - References (optional)
+   - Additional Notes (optional)
 
-2. **Validate any client-specific ID property** — Check what ID property existing systems use (e.g., `"IT Portfolio Id"`). If one is expected, ask the user for it if not provided.
+2. **Validate any client-specific ID property** — Check whether existing systems carry an ID property (for example `"Portfolio Id"`). If one is expected, ask the user for it if not provided.
 
-3. **Validate Owning Department/Group** — Must match one of the groups discovered in Step 0. If invalid or unclear, STOP and show the valid options.
+3. **Validate Owning Department/Group** — Must match one of the groups discovered in Step 0. If invalid or unclear, stop and show the valid options.
 
-4. **Validate Product Name** — Must be present and not empty. If missing, STOP and ask.
+4. **Validate Product Name** — Must be present and not empty. If missing, stop and ask.
 
-5. **Validate Description** — Must be present and not empty. If missing, STOP and ask.
+5. **Validate Description** — Must be present and not empty. If missing, stop and ask.
 
-   **Description content rule (MANDATORY):** The description must NOT restate what the C4 diagrams will already show — i.e. no enumerating containers, no repeating relationships (auth targets, API calls), no listing which users reach which client. Those are visible on the system context / container / deployment views. Reserve the description for information that the diagrams cannot convey: business purpose, vendor/hosting nature, operational quirks (e.g. provisioning edge cases), compliance constraints, ownership, historical context, or orthogonal concepts such as permission axes that are not drawn.
+   **Description content rule:** The description must NOT restate what the C4 diagrams will already show — i.e. no enumerating containers, no repeating relationships (auth targets, API calls), no listing which users reach which client. Those are visible on the system context / container / deployment views. Reserve the description for information that the diagrams cannot convey: business purpose, vendor/hosting nature, operational quirks (e.g. provisioning edge cases), compliance constraints, ownership, historical context, or orthogonal concepts such as permission axes that are not drawn.
 
    Examples of text to REMOVE from a submitted description:
    - "The product has two components: X (back-end) and Y (front-end)" — container diagram shows this
-   - "Authentication is delegated to EU Login" — the auth relationship shows this
+   - "Authentication is delegated to Microsoft Entra ID" — the auth relationship shows this
    - "Both staff and contractors use the Desktop and Web clients" — user arrows show this
 
    Examples of text to KEEP:
    - "Access requires the user to be provisioned in the back-end; authentication alone is insufficient"
    - "Read/write vs read-only is controlled by Entra ID group membership, orthogonal to role"
-   - "Acquired by DL INFRA for managing As-Built technical documentation of buildings"
+   - "Licensed from an external vendor and hosted by them; the club owns only the configuration"
 
-   If the user's template description contains diagram-duplicating content, silently rewrite it before saving (strip those sentences, keep the insight-bearing ones). If that leaves the description empty, STOP and ask the user for business context.
+   If the user's template description contains diagram-duplicating content, silently rewrite it before saving (strip those sentences, keep the insight-bearing ones). If that leaves the description empty, stop and ask the user for business context.
 
 6. **Parse Actors carefully** — Business owners may misspell or use unknown names. For each actor:
    - Read the users file from Step 0
    - Verify the actor exists by searching for `user<ActorName>` variable
-   - If ANY actor is not found, STOP and ask user whether to skip, correct, or continue without actors
+   - If ANY actor is not found, stop and ask user whether to skip, correct, or continue without actors
 
 7. **Parse Authentication/Authorization** — Map to existing software system variables in the DSL (search for matching systems).
 
@@ -87,7 +87,7 @@ When the user provides template text:
 
 ## Step 2: Present Summary and Ask for Confirmation
 
-**CRITICAL: NEVER make changes without user confirmation!**
+Do not write anything until the user confirms. The summary is where misread template fields, wrong groups, and unknown actors get caught, and fixing them after the DSL is edited costs more.
 
 After parsing, present a clear summary showing:
 - Product Information (name, variable name, folder name, description, department, ID, tag)
@@ -138,7 +138,9 @@ Add relationships INSIDE the software system block AFTER the properties section:
 
 ### 3.3: Add System Context View
 
-Read `<workspace-root>/<includes-dir>/views/systemContext.dsl` and append:
+If `workspace.dsl` includes `_auto_generated_views.dsl`, skip this step: `structurizr-mkdocs` generates system-context, container, and deployment views for every system on the next build. This is how the bundled example works.
+
+Otherwise, read `<workspace-root>/<includes-dir>/views/systemContext.dsl` and append:
 
 ```dsl
 
@@ -158,7 +160,7 @@ systemContext softwareSystem<Name> "SystemContext<Name>" {
 After creating all files:
 
 1. Provide detailed summary of what was created
-2. Recommend running `structurizr-mkdocs . --serve` to validate and view locally (or the repo's own serve command if different)
+2. Recommend running `structurizr-mkdocs <workspace-root> --serve` to validate and view locally (or the repo's own serve command if different)
 3. Check if validation docs exist (e.g., `docs/howToValidateArchitecture.md`) — if so, reference them
 
 ## Important Notes

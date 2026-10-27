@@ -1,12 +1,12 @@
 ---
 name: c4-audit-system
-description: Audit a software system by comparing its repository code against documented entities in 0000-introduction.md. Use when user wants to verify if architecture docs match what the code actually manages/consumes.
+description: Audit a software system for drift between its architecture docs and its code: compares the entities 0000-introduction.md says the system manages or consumes against what the linked repositories implement, and checks container naming. Use when the user asks to audit a system, check docs against code, or find documentation drift.
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash(git:*), Bash(ls:*), Agent, mcp__ado__repo_list_directory, mcp__ado__repo_get_repo_by_name_or_id, mcp__ado__repo_list_repos_by_project, mcp__ado__search_code
 ---
 
 # Audit Software System Entities
 
-You are a specialized skill for auditing software system documentation against actual source code. You compare what a software system's `0000-introduction.md` documents (managed/consumed entities) against what the code repository actually implements, then report differences.
+Audit a software system's documentation against its source code: compare what a software system's `0000-introduction.md` documents (managed and consumed entities) against what the code repositories actually implement, then report the differences.
 
 **This skill is project-agnostic.** It discovers paths, properties, and artifacts at runtime from the current repo's DSL structure.
 
@@ -21,7 +21,7 @@ Try these workspace-root candidates in order, first match wins:
 3. `./workspace.dsl` → workspace root is `./`
 4. `example/workspace.dsl` → workspace root is `example/`
 
-If none match, STOP and ask the user for the workspace root path.
+If none match, stop and ask the user for the workspace root path.
 
 Then detect the includes-directory layout (`workspace-includes/` or `workspace/`) — whichever exists under the workspace root.
 
@@ -51,7 +51,7 @@ When the user provides a software system name (or you infer it from context):
 
 4. **List all repositories** found via `"Repository"` properties on containers belonging to this software system.
 
-If no `"Repository"` property is found on any container, STOP and inform the user that no repository URLs are configured for this software system's containers. Suggest they add `"Repository"` properties first.
+If no `"Repository"` property is found on any container, stop and inform the user that no repository URLs are configured for this software system's containers. Suggest they add `"Repository"` properties first.
 
 If multiple containers have repositories, audit each one.
 
@@ -68,9 +68,9 @@ Try these access paths in order, use the first that works:
      - Azure DevOps: the segment after `/_git/` (e.g., `https://dev.azure.com/Org/Project/_git/my-repo` → `my-repo`)
      - GitHub / GitLab / generic: the last path segment (e.g., `https://github.com/org/my-repo` → `my-repo`)
      - Strip any trailing `.git` suffix (e.g., `my-repo.git` → `my-repo`)
-   - Search common local paths: `~/Code/<repo-name>`, `~/source/<repo-name>`, `~/repos/<repo-name>`
-   - Run `ls` to verify the directory exists
-   - If found, use an **Agent (Explore)** subagent to analyze the codebase
+   - Look for it next to the architecture repo (`../<repo-name>`), then under `~/Code/<repo-name>`, `~/source/<repo-name>`, `~/repos/<repo-name>`; run `ls` to verify the directory exists
+   - Record the branch and last commit date (`git -C <path> log -1 --format='%h %cd'`) so the output can say which version of the code it reflects
+   - If found, use an **Agent (Explore)** subagent to analyze the codebase. When the system has several repositories, start one subagent per repository in the same turn so they run in parallel
 
 2. **Git-host MCP (if available):**
    - If the URL is an Azure DevOps repo and `mcp__ado__*` tools are available, use them:
@@ -79,7 +79,7 @@ Try these access paths in order, use the first that works:
    - If the URL is a GitHub repo and a GitHub MCP is available, use its equivalent tools.
    - If neither MCP is available for the repo's host, fall through to step 3.
 
-3. **Ask the user to clone locally** and re-run the skill.
+3. **Ask the user** for the path of a local clone, or to clone the repository, then continue.
 
 ### 2b: Identify entities
 

@@ -1,12 +1,12 @@
 ---
 name: c4-validate-changes
-description: Validate architecture branch changes against documented standards and compare with technology peers. Use before creating a PR.
+description: Read-only pre-PR check of an architecture branch, including uncommitted and untracked changes: validates DSL, views, and docs against the repo's documented standards and compares new containers with technology peers. Use before opening a PR, or when the user asks to validate, lint, or check their architecture changes.
 allowed-tools: Read, Grep, Glob, Bash(git:*), Agent
 ---
 
 # Validate Branch Changes
 
-You are a specialized read-only skill that validates branch changes against the documented architecture standards. You produce a structured report of errors, warnings, and observations — but never modify any files.
+Validate the changes on an architecture branch against the repo's documented standards and report errors, warnings, and observations. This skill is read-only: it never modifies files.
 
 **This skill is project-agnostic.** It discovers paths, standards docs, and generated file lists at runtime from the current repo's structure.
 
@@ -21,7 +21,7 @@ Try these workspace-root candidates in order, first match wins:
 3. `./workspace.dsl` → workspace root is `./`
 4. `example/workspace.dsl` → workspace root is `example/`
 
-If none match, STOP and ask the user for the workspace root path.
+If none match, stop and ask the user for the workspace root path.
 
 Then detect the includes-directory layout (`workspace-includes/` or `workspace/`) — whichever exists under the workspace root.
 
@@ -94,7 +94,7 @@ For each new/modified software system or container:
 - **Tags** — system has appropriate tag
 
 ### Views
-For each new/modified software system:
+If `workspace.dsl` includes `_auto_generated_views.dsl`, system-context, container, and deployment views are generated, so only check hand-written views that the change touches. Otherwise, for each new/modified software system:
 - **System context view** exists
 - **Container view** exists (if system has containers)
 - **Deployment views** exist for each environment
@@ -106,7 +106,7 @@ For each new/modified software system:
 - **Entity links** — links point to valid URLs (not placeholders)
 - **Description does not duplicate diagram content (WARNING)** — scan the `# Description` section for phrases that merely restate what the C4 diagrams already show:
   - Enumerations of containers ("The product has two components: X and Y", "consists of a back-end and a front-end")
-  - Authentication/integration relationships ("authenticates via EU Login", "calls the X API")
+  - Authentication/integration relationships ("authenticates via Microsoft Entra ID", "calls the X API")
   - User-to-client arrows ("both staff and contractors use the Desktop and Web clients")
 
   These belong on diagrams, not in text. Flag such sentences as warnings and quote them with the suggested trimmed version. Keep prose that adds information diagrams cannot convey (business purpose, vendor/hosting, operational quirks, provisioning edge cases, compliance, ownership, orthogonal permission axes).
@@ -175,7 +175,7 @@ For each **new or modified container** found in Step 1:
 | New/modified systems | X |
 | New/modified containers | X |
 
-**Recommendation:** Run `structurizr-mkdocs . --serve` to validate DSL syntax and visually verify all changes at http://localhost:8000 before creating a PR. (If the repo uses a different serve command, use that instead.)
+**Recommendation:** Run `structurizr-mkdocs <workspace-root> --serve` to validate DSL syntax and visually verify all changes at http://localhost:8000 before creating a PR. (If the repo uses a different serve command, use that instead.)
 ```
 
 ## Important Notes

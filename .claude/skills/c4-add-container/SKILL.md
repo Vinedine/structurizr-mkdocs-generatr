@@ -1,16 +1,16 @@
 ---
 name: c4-add-container
-description: Add a new container to an existing software system in the Structurizr DSL. Use when user wants to add a container (API, service, database, UI, ETL, etc.) to a system that already exists in the architecture.
+description: Add a container (API, service, database, UI, ETL, function) with its relationships and Repository URL to a software system that already exists in a Structurizr DSL workspace. Use when the user asks to add or model a container in an existing system. If the system does not exist yet, use c4-add-system first.
 allowed-tools: Read, Grep, Glob, Edit, Write
 ---
 
 # Add Container to Existing Software System
 
-You are a specialized skill for adding a new container to an existing software system in the Structurizr DSL.
+Add a new container to a software system that already exists in the Structurizr DSL.
 
 **This skill is project-agnostic.** It discovers groups, existing systems, and container conventions at runtime from the current repo's DSL structure.
 
-**IMPORTANT: This skill works with text input (not files). Users describe the new container in natural language; you extract fields and confirm before writing.**
+The user describes the new container in natural language. Extract the fields, confirm them, then write.
 
 Use `c4-add-system` (not this skill) when the parent software system does not yet exist.
 
@@ -25,7 +25,7 @@ Try these workspace-root candidates in order, first match wins:
 3. `./workspace.dsl` → workspace root is `./`
 4. `example/workspace.dsl` → workspace root is `example/`
 
-If none match, STOP and ask the user for the workspace root path.
+If none match, stop and ask the user for the workspace root path.
 
 Then detect the includes-directory layout (`workspace-includes/` or `workspace/`) — whichever exists under the workspace root.
 
@@ -36,22 +36,22 @@ Then detect the includes-directory layout (`workspace-includes/` or `workspace/`
 
 From the user's description, extract:
 
-- **Target software system** (MANDATORY) — the name of the existing system to add the container to
-- **Container name** (MANDATORY) — the human-readable display name. It **MUST begin with the parent software system's display name**, followed by a space and the component role. The variable is derived from this name. Examples: system `"Ticketing Platform"` → `"Ticketing Platform API"`, `"Ticketing Platform Database"`; system `"Salesforce CRM"` → `"Salesforce CRM Lightning"`, `"Salesforce CRM REST API"`. A bare role name (e.g. `"API"`, `"Lightning"`, `"Salesforce"`) is NOT valid — STOP and ask the user to prefix it with the system name.
-- **Description** (MANDATORY) — one line on what the container does
-- **Technology** (MANDATORY) — e.g., `".NET (Core)"`, `"Node.Js"`, `"PostgreSQL"`, `"React"`, `"Azure Function"`
-- **Container type tag** (MANDATORY) — e.g., `"SERVICE"`, `"DATASET"`, `"APPLICATION"`, `"UI"`, `"ETL"`. Valid tags per the canonical reference.
-- **Repository URL** (OPTIONAL but encouraged) — the Git URL; enables downstream skills (`c4-document-system`, `c4-audit-system`, `c4-review`) to pull code
-- **Inbound relationships** (OPTIONAL) — other containers/systems/users that call THIS container
-- **Outbound relationships** (OPTIONAL) — other containers/systems this container calls
+- **Target software system** (required) — the name of the existing system to add the container to
+- **Container name** (required) — the human-readable display name. It **MUST begin with the parent software system's display name**, followed by a space and the component role. The variable is derived from this name. Examples: system `"Ticketing Platform"` → `"Ticketing Platform API"`, `"Ticketing Platform Database"`; system `"Salesforce CRM"` → `"Salesforce CRM Lightning"`, `"Salesforce CRM REST API"`. A bare role name (e.g. `"API"`, `"Lightning"`, `"Salesforce"`) is NOT valid — stop and ask the user to prefix it with the system name.
+- **Description** (required) — one line on what the container does
+- **Technology** (required) — e.g., `".NET (Core)"`, `"Node.Js"`, `"PostgreSQL"`, `"React"`, `"Azure Function"`
+- **Container type tag** (required) — e.g., `"SERVICE"`, `"DATASET"`, `"APPLICATION"`, `"UI"`, `"ETL"`. Valid tags per the canonical reference.
+- **Repository URL** (optional, encouraged) — the Git URL; enables downstream skills (`c4-document-system`, `c4-audit-system`, `c4-review`) to pull code
+- **Inbound relationships** (optional) — other containers/systems/users that call THIS container
+- **Outbound relationships** (optional) — other containers/systems this container calls
 
 For each relationship, capture: direction (inbound/outbound), other side's variable name, purpose, protocol (default `"JSON/HTTPS"` if unclear).
 
-If any MANDATORY field is missing or ambiguous, STOP and ask.
+If any required field is missing or ambiguous, stop and ask.
 
 ## Step 2: Locate and Validate the Target System
 
-1. **Find the parent software system** by grepping `<workspace-root>/<includes-dir>/groups/` for its variable name. If zero or multiple matches, STOP and ask the user to disambiguate.
+1. **Find the parent software system** by grepping `<workspace-root>/<includes-dir>/groups/` for its variable name. If zero or multiple matches, stop and ask the user to disambiguate.
 
 2. **Read the matching group DSL file** and locate the exact `softwareSystem<Name> = ... { ... }` block that owns the target system.
 
@@ -59,13 +59,13 @@ If any MANDATORY field is missing or ambiguous, STOP and ask.
 
 4. **Check for name collisions** — grep the group file to verify no existing `container<Name>` variable already has the same name inside this system.
 
-5. **Validate display-name prefix** — confirm the container's display name starts with the parent system's display name (case-sensitive, followed by a space). If not, STOP and ask the user to restate the name with the system prefix (e.g. `"Lightning"` → `"Salesforce CRM Lightning"`). This is how every existing container in the corpus is named, and it is required so container diagrams remain legible when a system has peers with similar role names.
+5. **Validate display-name prefix** — confirm the container's display name starts with the parent system's display name (case-sensitive, followed by a space). If not, stop and ask the user to restate the name with the system prefix (e.g. `"Lightning"` → `"Salesforce CRM Lightning"`). The prefix keeps container diagrams legible when several systems have containers with similar role names. If peers in the same system predate the rule and lack the prefix, still apply it to the new container and mention the older names in the summary.
 
-6. **Validate each referenced relationship target** — for every other-side variable the user mentioned, grep the workspace to confirm it exists (either as a `softwareSystem<X>` or `container<X>` variable). If ANY target can't be found, STOP and report the unresolved list.
+6. **Validate each referenced relationship target** — for every other-side variable the user mentioned, grep the workspace to confirm it exists (either as a `softwareSystem<X>` or `container<X>` variable). If ANY target can't be found, stop and report the unresolved list.
 
 ## Step 3: Present Summary and Ask for Confirmation
 
-**CRITICAL: NEVER make changes without user confirmation!**
+Do not edit anything until the user confirms. A wrong variable name or relationship target is cheap to fix here and expensive once views and deployments reference it.
 
 Present a clear summary:
 
@@ -147,7 +147,7 @@ After the edit, tell the user:
 
 1. What was changed (file + line numbers if possible).
 2. Suggest running `c4-validate-changes` to check the change against standards and peers.
-3. Suggest running `structurizr-mkdocs . --serve` to confirm the container renders in the site at `http://localhost:8000` (or the repo's own serve command if different).
+3. Suggest running `structurizr-mkdocs <workspace-root> --serve` to confirm the container renders in the site at `http://localhost:8000` (or the repo's own serve command if different).
 4. If a Repository URL was provided, point out that `c4-document-system` can now generate a `0001-technical.md` for this system.
 
 ## Important Notes
@@ -157,4 +157,4 @@ After the edit, tell the user:
 - **Do NOT touch the parent system's `0000-introduction.md`** — container-level docs go in `0001-technical.md` via the `c4-document-system` skill.
 - **Preserve indentation exactly** — match the style of existing containers in the same block.
 - **Relationship protocol defaults to `"JSON/HTTPS"`** if the user doesn't specify — but ask if unclear (e.g., DB container should be `"SQL"`).
-- **If the parent system does not exist**, STOP and recommend `c4-add-system` instead.
+- **If the parent system does not exist**, stop and recommend `c4-add-system` instead.
