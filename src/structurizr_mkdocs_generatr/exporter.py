@@ -38,7 +38,7 @@ def has_local_tools() -> bool:
 
 
 def _run(args: list[str], label: str) -> None:
-    print(f"  {label}...")
+    click.echo(f"  {label}...")
     try:
         result = subprocess.run(args, capture_output=True, text=True)
     except FileNotFoundError:
@@ -158,7 +158,7 @@ def render_diagrams(puml_dir: Path, svg_dir: Path) -> None:
 
     puml_files = list(puml_dir.glob("*.puml"))
     if not puml_files:
-        print("  No PlantUML files to render.")
+        click.echo("  No PlantUML files to render.")
         return
 
     label = f"Rendering {len(puml_files)} diagrams to SVG"
