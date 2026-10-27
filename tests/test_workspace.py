@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from structurizr_mkdocs_generatr.workspace import (
     Component,
     Container,
@@ -18,6 +20,7 @@ from structurizr_mkdocs_generatr.workspace import (
     name_sort_key,
     normalize_name,
     page_collisions,
+    parse_workspace,
     section_slug,
     section_title,
 )
@@ -399,3 +402,12 @@ class TestPageCollisions:
         problems = page_collisions(ws, ["Index"])
         assert len(problems) == 1
         assert "capability-map/index.md" in problems[0]
+
+
+def test_component_views_belong_to_the_system_of_their_container(tmp_path):
+    model = {"softwareSystems": [{"id": "1", "name": "Cash", "containers": [{"id": "2", "name": "Cash API"}]}]}
+    views = {"componentViews": [{"key": "ComponentCash", "containerId": "2"}]}
+    path = tmp_path / "workspace.json"
+    path.write_text(json.dumps({"name": "T", "model": model, "views": views}), encoding="utf-8")
+    ws = parse_workspace(path)
+    assert [v.key for v in ws.views_for_system("1")] == ["ComponentCash"]

@@ -498,7 +498,7 @@ def parse_workspace(workspace_json: Path) -> Workspace:
             if props:
                 element_styles[tag] = props
 
-    return Workspace(
+    workspace = Workspace(
         name=data.get("name", ""),
         description=data.get("description", ""),
         software_systems=software_systems,
@@ -509,6 +509,13 @@ def parse_workspace(workspace_json: Path) -> Workspace:
         view_properties=view_config.get("properties", {}),
         element_styles=element_styles,
     )
+    # Component views name only their container; attribute them to its system.
+    for view in workspace.views:
+        if view.container_id and not view.software_system_id:
+            owner = workspace.system_for_element_id(view.container_id)
+            if owner:
+                view.software_system_id = owner.id
+    return workspace
 
 
 def fold_accents(name: str) -> str:
