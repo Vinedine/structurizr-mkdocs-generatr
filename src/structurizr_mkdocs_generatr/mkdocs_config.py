@@ -265,7 +265,7 @@ def _systems_nav(workspace: Workspace) -> list:
             slug = normalize_name(ss.name)
             nav.append({ss.name: f"software-systems/{slug}/index.md"})
     else:
-        # No groups — flat list like before
+        # No groups - flat list like before
         for ss in sorted(workspace.software_systems, key=lambda s: name_sort_key(s.name)):
             slug = normalize_name(ss.name)
             nav.append({ss.name: f"software-systems/{slug}/index.md"})

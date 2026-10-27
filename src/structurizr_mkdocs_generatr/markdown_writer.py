@@ -520,11 +520,11 @@ def _write_infrastructure_pages(workspace: Workspace, docs_dir: Path) -> None:
                 zone_lines.append(f"{_diagram_embed(v, '../../diagrams/')}\n\n")
                 _write_file(env_dir / f"{zone_slug}.md", "".join(zone_lines))
         else:
-            # No zone-level views — description only
+            # No zone-level views - description only
             _write_file(env_dir / "index.md", "".join(env_lines))
 
 
-# Tags that are structural / implicit — not shown as badges
+# Tags that are structural / implicit - not shown as badges
 _HIDDEN_TAGS = {"Element", "Software System", "Person", "Container", "Component"}
 
 
@@ -826,7 +826,7 @@ def _promote_headings(content: str) -> str:
     Workspace docs written for the old generator start with ``## Title``;
     without an H1 MkDocs Material inserts the nav title above the content,
     duplicating the heading. Only applies when the first non-blank line is a
-    heading (the doc-title pattern) — docs opening with prose or admonitions
+    heading (the doc-title pattern) - docs opening with prose or admonitions
     are left alone. Anchor slugs derive from heading text only, so shifting
     levels keeps anchors stable.
     """

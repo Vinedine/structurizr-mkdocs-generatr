@@ -1,8 +1,8 @@
-// Diagram zoom modal — used by <object>-embedded SVG diagrams (PlantUML)
+// Diagram zoom modal - used by <object>-embedded SVG diagrams (PlantUML)
 // and client-side rendered Mermaid diagrams.
 // Toolbar: zoom out / percentage / zoom in / reset / close.
 // Zoom via buttons or Ctrl+wheel; pan by dragging, the scrollbars or arrow keys.
-// NOTE: runs at script evaluation, NOT on DOMContentLoaded — Material's
+// NOTE: runs at script evaluation, NOT on DOMContentLoaded - Material's
 // bundle detaches Mermaid blocks before DOMContentLoaded fires, so the
 // source must be stashed synchronously while the <pre> is still in the DOM.
 (function () {
@@ -205,7 +205,7 @@
 
     // Mermaid: re-render the stashed source into the modal.
     // Material renders diagrams into a *closed* shadow DOM, so the rendered
-    // SVG cannot be reached or cloned — but the same lazily loaded global
+    // SVG cannot be reached or cloned - but the same lazily loaded global
     // mermaid API can render a fresh copy from the original source text.
     var wrap = btn.closest(".mermaid-container");
     if (!wrap || !wrap.mermaidSource || !window.mermaid) return;

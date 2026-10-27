@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 class ViewType(StrEnum):
-    """Structurizr view types — used across workspace parsing and markdown generation."""
+    """Structurizr view types - used across workspace parsing and markdown generation."""
     SYSTEM_LANDSCAPE = "systemLandscape"
     SYSTEM_CONTEXT = "systemContext"
     CONTAINER = "container"
@@ -279,7 +279,7 @@ class Workspace:
     ) -> tuple[list[tuple[str, str, str, str]], list[tuple[str, str, str, str]]]:
         """Return (inbound, outbound) dependencies as (element_id, name, description, technology) tuples.
 
-        Deduplicates by source/target — shows system-level dependencies, not per-container.
+        Deduplicates by source/target - shows system-level dependencies, not per-container.
         Both directions list software systems only; persons are users, not dependencies.
         """
         my_ids = self._all_element_ids_for_system(system_id)
@@ -565,7 +565,7 @@ def section_title(section: Section) -> str:
     """Generate a human-readable title for a documentation section.
 
     Prefers the first heading in the content (what the reader sees on the
-    page), then the explicit section title, then a title-cased filename slug —
+    page), then the explicit section title, then a title-cased filename slug,
     so ``dt.md`` starting with ``## Directorate for Translation`` is titled
     "Directorate for Translation", not "Dt".
     """

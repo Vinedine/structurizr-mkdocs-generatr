@@ -22,11 +22,11 @@ from .workspace import (
 _LOCAL_STRUCTURIZR_CLI = Path("/opt/structurizr-cli/structurizr.sh")
 _LOCAL_PLANTUML_JAR = Path("/opt/plantuml.jar")
 
-# Pinned Docker image tags — bump deliberately after testing.
+# Pinned Docker image tags - bump deliberately after testing.
 # `:latest` has regressed validation behaviour (e.g. `structurizr/structurizr:2026.04.19`
 # tightened dynamic-view relationship checks and broke previously-valid DSL).
 # Structurizr image tags are date-based (YYYY.MM.DD) and independent of the CLI
-# version in the Dockerfile ARG — they cannot be kept in sync automatically.
+# version in the Dockerfile ARG - they cannot be kept in sync automatically.
 _STRUCTURIZR_IMAGE = "structurizr/structurizr:2026.03.06"
 _PLANTUML_IMAGE = "plantuml/plantuml:1.2026.2"
 
@@ -121,7 +121,7 @@ def _export_docker(
         "Exporting workspace JSON",
     )
 
-    # Copy JSON output to our build dir (copy, not move — Docker creates
+    # Copy JSON output to our build dir (copy, not move - Docker creates
     # root-owned files that cannot be unlinked by the runner user in CI)
     src_json_dir = workspace_dir / "output-json"
     shutil.copy2(src_json_dir / "workspace.json", json_dir / "workspace.json")

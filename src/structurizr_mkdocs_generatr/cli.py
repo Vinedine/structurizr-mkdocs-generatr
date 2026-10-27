@@ -85,6 +85,7 @@ def _step_build_site(
 
 
 @click.command()
+@click.version_option(package_name="structurizr-mkdocs-generatr")
 @click.argument("workspace_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option(
     "--workspace-file", "-w",
