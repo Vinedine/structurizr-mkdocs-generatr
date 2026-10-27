@@ -21,7 +21,7 @@ The workspace root is the first of these that exists:
 
 If none exists, ask the user. Under the root, the includes directory (`groups/`, `views/`, `deployments/`, `users.dsl`) is `workspace-includes/` or `workspace/`. The repo's conventions live in `CLAUDE.md` at its root, or `main.md` if present; read them, and where they differ from this skill, they win.
 
-Read the standards fresh each run rather than from memory: the conventions file, any guides under `docs/` (such as `howToValidateArchitecture.md`), and `boundedContext.mmd` if it exists. Note which files are generated and must not be hand-edited: anything with an `AUTO-GENERATED — DO NOT EDIT` header (such as `_auto_generated_views.dsl`) and whatever the conventions file lists.
+Read the standards fresh each run rather than from memory: the conventions file, any guides under `docs/` (such as `howToValidateArchitecture.md`), and `boundedContext.mmd` if it exists. Note which files are generated and must not be hand-edited: anything whose header says `AUTO-GENERATED` and `DO NOT EDIT` (such as `_auto_generated_views.dsl`) and whatever the conventions file lists.
 
 ## Step 1: Collect the change
 
@@ -60,7 +60,7 @@ For each new or changed container, find the existing containers with the same te
 **Baseline:** `<merge-base sha>` against the working tree: <N> committed, <M> uncommitted, <K> untracked
 
 ## Errors (must fix)
-- **[E001]** <finding> — `<file>:<line>` — Rule: <source>
+- **[E001]** <finding> (`<file>:<line>`). Rule: <source>
 
 ## Warnings (should fix)
 ## Info

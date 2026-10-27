@@ -19,14 +19,14 @@ The read/write skills all ask for confirmation before touching the DSL or docs.
 
 The skills are designed to feed each other. A common loop:
 
-1. **Intake** — `c4-add-system` creates the software system from a template.
-2. **Detail** — `c4-add-container` adds each container with its technology and `"Repository"` URL.
-3. **Ground truth** — `c4-document-system` pulls the latest source via the Repository URL and writes `0001-technical.md`.
-4. **Drift check** — `c4-audit-system` compares the documented entities against what the code actually manages/consumes.
-5. **Assess** — `c4-review` produces a Well-Architected report against the five Azure pillars.
-6. **Ship** — `c4-validate-changes` checks your branch against conventions and peers before the PR.
+1. **Intake**: `c4-add-system` creates the software system from a template.
+2. **Detail**: `c4-add-container` adds each container with its technology and `"Repository"` URL.
+3. **Ground truth**: `c4-document-system` pulls the latest source via the Repository URL and writes `0001-technical.md`.
+4. **Drift check**: `c4-audit-system` compares the documented entities against what the code actually manages/consumes.
+5. **Assess**: `c4-review` produces a Well-Architected report against the five Azure pillars.
+6. **Ship**: `c4-validate-changes` checks your branch against conventions and peers before the PR.
 
-The technical page produced in step 3 becomes the reference that downstream skills read — the output of one skill is the input for the next.
+The technical page produced in step 3 becomes the reference that downstream skills read: the output of one skill is the input for the next.
 
 ## Install
 
@@ -50,7 +50,7 @@ mkdir -p .claude/skills && cp -r /tmp/smg/.claude/skills/c4-* .claude/skills/
 rm -rf /tmp/smg
 ```
 
-After either install, open the repo in Claude Code and type `/c4` — the six skills appear in the picker.
+After either install, open the repo in Claude Code and type `/c4`: the six skills appear in the picker.
 
 If you're already inside this repo's clone, the skills are picked up automatically.
 
