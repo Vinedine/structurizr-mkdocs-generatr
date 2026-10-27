@@ -1,5 +1,7 @@
 # structurizr-mkdocs-generatr
 
+[![CI](https://github.com/Vinedine/structurizr-mkdocs-generatr/actions/workflows/ci.yml/badge.svg)](https://github.com/Vinedine/structurizr-mkdocs-generatr/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/Vinedine/structurizr-mkdocs-generatr)](https://github.com/Vinedine/structurizr-mkdocs-generatr/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 **Architecture documentation shouldn't be a side project. It should be a side effect.**
 
 A control center for architecture-as-code: a Python CLI that generates a browsable MkDocs Material site from a Structurizr DSL workspace, plus a set of [Claude Code](https://claude.com/claude-code) skills that turn the same repo into an AI-assisted architecture workbench. C4 on the outside, Claude Code on the inside.
@@ -95,7 +97,9 @@ workspace.dsl
 
 ## Versioning
 
-Releases follow [semantic versioning](https://semver.org/) and are published as Docker images tagged `X.Y.Z`, `X.Y`, and `latest`. Pin `X.Y` in CI to get fixes without surprises; see the [releases](https://github.com/Vinedine/structurizr-mkdocs-generatr/releases) for what changed.
+Stable since 1.0.0. Releases follow [semantic versioning](https://semver.org/): the CLI options, the `mkdocs.*` properties and the URL layout of the generated site change incompatibly only in a new major version. The bundled skills are versioned with the repo.
+
+Docker images are tagged `X.Y.Z`, `X.Y`, `X`, and `latest`. Pin `X` in CI to get fixes and new features without breaking changes, or `X.Y` for fixes only. See the [releases](https://github.com/Vinedine/structurizr-mkdocs-generatr/releases) for what changed.
 
 ## Contributing
 

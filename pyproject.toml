@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "structurizr-mkdocs-generatr"
-version = "0.1.4"
+version = "1.0.0"
 description = "Generate MkDocs Material sites from Structurizr DSL workspaces"
 readme = "README.md"
 license = "MIT"
@@ -17,15 +17,16 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Documentation",
     "Topic :: Software Development :: Documentation",
 ]
 dependencies = [
     "click>=8.0",
-    "mkdocs>=1.6",
-    "mkdocs-material>=9.0",
+    "mkdocs>=1.6,<2",
+    "mkdocs-material>=9.0,<10",
     "pyyaml>=6.0",
-    "mkdocs-glightbox>=0.4",
+    "mkdocs-glightbox>=0.4,<1",
 ]
 
 [project.urls]
