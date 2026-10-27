@@ -35,7 +35,7 @@ Find each repository's code in this order:
 2. **A Git-host MCP** for that host (`mcp__ado__*` for Azure DevOps, a GitHub MCP for GitHub), if one is connected.
 3. **Ask the user** where the code is.
 
-Analyze each repository in its own Explore subagent, all started in the same turn, so code doesn't flood the main context.
+Analyze each repository in its own general-purpose subagent, all started in the same turn, so code doesn't flood the main context. Not Explore: it reads excerpts, and the page needs every endpoint and table.
 
 Ask each subagent for: the runtime and key library versions, read from the manifest (`*.csproj`, `package.json`, `pyproject.toml`, `pom.xml`, `go.mod`), never inferred; authentication and authorization (provider, token type, how identity flows between layers, the authorization model, CORS, the classes and config sections involved); every endpoint with method, route, and purpose; tables with key columns and relationships; external integrations and their protocols; scheduled and background jobs; notable patterns. For a large codebase, endpoints, storage, and auth come first.
 

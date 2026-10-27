@@ -39,7 +39,7 @@ Find each repository's code in this order:
 2. **A Git-host MCP** for that host (`mcp__ado__*` for Azure DevOps, a GitHub MCP for GitHub), if one is connected.
 3. **Ask the user** where the code is.
 
-Analyze each repository in its own Explore subagent, all started in the same turn, so code doesn't flood the main context.
+Analyze each repository in its own general-purpose subagent, all started in the same turn, so code doesn't flood the main context. Not Explore: it reads excerpts, and the audit needs every entity.
 
 Look for the entities the code owns or reads: ORM models and migrations, controllers and routes, HTTP clients, shared domain libraries, OpenAPI specs. Classify each:
 
