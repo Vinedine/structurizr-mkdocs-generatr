@@ -1,7 +1,5 @@
 # structurizr-mkdocs-generatr
 
-> Early POC. Breaking changes likely. Pin a Docker image tag if you depend on it.
-
 **Architecture documentation shouldn't be a side project. It should be a side effect.**
 
 A control center for architecture-as-code: a Python CLI that generates a browsable MkDocs Material site from a Structurizr DSL workspace, plus a set of [Claude Code](https://claude.com/claude-code) skills that turn the same repo into an AI-assisted architecture workbench. C4 on the outside, Claude Code on the inside.
@@ -42,7 +40,7 @@ For development or running without Docker: clone the repo and `pip install -e .`
 
 ## Install the skills
 
-The Docker image runs the generator. The skills are separate files Claude Code reads from disk, so you need them on your machine too -- own it openly:
+The Docker image runs the generator. The skills are separate files Claude Code reads from disk, so you need them on your machine too:
 
 ```bash
 # Global install (recommended): available in every Claude Code session
@@ -95,6 +93,10 @@ workspace.dsl
   -> [mkdocs build]             Static site
 ```
 
+## Versioning
+
+Releases follow [semantic versioning](https://semver.org/) and are published as Docker images tagged `X.Y.Z`, `X.Y`, and `latest`. Pin `X.Y` in CI to get fixes without surprises; see the [releases](https://github.com/Vinedine/structurizr-mkdocs-generatr/releases) for what changed.
+
 ## Contributing
 
 Contributions welcome. Open an issue first to discuss.
@@ -102,7 +104,8 @@ Contributions welcome. Open an issue first to discuss.
 ```bash
 git clone https://github.com/Vinedine/structurizr-mkdocs-generatr.git
 cd structurizr-mkdocs-generatr
-pip install -e .
+pip install -e ".[dev]"
+ruff check .
 pytest
 ```
 

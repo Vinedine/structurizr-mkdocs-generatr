@@ -26,7 +26,6 @@ from .workspace import (
     VIEW_IMAGE,
     VIEW_SYSTEM_CONTEXT,
     Decision,
-    Documentation,
     Section,
     SoftwareSystem,
     Workspace,

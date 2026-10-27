@@ -11,7 +11,7 @@ license = "MIT"
 requires-python = ">=3.11"
 authors = []
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
@@ -27,6 +27,11 @@ dependencies = [
     "pyyaml>=6.0",
     "mkdocs-glightbox>=0.4",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Vinedine/structurizr-mkdocs-generatr"
+Demo = "https://belfoot.trotstar.tech"
+Issues = "https://github.com/Vinedine/structurizr-mkdocs-generatr/issues"
 
 [project.scripts]
 structurizr-mkdocs = "structurizr_mkdocs_generatr.cli:main"
@@ -47,3 +52,7 @@ exclude = ["build/", "example/"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# Inline DSL, Markdown, and Mermaid fixtures read better unwrapped.
+"tests/*" = ["E501"]
